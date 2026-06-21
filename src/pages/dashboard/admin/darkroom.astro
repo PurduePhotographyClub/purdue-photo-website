@@ -1,0 +1,10 @@
+---
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import AdminDarkroom from '@/components/dashboard/admin/AdminDarkroom';
+export const prerender = false;
+---
+
+<DashboardLayout title="Darkroom — Admin">
+  <h1 class="text-sm tracking-[0.2em] uppercase text-neutral-400 mb-8">Manage Darkroom</h1>
+  <AdminDarkroom client:load />
+</DashboardLayout>

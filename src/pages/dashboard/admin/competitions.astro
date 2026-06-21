@@ -1,0 +1,10 @@
+---
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import AdminCompetitions from '@/components/dashboard/admin/AdminCompetitions';
+export const prerender = false;
+---
+
+<DashboardLayout title="Competitions — Admin">
+  <h1 class="text-sm tracking-[0.2em] uppercase text-neutral-400 mb-8">Manage Competitions</h1>
+  <AdminCompetitions client:load />
+</DashboardLayout>

@@ -1,0 +1,16 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import AccountVerificationGate from '../../components/dashboard/AccountVerificationGate';
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+
+if (user.discordId) {
+  return Astro.redirect('/dashboard');
+}
+---
+
+<DashboardLayout title="Verify Discord — Dashboard">
+  <AccountVerificationGate client:load name={user.name} />
+</DashboardLayout>

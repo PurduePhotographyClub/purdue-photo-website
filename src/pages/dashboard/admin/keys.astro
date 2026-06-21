@@ -1,0 +1,10 @@
+---
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import AdminKeys from '@/components/dashboard/admin/AdminKeys';
+export const prerender = false;
+---
+
+<DashboardLayout title="Activation Keys — Admin">
+  <h1 class="text-sm tracking-[0.2em] uppercase text-neutral-400 mb-8">Activation Keys</h1>
+  <AdminKeys client:load />
+</DashboardLayout>

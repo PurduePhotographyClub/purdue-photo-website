@@ -1,0 +1,30 @@
+---
+import Layout from '../layouts/Layout.astro';
+import RegisterForm from '../components/dashboard/RegisterForm';
+import { env } from 'cloudflare:workers';
+
+export const prerender = false;
+
+if (Astro.locals.user) {
+  return Astro.redirect('/dashboard');
+}
+
+const turnstileSiteKey = env.TURNSTILE_SITE_KEY?.trim() ?? '';
+---
+
+<Layout title="Register — Purdue Photography Club">
+  <div class="min-h-[80vh] flex items-center justify-center px-4">
+    <div class="w-full max-w-md mb-8 mt-8">
+      <div class="text-center mb-8">
+        <h1 class="text-2xl tracking-[0.1em] uppercase text-neutral-100 mb-2" style="font-family: 'Playfair Display', serif;">
+          Create Account
+        </h1>
+        <p class="text-xs tracking-wider text-neutral-500">
+          Register to access member resources. You'll need an activation key to unlock full membership.
+        </p>
+      </div>
+
+      <RegisterForm client:load turnstileSiteKey={turnstileSiteKey} />
+    </div>
+  </div>
+</Layout>

@@ -1,0 +1,10 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import NotificationCenter from '../../components/dashboard/NotificationCenter';
+
+export const prerender = false;
+---
+
+<DashboardLayout title="Notifications — Dashboard">
+  <NotificationCenter client:load />
+</DashboardLayout>

@@ -1,0 +1,19 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import CompetitionsDashboard from '../../components/dashboard/CompetitionsDashboard';
+
+export const prerender = false;
+---
+
+<DashboardLayout title="Competitions — Dashboard">
+  <div>
+    <h1 class="text-xl tracking-[0.1em] uppercase text-neutral-100 mb-1" style="font-family: 'Playfair Display', serif;">
+      Competitions
+    </h1>
+    <p class="text-xs tracking-wider text-neutral-500 mb-8">
+      View open competitions and submit through Discord.
+    </p>
+
+    <CompetitionsDashboard client:load />
+  </div>
+</DashboardLayout>

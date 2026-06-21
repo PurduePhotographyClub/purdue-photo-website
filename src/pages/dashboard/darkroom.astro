@@ -1,0 +1,21 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import DarkroomManager from '../../components/dashboard/DarkroomManager';
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+---
+
+<DashboardLayout title="Darkroom — Dashboard">
+  <div>
+    <h1 class="text-xl tracking-[0.1em] uppercase text-neutral-100 mb-1" style="font-family: 'Playfair Display', serif;">
+      Darkroom
+    </h1>
+    <p class="text-xs tracking-wider text-neutral-500 mb-8">
+      Film development stats and logging.
+    </p>
+
+    <DarkroomManager client:load userRole={user.role || 'member'} userTier={user.tier} />
+  </div>
+</DashboardLayout>

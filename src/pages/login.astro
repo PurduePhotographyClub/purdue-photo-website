@@ -1,0 +1,28 @@
+---
+import Layout from '../layouts/Layout.astro';
+import LoginForm from '../components/dashboard/LoginForm';
+
+export const prerender = false;
+
+// If already logged in, redirect to dashboard
+if (Astro.locals.user) {
+  return Astro.redirect('/dashboard');
+}
+---
+
+<Layout title="Sign In — Purdue Photography Club">
+  <div class="min-h-[80vh] flex items-center justify-center px-4 py-12 pb-24 md:py-16 md:pb-28">
+    <div class="w-full max-w-md">
+      <div class="text-center mb-8">
+        <h1 class="text-2xl tracking-[0.1em] uppercase text-neutral-100 mb-2" style="font-family: 'Playfair Display', serif;">
+          Member Sign In
+        </h1>
+        <p class="text-xs tracking-wider text-neutral-500">
+          Access your dashboard, gallery, and member resources.
+        </p>
+      </div>
+
+      <LoginForm client:load />
+    </div>
+  </div>
+</Layout>

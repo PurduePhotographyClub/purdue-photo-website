@@ -1,0 +1,22 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import GalleryManager from '../../components/dashboard/GalleryManager';
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+const canUpload = user.role === 'admin' || user.role === 'officer' || !!user.tier;
+---
+
+<DashboardLayout title="Gallery — Dashboard">
+  <div>
+    <h1 class="text-xl tracking-[0.1em] uppercase text-neutral-100 mb-1" style="font-family: 'Playfair Display', serif;">
+      Gallery
+    </h1>
+    <p class="text-xs tracking-wider text-neutral-500 mb-8">
+      {canUpload ? 'Upload and manage your photos.' : 'Manage your previous submissions.'}
+    </p>
+
+    <GalleryManager client:load userRole={user.role || 'user'} userTier={user.tier || null} />
+  </div>
+</DashboardLayout>

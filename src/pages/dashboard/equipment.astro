@@ -1,0 +1,21 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import EquipmentDashboard from '../../components/dashboard/EquipmentDashboard';
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+---
+
+<DashboardLayout title="Equipment — Dashboard">
+  <div>
+    <h1 class="text-xl tracking-[0.1em] uppercase text-neutral-100 mb-1" style="font-family: 'Playfair Display', serif;">
+      Equipment
+    </h1>
+    <p class="text-xs tracking-wider text-neutral-500 mb-8">
+      Browse PPC club equipment, request available gear, and manage your loans.
+    </p>
+
+    <EquipmentDashboard client:load userRole={user.role || 'user'} userTier={user.tier || null} userId={user.id} />
+  </div>
+</DashboardLayout>

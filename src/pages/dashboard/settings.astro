@@ -1,0 +1,36 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import SettingsPanel from '../../components/dashboard/SettingsPanel';
+
+export const prerender = false;
+
+const currentUser = Astro.locals.user!;
+const settingsUser = {
+  id: currentUser.id,
+  name: currentUser.name,
+  email: currentUser.email,
+  role: currentUser.role,
+  tier: currentUser.tier,
+  membershipExpiresAt: currentUser.membershipExpiresAt
+    ? new Date(currentUser.membershipExpiresAt).toISOString()
+    : null,
+  discordId: currentUser.discordId,
+  createdAt: currentUser.createdAt
+    ? new Date(currentUser.createdAt).toISOString()
+    : null,
+  twoFactorEnabled: currentUser.twoFactorEnabled,
+};
+---
+
+<DashboardLayout title="Settings — Purdue Photography Club">
+  <div>
+    <h1 class="text-xl tracking-[0.1em] uppercase text-neutral-100 mb-1" style="font-family: 'Playfair Display', serif;">
+      Account Settings
+    </h1>
+    <p class="text-xs tracking-wider text-neutral-500 mb-8">
+      Manage your account security and preferences.
+    </p>
+
+    <SettingsPanel client:load initialUser={settingsUser} />
+  </div>
+</DashboardLayout>

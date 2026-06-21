@@ -1,0 +1,11 @@
+---
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import AdminStudio from '@/components/dashboard/admin/AdminStudio';
+
+export const prerender = false;
+---
+
+<DashboardLayout title="Studio — Admin">
+  <h1 class="text-sm tracking-[0.2em] uppercase text-neutral-400 mb-8">Manage Studio</h1>
+  <AdminStudio client:load />
+</DashboardLayout>

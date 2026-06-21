@@ -1,0 +1,18 @@
+---
+import ErrorPage from './ErrorPage.astro';
+
+export const prerender = false;
+
+Astro.response.status = 401;
+---
+
+<ErrorPage
+  code="401"
+  title="Authentication required"
+  heading="This frame requires a key."
+  message="You need to be signed in to view this page. Please log in and try again."
+  primaryLabel="Sign In"
+  primaryHref="/login"
+  secondaryLabel="Back to Home"
+  secondaryHref="/"
+/>

@@ -1,0 +1,10 @@
+---
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import AdminMerch from '@/components/dashboard/admin/AdminMerch';
+export const prerender = false;
+---
+
+<DashboardLayout title="Merch — Admin">
+  <h1 class="mb-8 text-sm uppercase tracking-[0.2em] text-neutral-400">Manage Merch</h1>
+  <AdminMerch client:load />
+</DashboardLayout>

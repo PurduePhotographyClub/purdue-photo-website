@@ -1,0 +1,23 @@
+---
+import Layout from '../layouts/Layout.astro';
+import TwoFactorForm from '../components/dashboard/TwoFactorForm';
+
+export const prerender = false;
+---
+
+<Layout title="Two-Factor Authentication — Purdue Photography Club">
+  <div class="min-h-[80vh] flex items-center justify-center px-4">
+    <div class="w-full max-w-md">
+      <div class="text-center mb-8">
+        <h1 class="text-2xl tracking-[0.1em] uppercase text-neutral-100 mb-2" style="font-family: 'Playfair Display', serif;">
+          Two-Factor Authentication
+        </h1>
+        <p class="text-xs tracking-wider text-neutral-500">
+          Enter the verification code from your authenticator app.
+        </p>
+      </div>
+
+      <TwoFactorForm client:load />
+    </div>
+  </div>
+</Layout>

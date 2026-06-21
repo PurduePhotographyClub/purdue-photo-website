@@ -1,0 +1,10 @@
+---
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import AdminNewsletter from '@/components/dashboard/admin/AdminNewsletter';
+export const prerender = false;
+---
+
+<DashboardLayout title="Newsletter — Admin">
+  <h1 class="text-sm tracking-[0.2em] uppercase text-neutral-400 mb-8">Newsletter Subscribers</h1>
+  <AdminNewsletter client:load />
+</DashboardLayout>

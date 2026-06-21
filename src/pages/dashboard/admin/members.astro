@@ -1,0 +1,10 @@
+---
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import AdminMembers from '@/components/dashboard/admin/AdminMembers';
+export const prerender = false;
+---
+
+<DashboardLayout title="Members — Admin">
+  <h1 class="text-sm tracking-[0.2em] uppercase text-neutral-400 mb-8">Manage Members</h1>
+  <AdminMembers client:load />
+</DashboardLayout>

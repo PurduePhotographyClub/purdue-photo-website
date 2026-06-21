@@ -1,0 +1,145 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import DarkroomOverview from '../../components/dashboard/DarkroomOverview';
+import DashboardHomePanels from '../../components/dashboard/DashboardHomePanels';
+import {
+  ArrowRight,
+  BadgeCheck,
+  Film,
+  Link as LinkIcon,
+  ShieldCheck,
+} from 'lucide-react';
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+const isPrivileged = user.role === 'admin' || user.role === 'officer';
+const isAccountVerified = !!user.discordId;
+const isActivated = !!user.activatedAt || !!user.tier || isPrivileged;
+const canUpgrade = user.tier === 'member' && !isPrivileged;
+const firstName = user.name?.trim().split(/\s+/)[0] || 'there';
+
+const dateFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+});
+
+const roleLabels: Record<typeof user.role, string> = {
+  admin: 'Admin',
+  officer: 'Officer',
+  user: 'Member',
+};
+
+const tierLabels: Record<NonNullable<typeof user.tier>, string> = {
+  member: 'General member',
+  facilities: 'Facilities member',
+};
+
+const roleLabel = roleLabels[user.role] ?? 'Member';
+const membershipExpiresAt = user.membershipExpiresAt ? new Date(user.membershipExpiresAt) : null;
+const hasMembershipExpiry = membershipExpiresAt !== null && !Number.isNaN(membershipExpiresAt.getTime());
+const membershipExpiryLabel = hasMembershipExpiry ? dateFormatter.format(membershipExpiresAt) : null;
+const tierLabel = user.tier ? tierLabels[user.tier] : isPrivileged ? roleLabel : 'Not active';
+
+const statusCards = [
+  {
+    label: 'Role',
+    value: tierLabel,
+    detail: membershipExpiryLabel
+      ? `Active until ${membershipExpiryLabel}`
+      : isActivated
+        ? 'Club tools are unlocked'
+        : 'No member role assigned yet',
+    tone: isActivated
+      ? 'text-emerald-300'
+      : 'text-amber-300',
+    accent: isActivated ? 'bg-emerald-400/70' : 'bg-amber-400/70',
+    action: canUpgrade
+      ? { href: '/membership', label: 'Upgrade access', tone: 'border-emerald-800/60 text-emerald-200 hover:border-emerald-700' }
+      : isActivated
+        ? { href: '/dashboard/settings', label: 'View account', tone: 'border-neutral-800 text-neutral-300 hover:border-neutral-600' }
+        : { href: '/membership', label: 'Get membership', tone: 'border-amber-800/60 text-amber-200 hover:border-amber-700' },
+    icon: 'role',
+  },
+  {
+    label: 'Discord',
+    value: isAccountVerified ? 'Linked' : 'Needs link',
+    detail: isAccountVerified ? 'Server verification is complete' : 'Verify before using member tools',
+    tone: isAccountVerified
+      ? 'text-indigo-300'
+      : 'text-amber-300',
+    accent: isAccountVerified ? 'bg-indigo-400/70' : 'bg-amber-400/70',
+    action: isAccountVerified
+      ? { href: '/dashboard/settings', label: 'Manage link', tone: 'border-neutral-800 text-neutral-300 hover:border-neutral-600' }
+      : { href: '/dashboard/verify', label: 'Verify Discord', tone: 'border-amber-800/60 text-amber-200 hover:border-amber-700' },
+    icon: 'discord',
+  },
+  {
+    label: 'Security',
+    value: user.twoFactorEnabled ? '2FA on' : '2FA off',
+    detail: user.twoFactorEnabled ? 'Extra sign-in protection enabled' : 'Extra sign-in protection is available',
+    tone: user.twoFactorEnabled
+      ? 'text-cyan-300'
+      : 'text-neutral-400',
+    accent: user.twoFactorEnabled ? 'bg-cyan-400/70' : 'bg-neutral-700',
+    action: user.twoFactorEnabled
+      ? { href: '/dashboard/settings', label: 'Manage 2FA', tone: 'border-neutral-800 text-neutral-300 hover:border-neutral-600' }
+      : { href: '/dashboard/settings', label: 'Enable 2FA', tone: 'border-cyan-800/60 text-cyan-200 hover:border-cyan-700' },
+    icon: 'security',
+  },
+];
+---
+
+<DashboardLayout title="Dashboard — Purdue Photography Club">
+  <div class="space-y-10">
+    <section class="max-w-4xl">
+      <p class="mb-4 text-[10px] uppercase tracking-[0.35em] text-neutral-600">PPC dashboard</p>
+      <h1 class="text-3xl uppercase tracking-[0.08em] text-neutral-100 sm:text-4xl" style="font-family: 'Playfair Display', serif;">
+        Welcome back, {firstName}
+      </h1>
+      <p class="mt-5 max-w-2xl text-sm leading-7 tracking-wider text-neutral-500">
+        Your access, account health, announcements, and recent club activity in one quieter place.
+      </p>
+    </section>
+
+    <section class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      {statusCards.map((card) => (
+        <div class="group relative border border-neutral-800/80 bg-white/[0.015] p-4 transition-colors hover:border-neutral-700 hover:bg-white/[0.03] sm:p-5">
+          <span class={`absolute inset-x-0 top-0 h-px ${card.accent}`}></span>
+          <div class="mb-7 flex items-center justify-between gap-3">
+            <p class="text-[9px] uppercase tracking-[0.3em] text-neutral-600">{card.label}</p>
+            <span class={`transition-colors group-hover:text-neutral-200 ${card.tone}`}>
+              {card.icon === 'role' && <BadgeCheck className="h-4 w-4" aria-hidden="true" />}
+              {card.icon === 'discord' && <LinkIcon className="h-4 w-4" aria-hidden="true" />}
+              {card.icon === 'security' && <ShieldCheck className="h-4 w-4" aria-hidden="true" />}
+            </span>
+          </div>
+          <p class="text-lg text-neutral-100">{card.value}</p>
+          <p class="mt-2 min-h-10 text-[10px] leading-5 tracking-wider text-neutral-600">{card.detail}</p>
+          <a href={card.action.href} class={`mt-4 inline-flex items-center gap-2 border px-3 py-2 text-[10px] uppercase tracking-[0.16em] transition-colors ${card.action.tone}`}>
+            {card.action.label}
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </a>
+        </div>
+      ))}
+    </section>
+
+    <DashboardHomePanels client:load />
+
+    <section class="pt-2">
+      <div class="mb-4 border border-neutral-800/80 bg-white/[0.02] px-4 py-4">
+        <div class="flex items-end justify-between gap-4">
+          <div>
+            <p class="text-[9px] uppercase tracking-[0.3em] text-neutral-600">Darkroom pulse</p>
+            <h2 class="mt-2 text-lg tracking-[0.08em] text-neutral-100" style="font-family: 'Playfair Display', serif;">Recent film activity</h2>
+          </div>
+          <span class="hidden text-neutral-600 sm:block">
+            <Film className="h-4 w-4" aria-hidden="true" />
+          </span>
+        </div>
+      </div>
+      <DarkroomOverview client:load />
+    </section>
+  </div>
+</DashboardLayout>

@@ -1,0 +1,10 @@
+---
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import AdminEquipment from '@/components/dashboard/admin/AdminEquipment';
+export const prerender = false;
+---
+
+<DashboardLayout title="Equipment — Admin">
+  <h1 class="text-sm tracking-[0.2em] uppercase text-neutral-400 mb-8">Manage Equipment</h1>
+  <AdminEquipment client:load />
+</DashboardLayout>

@@ -1,0 +1,18 @@
+---
+import ErrorPage from './ErrorPage.astro';
+
+export const prerender = false;
+
+Astro.response.status = 500;
+---
+
+<ErrorPage
+  code="500"
+  title="Something went wrong"
+  heading="The darkroom caught fire."
+  message="An unexpected error occurred on our end. We're working on it — please try again in a moment."
+  primaryLabel="Try Again"
+  primaryHref="javascript:history.back()"
+  secondaryLabel="Back to Home"
+  secondaryHref="/"
+/>

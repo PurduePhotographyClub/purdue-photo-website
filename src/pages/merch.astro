@@ -1,0 +1,10 @@
+---
+import Layout from '../layouts/Layout.astro';
+import MerchPage from '../components/Merch';
+
+export const prerender = false;
+---
+
+<Layout title="Prints & Film | Purdue Photography Club">
+  <MerchPage client:load />
+</Layout>

@@ -1,0 +1,10 @@
+---
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import AdminLeadership from '@/components/dashboard/admin/AdminLeadership';
+export const prerender = false;
+---
+
+<DashboardLayout title="Leadership — Admin">
+  <h1 class="text-sm tracking-[0.2em] uppercase text-neutral-400 mb-8">Manage Leadership</h1>
+  <AdminLeadership client:load />
+</DashboardLayout>

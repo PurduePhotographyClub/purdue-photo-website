@@ -1,0 +1,21 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import StudioManager from '../../components/dashboard/StudioManager';
+
+export const prerender = false;
+
+const user = Astro.locals.user!;
+---
+
+<DashboardLayout title="Studio — Dashboard">
+  <div>
+    <h1 class="text-xl tracking-[0.1em] uppercase text-neutral-100 mb-1" style="font-family: 'Playfair Display', serif;">
+      Studio
+    </h1>
+    <p class="text-xs tracking-wider text-neutral-500 mb-8">
+      Request one-hour studio reservations.
+    </p>
+
+    <StudioManager client:load userRole={user.role || 'member'} userTier={user.tier} />
+  </div>
+</DashboardLayout>

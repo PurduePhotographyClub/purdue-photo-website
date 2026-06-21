@@ -1,0 +1,115 @@
+@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';
+
+/* Dashboard dark-mode contrast floor */
+.dashboard-shell {
+  color-scheme: dark;
+  --dashboard-surface: rgba(255, 255, 255, 0.055);
+  --dashboard-surface-strong: rgba(255, 255, 255, 0.08);
+  --dashboard-border: rgba(255, 255, 255, 0.18);
+  --dashboard-border-strong: rgba(255, 255, 255, 0.26);
+  --dashboard-text-primary: #fafafa;
+  --dashboard-text-secondary: #d4d4d4;
+  --dashboard-text-muted: #c4c4c4;
+  --dashboard-text-subtle: #a8a8a8;
+}
+
+.dashboard-shell [class~="text-neutral-300"],
+.dashboard-shell [class~="text-neutral-400"],
+.dashboard-shell [class~="text-neutral-500"] {
+  color: var(--dashboard-text-secondary);
+}
+
+.dashboard-shell [class~="text-neutral-600"] {
+  color: var(--dashboard-text-muted);
+}
+
+.dashboard-shell [class~="text-neutral-700"],
+.dashboard-shell [class~="text-neutral-800"] {
+  color: var(--dashboard-text-subtle);
+}
+
+.dashboard-shell [class~="placeholder-neutral-600"]::placeholder,
+.dashboard-shell [class~="placeholder:text-neutral-700"]::placeholder {
+  color: var(--dashboard-text-subtle);
+  opacity: 1;
+}
+
+.dashboard-shell input,
+.dashboard-shell select,
+.dashboard-shell textarea {
+  color-scheme: dark;
+}
+
+.dashboard-shell input[type='file'] {
+  color: var(--dashboard-text-secondary);
+  max-width: 100%;
+}
+
+.dashboard-shell input[type='file']::file-selector-button {
+  margin-right: 1rem;
+  border: 1px solid var(--dashboard-border-strong);
+  background: var(--dashboard-surface-strong);
+  color: var(--dashboard-text-primary);
+  cursor: pointer;
+}
+
+.dashboard-shell input[type='file']:hover::file-selector-button {
+  border-color: rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.dashboard-shell [class~="bg-white/[0.01]"],
+.dashboard-shell [class~="bg-white/[0.015]"],
+.dashboard-shell [class~="bg-white/[0.02]"],
+.dashboard-shell [class~="bg-white/[0.025]"] {
+  background-color: var(--dashboard-surface);
+}
+
+.dashboard-shell [class~="bg-white/[0.03]"],
+.dashboard-shell [class~="bg-white/[0.035]"],
+.dashboard-shell [class~="bg-white/[0.04]"],
+.dashboard-shell [class~="bg-white/[0.05]"] {
+  background-color: var(--dashboard-surface-strong);
+}
+
+.dashboard-shell [class~="bg-black/20"] {
+  background-color: var(--dashboard-surface);
+}
+
+.dashboard-shell [class~="bg-black/40"] {
+  background-color: var(--dashboard-surface-strong);
+}
+
+.dashboard-shell [class~="border-neutral-900"],
+.dashboard-shell [class~="border-neutral-800"],
+.dashboard-shell [class~="border-neutral-800/80"] {
+  border-color: var(--dashboard-border);
+}
+
+.dashboard-shell [class~="border-neutral-700"],
+.dashboard-shell [class~="border-neutral-600"],
+.dashboard-shell [class~="focus:border-neutral-600"]:focus {
+  border-color: var(--dashboard-border-strong);
+}
+
+/* Global Scrollbar (Lens Filter Style) */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+}
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.18);
+}

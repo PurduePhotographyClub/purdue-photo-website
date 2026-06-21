@@ -1,0 +1,18 @@
+---
+import ErrorPage from './ErrorPage.astro';
+
+export const prerender = false;
+
+Astro.response.status = 403;
+---
+
+<ErrorPage
+  code="403"
+  title="Access denied"
+  heading="You're outside the frame."
+  message="You don't have permission to view this page. If you think this is a mistake, contact a club officer."
+  primaryLabel="Go to Dashboard"
+  primaryHref="/dashboard"
+  secondaryLabel="Back to Home"
+  secondaryHref="/"
+/>

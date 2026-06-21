@@ -1,0 +1,79 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.yarn/
+.npm/
+
+# Build output
+.next/
+out/
+dist/
+build/
+.turbo/
+.vercel/
+.astro/
+
+# Cloudflare / local runtime state
+.wrangler/
+.dev.vars
+.dev.vars.*
+.miniflare/
+
+# Private backend API code lives in ../api.
+src/pages/api/
+!src/pages/api/
+!src/pages/api/[...path].ts
+
+# Environment variables
+.env
+.env.*
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Testing / coverage
+coverage/
+.nyc_output/
+.unlighthouse/
+
+# Caches
+.cache/
+.parcel-cache/
+.eslintcache
+*.tsbuildinfo
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local databases
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+*.sqlite-shm
+*.sqlite-wal
+
+# Secrets / keys / certificates
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+id_rsa
+id_rsa.pub
+secrets/
+
+# Archives / packaged exports
+*.zip
+*.tar
+*.tar.gz
+*.tgz

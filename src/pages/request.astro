@@ -1,0 +1,13 @@
+---
+import Layout from '../layouts/Layout.astro';
+import RequestPhotographer from '../components/RequestPhotographer';
+import { env } from 'cloudflare:workers';
+
+export const prerender = false;
+
+const turnstileSiteKey = env.TURNSTILE_SITE_KEY?.trim() ?? '';
+---
+
+<Layout title="Request a Photographer | Purdue Photography Club">
+  <RequestPhotographer client:load turnstileSiteKey={turnstileSiteKey} />
+</Layout>
