@@ -8,6 +8,22 @@
     "enabled": true,
     "head_sampling_rate": 0.1
   },
+  "routes": [
+    {
+      "pattern": "purduephotoclub.org",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.purduephotoclub.org",
+      "custom_domain": true
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "SESSION",
+      "id": "29f2856edaec46a08c43f0d5f381f453"
+    }
+  ],
   "services": [
     {
       "binding": "API_WORKER",

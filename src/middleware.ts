@@ -14,11 +14,34 @@ const SESSION_AWARE_PATHS = new Set([
   "/register",
 ]);
 
+const SECURITY_HEADERS = new Map([
+  ["Content-Security-Policy", [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "frame-ancestors 'none'",
+    "form-action 'self'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    "style-src 'self' 'unsafe-inline'",
+    "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
+    "connect-src 'self' https://challenges.cloudflare.com",
+    "frame-src https://challenges.cloudflare.com",
+    "worker-src 'self' blob:",
+    "upgrade-insecure-requests",
+  ].join("; ")],
+  ["Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()"],
+  ["Referrer-Policy", "strict-origin-when-cross-origin"],
+  ["Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload"],
+  ["X-Content-Type-Options", "nosniff"],
+  ["X-Frame-Options", "DENY"],
+]);
+
 export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = context.url;
 
   if (pathname.startsWith("/_astro/") || pathname.startsWith("/favicon")) {
-    return next();
+    return withSecurityHeaders(await next());
   }
 
   const { user, session } = shouldResolveSession(pathname)
@@ -29,13 +52,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   if (user?.suspendedUntil && new Date(user.suspendedUntil) > new Date()) {
     if (pathname.startsWith("/dashboard") || pathname === "/activate" || pathname === "/login") {
-      return context.redirect("/403");
+      return withSecurityHeaders(context.redirect("/403"));
     }
   }
 
   if (pathname.startsWith("/dashboard")) {
     if (!user || !session) {
-      return context.redirect("/login");
+      return withSecurityHeaders(context.redirect("/login"));
     }
 
     if (user.membershipExpiresAt && new Date(user.membershipExpiresAt) < new Date()) {
@@ -44,26 +67,26 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
     const currentUser = context.locals.user;
     if (!currentUser) {
-      return context.redirect("/login");
+      return withSecurityHeaders(context.redirect("/login"));
     }
 
     const isVerified = isAccountVerified(currentUser);
     if (!isVerified && pathname !== DASHBOARD_VERIFY_PATH) {
-      return context.redirect(DASHBOARD_VERIFY_PATH);
+      return withSecurityHeaders(context.redirect(DASHBOARD_VERIFY_PATH));
     }
 
     if (isVerified && pathname === DASHBOARD_VERIFY_PATH) {
-      return context.redirect("/dashboard");
+      return withSecurityHeaders(context.redirect("/dashboard"));
     }
 
     if (pathname.startsWith("/dashboard/admin")) {
       const role = context.locals.user?.role;
       if (role !== "admin" && role !== "officer") {
-        return context.redirect("/403");
+        return withSecurityHeaders(context.redirect("/403"));
       }
 
       if (pathname === "/dashboard/admin" || pathname === "/dashboard/admin/") {
-        return context.redirect("/dashboard/admin/members");
+        return withSecurityHeaders(context.redirect("/dashboard/admin/members"));
       }
     }
 
@@ -74,16 +97,31 @@ export const onRequest = defineMiddleware(async (context, next) => {
     ];
 
     if (!isActivated && memberOnlyRoutes.some((route) => pathname.startsWith(route))) {
-      return context.redirect("/403");
+      return withSecurityHeaders(context.redirect("/403"));
     }
   }
 
   if (pathname === "/activate" && user && session && !isAccountVerified(user)) {
-    return context.redirect(DASHBOARD_VERIFY_PATH);
+    return withSecurityHeaders(context.redirect(DASHBOARD_VERIFY_PATH));
   }
 
-  return next();
+  return withSecurityHeaders(await next());
 });
+
+function withSecurityHeaders(response: Response) {
+  const headers = new Headers(response.headers);
+  for (const [name, value] of SECURITY_HEADERS) {
+    if (!headers.has(name)) {
+      headers.set(name, value);
+    }
+  }
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
 
 function shouldResolveSession(pathname: string) {
   const normalizedPathname = normalizePathname(pathname);

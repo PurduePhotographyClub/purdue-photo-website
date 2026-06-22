@@ -7,6 +7,7 @@
     "dev": "astro dev",
     "dev:wrangler": "astro build && wrangler dev --config dist/server/wrangler.json --port 8789",
     "build": "astro build",
+    "deploy": "npm run build && wrangler deploy --config dist/server/wrangler.json",
     "preview": "astro preview",
     "typecheck": "tsc --noEmit",
     "doctor": "npx react-doctor@latest --verbose --no-score --yes",
