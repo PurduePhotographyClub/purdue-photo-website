@@ -1,5 +1,4 @@
 import { useEffect, useReducer, useRef } from "react";
-import { Camera, CheckCircle2, Loader2, LockKeyhole } from "lucide-react";
 import { fetchApi, readErrorMessage, readJsonOrNull } from "@/lib/http";
 
 interface DiscordVerificationFormProps {
@@ -235,20 +234,16 @@ export default function DiscordVerificationForm({ token, turnstileSiteKey }: Dis
     }
   };
 
-  const digits = Array.from({ length: 6 }, (_, index) => state.code[index] ?? "");
   const hasRequiredNameFields = Boolean(state.firstName.trim() && state.lastName.trim());
 
   const inputClass =
-    "absolute inset-0 h-full w-full cursor-text opacity-0";
+    "w-full px-4 py-3 bg-white/[0.02] border border-neutral-800 text-sm text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-neutral-600 transition-colors";
 
   if (!token) {
     return (
-      <div className="relative overflow-hidden border border-red-900/40 bg-red-950/20 p-6 text-sm leading-6 text-red-300 shadow-2xl shadow-black/20">
-        <div className="mb-4 flex size-10 items-center justify-center border border-red-900/60 text-red-300">
-          <LockKeyhole size={18} aria-hidden="true" />
-        </div>
+      <div className="text-center">
         <h2 className="mb-2 text-sm uppercase tracking-[0.2em] text-red-300">Link Missing</h2>
-        <p className="text-xs leading-6 text-red-200/80">
+        <p className="text-xs leading-6 text-red-300">
           This verification link is missing its token. Return to Discord and request a new code.
         </p>
       </div>
@@ -257,10 +252,7 @@ export default function DiscordVerificationForm({ token, turnstileSiteKey }: Dis
 
   if (state.success) {
     return (
-      <div className="border border-green-900/50 bg-green-950/20 p-6 text-center">
-        <div className="mx-auto mb-4 flex size-12 items-center justify-center border border-green-800/70 text-green-300">
-          <CheckCircle2 size={21} aria-hidden="true" />
-        </div>
+      <div className="text-center">
         <h2 className="mb-2 text-sm uppercase tracking-[0.2em] text-green-300">Verified</h2>
         <p className="text-xs leading-6 text-neutral-400">
           {state.nicknameUpdated === true
@@ -268,7 +260,7 @@ export default function DiscordVerificationForm({ token, turnstileSiteKey }: Dis
             : "Your role has been updated. The bot will send a private confirmation in Discord."}
         </p>
         {state.nicknameUpdated === false && (
-          <p className="mt-4 border border-amber-900/50 bg-amber-950/20 px-4 py-3 text-xs leading-5 text-amber-200">
+          <p className="mt-4 text-xs leading-5 text-amber-300">
             Discord did not allow the bot to update your nickname. Reason: {formatNicknameUpdateReason(state.nicknameUpdateReason)}.
           </p>
         )}
@@ -277,106 +269,94 @@ export default function DiscordVerificationForm({ token, turnstileSiteKey }: Dis
   }
 
   return (
-    <form onSubmit={handleSubmit} className="border border-neutral-800 bg-white/[0.02] p-6">
-      <div className="mb-5">
-        <p className="mb-3 block text-[10px] uppercase tracking-[0.2em] text-neutral-500">
-          Real Name
-        </p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="block">
-            <span className="mb-2 block text-[10px] uppercase tracking-[0.18em] text-neutral-500">First Name</span>
-            <input
-              type="text"
-              autoComplete="given-name"
-              value={state.firstName}
-              onChange={(event) => dispatch({ type: "nameChanged", field: "firstName", value: event.target.value })}
-              required
-              maxLength={32}
-              className="min-h-12 w-full border border-neutral-800 bg-black px-3 text-sm text-neutral-100 outline-none transition-colors placeholder:text-neutral-700 focus:border-neutral-500"
-            />
-          </label>
-          <label className="block">
-            <span className="mb-2 block text-[10px] uppercase tracking-[0.18em] text-neutral-500">Last Name</span>
-            <input
-              type="text"
-              autoComplete="family-name"
-              value={state.lastName}
-              onChange={(event) => dispatch({ type: "nameChanged", field: "lastName", value: event.target.value })}
-              required
-              maxLength={32}
-              className="min-h-12 w-full border border-neutral-800 bg-black px-3 text-sm text-neutral-100 outline-none transition-colors placeholder:text-neutral-700 focus:border-neutral-500"
-            />
-          </label>
-        </div>
-        <p className="mt-3 text-xs leading-5 text-neutral-500">
-          Use your real first and last name. This will become your Discord nickname after verification.
-        </p>
-      </div>
-
-      <div className="mb-5">
-        <p className="mb-3 block text-[10px] uppercase tracking-[0.2em] text-neutral-500">
-          Verification Code
-        </p>
-        <label className="relative block">
-          <span className="sr-only">Verification Code</span>
-          <div className="grid grid-cols-6 gap-2" aria-hidden="true">
-            {digits.map((digit, index) => (
-              <div
-                key={index}
-                className={`flex aspect-square min-h-11 items-center justify-center border text-lg text-neutral-100 transition-colors sm:min-h-12 ${
-                  digit
-                    ? "border-neutral-500 bg-white/[0.06]"
-                    : "border-neutral-800 bg-white/[0.02]"
-                }`}
-              >
-                {digit || ""}
-              </div>
-            ))}
+    <div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <p className="mb-2 block text-[10px] uppercase tracking-[0.2em] text-neutral-500">
+            Real Name
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="sr-only">First Name</span>
+              <input
+                type="text"
+                autoComplete="given-name"
+                value={state.firstName}
+                onChange={(event) => dispatch({ type: "nameChanged", field: "firstName", value: event.target.value })}
+                placeholder="First name"
+                required
+                maxLength={32}
+                className={inputClass}
+              />
+            </label>
+            <label className="block">
+              <span className="sr-only">Last Name</span>
+              <input
+                type="text"
+                autoComplete="family-name"
+                value={state.lastName}
+                onChange={(event) => dispatch({ type: "nameChanged", field: "lastName", value: event.target.value })}
+                placeholder="Last name"
+                required
+                maxLength={32}
+                className={inputClass}
+              />
+            </label>
           </div>
+          <p className="mt-3 text-xs leading-5 text-neutral-500">
+            Use your real first and last name. This will become your Discord nickname after verification.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="DiscordVerificationForm-code" className="mb-2 block text-[10px] uppercase tracking-[0.2em] text-neutral-500">
+            Verification Code
+          </label>
           <input
+            id="DiscordVerificationForm-code"
             type="text"
             inputMode="numeric"
             autoComplete="one-time-code"
             value={state.code}
             onChange={(event) => dispatch({ type: "codeChanged", code: event.target.value.replace(/\D/g, "").slice(0, 6) })}
+            placeholder="000000"
             required
             minLength={6}
             maxLength={6}
             className={inputClass}
           />
-        </label>
-      </div>
+        </div>
 
-      {state.error && (
-        <p className="mb-4 break-words border border-red-900/50 bg-red-950/20 px-4 py-3 text-xs leading-5 text-red-300">{state.error}</p>
-      )}
-
-      <div className="mb-4 min-h-[65px]">
-        {turnstileSiteKey ? (
-          <div ref={turnstileContainerRef} className="flex justify-center" />
-        ) : (
-          <p className="border border-red-900/50 bg-red-950/20 px-4 py-3 text-xs leading-5 text-red-300">
-            Verification is temporarily unavailable.
-          </p>
+        {state.error && (
+          <p className="break-words text-xs leading-relaxed text-red-400">{state.error}</p>
         )}
-        {state.turnstileError && (
-          <p className="mt-3 border border-red-900/50 bg-red-950/20 px-4 py-3 text-xs leading-5 text-red-300">{state.turnstileError}</p>
-        )}
-      </div>
 
-      <button
-        type="submit"
-        disabled={state.loading || !hasRequiredNameFields || state.code.length !== 6 || !turnstileSiteKey || !state.turnstileReady || !state.turnstileToken}
-        className="flex min-h-12 w-full items-center justify-center gap-2 bg-white px-4 py-3 text-[11px] uppercase tracking-[0.2em] text-black transition-colors hover:bg-neutral-200 disabled:opacity-50"
-      >
-        {state.loading ? <Loader2 size={15} aria-hidden="true" className="animate-spin" /> : <Camera size={15} aria-hidden="true" />}
-        {state.loading ? "Verifying" : "Verify"}
-      </button>
+        <div className="min-h-[65px]">
+          {turnstileSiteKey ? (
+            <div ref={turnstileContainerRef} className="flex justify-center" />
+          ) : (
+            <p className="text-xs leading-relaxed text-red-400">
+              Verification is temporarily unavailable.
+            </p>
+          )}
+          {state.turnstileError && (
+            <p className="mt-3 text-xs leading-relaxed text-red-400">{state.turnstileError}</p>
+          )}
+        </div>
 
-      <p className="mt-4 text-center text-[10px] leading-5 text-neutral-600">
-        Codes expire after 10 minutes. Three incorrect attempts will lock this code.
-      </p>
-    </form>
+        <button
+          type="submit"
+          disabled={state.loading || !hasRequiredNameFields || state.code.length !== 6 || !turnstileSiteKey || !state.turnstileReady || !state.turnstileToken}
+          className="w-full bg-white px-4 py-3 text-[11px] uppercase tracking-[0.2em] text-black transition-colors hover:bg-neutral-200 disabled:opacity-50"
+        >
+          {state.loading ? "Verifying" : "Verify"}
+        </button>
+
+        <p className="text-center text-[10px] leading-5 text-neutral-600">
+          Codes expire after 10 minutes. Three incorrect attempts will lock this code.
+        </p>
+      </form>
+    </div>
   );
 }
 
