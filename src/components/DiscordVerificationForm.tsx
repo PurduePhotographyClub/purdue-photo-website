@@ -8,6 +8,8 @@ interface DiscordVerificationFormProps {
 }
 
 interface VerificationSuccess {
+  nicknameUpdateReason?: string;
+  nicknameUpdated?: boolean;
   ok?: boolean;
 }
 
@@ -44,6 +46,8 @@ interface VerificationState {
   firstName: string;
   lastName: string;
   loading: boolean;
+  nicknameUpdateReason: string;
+  nicknameUpdated: boolean | null;
   success: boolean;
   turnstileError: string;
   turnstileReady: boolean;
@@ -56,7 +60,7 @@ type VerificationAction =
   | { type: "nameChanged"; field: "firstName" | "lastName"; value: string }
   | { type: "submitStarted" }
   | { type: "submitFailed"; error: string }
-  | { type: "submitSucceeded" }
+  | { type: "submitSucceeded"; nicknameUpdateReason?: string; nicknameUpdated?: boolean }
   | { type: "turnstileCompleted"; token: string }
   | { type: "turnstileExpired" }
   | { type: "turnstileFailed"; error: string }
@@ -70,6 +74,8 @@ const initialVerificationState: VerificationState = {
   firstName: "",
   lastName: "",
   loading: false,
+  nicknameUpdateReason: "",
+  nicknameUpdated: null,
   success: false,
   turnstileError: "",
   turnstileReady: false,
@@ -89,7 +95,13 @@ function verificationReducer(state: VerificationState, action: VerificationActio
     case "submitFailed":
       return { ...state, error: action.error, loading: false, turnstileToken: "" };
     case "submitSucceeded":
-      return { ...state, loading: false, success: true };
+      return {
+        ...state,
+        loading: false,
+        nicknameUpdateReason: action.nicknameUpdateReason ?? "",
+        nicknameUpdated: action.nicknameUpdated ?? null,
+        success: true,
+      };
     case "turnstileCompleted":
       return { ...state, turnstileError: "", turnstileToken: action.token };
     case "turnstileExpired":
@@ -200,7 +212,11 @@ export default function DiscordVerificationForm({ token, turnstileSiteKey }: Dis
 
       const data = await readJsonOrNull<VerificationSuccess>(response);
       if (data?.ok) {
-        dispatch({ type: "submitSucceeded" });
+        dispatch({
+          type: "submitSucceeded",
+          nicknameUpdateReason: data.nicknameUpdateReason,
+          nicknameUpdated: data.nicknameUpdated,
+        });
       } else {
         dispatch({ type: "submitFailed", error: "Verification completed, but the server response was unexpected." });
         resetTurnstile();
@@ -247,8 +263,15 @@ export default function DiscordVerificationForm({ token, turnstileSiteKey }: Dis
         </div>
         <h2 className="mb-2 text-sm uppercase tracking-[0.2em] text-green-300">Verified</h2>
         <p className="text-xs leading-6 text-neutral-400">
-          Your role has been updated. The bot will send a private confirmation in Discord.
+          {state.nicknameUpdated === true
+            ? "Your role and nickname have been updated. The bot will send a private confirmation in Discord."
+            : "Your role has been updated. The bot will send a private confirmation in Discord."}
         </p>
+        {state.nicknameUpdated === false && (
+          <p className="mt-4 border border-amber-900/50 bg-amber-950/20 px-4 py-3 text-xs leading-5 text-amber-200">
+            Discord did not allow the bot to update your nickname. Reason: {formatNicknameUpdateReason(state.nicknameUpdateReason)}.
+          </p>
+        )}
       </div>
     );
   }
@@ -383,4 +406,23 @@ function loadTurnstileScript() {
   }
 
   return turnstileScriptPromise;
+}
+
+function formatNicknameUpdateReason(reason: string) {
+  switch (reason) {
+    case "missing_manage_nicknames":
+      return "the bot is missing Manage Nicknames permission";
+    case "role_hierarchy":
+      return "the bot role is below your highest Discord role";
+    case "missing_access":
+      return "the bot cannot access this server member";
+    case "missing_member":
+      return "the Discord member was not found";
+    case "missing_permissions":
+      return "Discord reported missing permissions";
+    case "discord_api_error":
+      return "Discord rejected the nickname update";
+    default:
+      return "unknown";
+  }
 }
