@@ -41,6 +41,8 @@ let turnstileScriptPromise: Promise<void> | null = null;
 interface VerificationState {
   code: string;
   error: string;
+  firstName: string;
+  lastName: string;
   loading: boolean;
   success: boolean;
   turnstileError: string;
@@ -51,6 +53,7 @@ interface VerificationState {
 type VerificationAction =
   | { type: "codeChanged"; code: string }
   | { type: "errorSet"; error: string }
+  | { type: "nameChanged"; field: "firstName" | "lastName"; value: string }
   | { type: "submitStarted" }
   | { type: "submitFailed"; error: string }
   | { type: "submitSucceeded" }
@@ -64,6 +67,8 @@ type VerificationAction =
 const initialVerificationState: VerificationState = {
   code: "",
   error: "",
+  firstName: "",
+  lastName: "",
   loading: false,
   success: false,
   turnstileError: "",
@@ -77,6 +82,8 @@ function verificationReducer(state: VerificationState, action: VerificationActio
       return { ...state, code: action.code };
     case "errorSet":
       return { ...state, error: action.error };
+    case "nameChanged":
+      return { ...state, [action.field]: action.value };
     case "submitStarted":
       return { ...state, error: "", loading: true };
     case "submitFailed":
@@ -165,6 +172,11 @@ export default function DiscordVerificationForm({ token, turnstileSiteKey }: Dis
       return;
     }
 
+    if (!state.firstName.trim() || !state.lastName.trim()) {
+      dispatch({ type: "errorSet", error: "Enter your real first and last name before verifying." });
+      return;
+    }
+
     dispatch({ type: "submitStarted" });
 
     try {
@@ -173,6 +185,8 @@ export default function DiscordVerificationForm({ token, turnstileSiteKey }: Dis
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           code: state.code.trim(),
+          firstName: state.firstName.trim(),
+          lastName: state.lastName.trim(),
           token,
           turnstileToken: state.turnstileToken,
         }),
@@ -206,6 +220,7 @@ export default function DiscordVerificationForm({ token, turnstileSiteKey }: Dis
   };
 
   const digits = Array.from({ length: 6 }, (_, index) => state.code[index] ?? "");
+  const hasRequiredNameFields = Boolean(state.firstName.trim() && state.lastName.trim());
 
   const inputClass =
     "absolute inset-0 h-full w-full cursor-text opacity-0";
@@ -240,6 +255,41 @@ export default function DiscordVerificationForm({ token, turnstileSiteKey }: Dis
 
   return (
     <form onSubmit={handleSubmit} className="border border-neutral-800 bg-white/[0.02] p-6">
+      <div className="mb-5">
+        <p className="mb-3 block text-[10px] uppercase tracking-[0.2em] text-neutral-500">
+          Real Name
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-2 block text-[10px] uppercase tracking-[0.18em] text-neutral-500">First Name</span>
+            <input
+              type="text"
+              autoComplete="given-name"
+              value={state.firstName}
+              onChange={(event) => dispatch({ type: "nameChanged", field: "firstName", value: event.target.value })}
+              required
+              maxLength={32}
+              className="min-h-12 w-full border border-neutral-800 bg-black px-3 text-sm text-neutral-100 outline-none transition-colors placeholder:text-neutral-700 focus:border-neutral-500"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-2 block text-[10px] uppercase tracking-[0.18em] text-neutral-500">Last Name</span>
+            <input
+              type="text"
+              autoComplete="family-name"
+              value={state.lastName}
+              onChange={(event) => dispatch({ type: "nameChanged", field: "lastName", value: event.target.value })}
+              required
+              maxLength={32}
+              className="min-h-12 w-full border border-neutral-800 bg-black px-3 text-sm text-neutral-100 outline-none transition-colors placeholder:text-neutral-700 focus:border-neutral-500"
+            />
+          </label>
+        </div>
+        <p className="mt-3 text-xs leading-5 text-neutral-500">
+          Use your real first and last name. This will become your Discord nickname after verification.
+        </p>
+      </div>
+
       <div className="mb-5">
         <p className="mb-3 block text-[10px] uppercase tracking-[0.2em] text-neutral-500">
           Verification Code
@@ -293,7 +343,7 @@ export default function DiscordVerificationForm({ token, turnstileSiteKey }: Dis
 
       <button
         type="submit"
-        disabled={state.loading || state.code.length !== 6 || !turnstileSiteKey || !state.turnstileReady || !state.turnstileToken}
+        disabled={state.loading || !hasRequiredNameFields || state.code.length !== 6 || !turnstileSiteKey || !state.turnstileReady || !state.turnstileToken}
         className="flex min-h-12 w-full items-center justify-center gap-2 bg-white px-4 py-3 text-[11px] uppercase tracking-[0.2em] text-black transition-colors hover:bg-neutral-200 disabled:opacity-50"
       >
         {state.loading ? <Loader2 size={15} aria-hidden="true" className="animate-spin" /> : <Camera size={15} aria-hidden="true" />}
