@@ -3,7 +3,6 @@ import { Instagram, Mail, ExternalLink } from "lucide-react";
 const navLinks = [
   { to: "/gallery", label: "Gallery" },
   { to: "/competitions", label: "Competitions" },
-  { to: "/leadership", label: "Leadership" },
   { to: "/facilities", label: "Facilities" },
   { to: "/membership", label: "Membership" },
   { to: "/events", label: "Events" },
@@ -13,7 +12,7 @@ const navLinks = [
 const socialLinks = [
   { href: "https://www.instagram.com/purduephotoclub/", label: "Instagram", icon: Instagram },
   { href: "/discord", label: "Discord", icon: DiscordIcon },
-  { href: "mailto:purduephotographyclub@gmail.com", label: "Email", icon: Mail },
+  { href: "mailto:photo@purdue.edu", label: "Email", icon: Mail },
   { href: "https://linktr.ee/purduephotoclub", label: "Linktree", icon: ExternalLink },
   { href: "https://boilerlink.purdue.edu/organization/photoclub", label: "BoilerLink", icon: ExternalLink },
 ];
@@ -91,7 +90,7 @@ export default function Footer() {
             Est. 1934 &middot; Purdue Photography Club &middot; West Lafayette, IN
           </p>
           <p className={`text-[10px] ${faintText} tracking-wider`}>
-            Made with love by <a href="https://alesgsanudoo.com" target="_blank" rel="noopener noreferrer" className={`${subText} ${linkHover} ${focusRing} transition-colors`}>Alejandro Griffith</a> &middot; &copy; 2026
+            Made with love by <a href="https://www.instagram.com/alesgs.photos/" target="_blank" rel="noopener noreferrer" className={`${subText} ${linkHover} ${focusRing} transition-colors`}>Alejandro Griffith</a> &middot; &copy; 2026
           </p>
         </div>
       </div>

@@ -21,7 +21,7 @@ This repo is the website layer for the club. It renders the public marketing pag
 | --- | --- |
 | Public site | Home, meetings, facilities, events, competitions, gallery, merch, and request forms |
 | Member dashboard | Activation, account settings, notifications, gallery uploads, competition tools, and member workflows |
-| Admin dashboard | Membership, keys, gallery, competitions, events, darkroom, studio, merch, leadership, newsletter, and equipment management |
+| Admin dashboard | Membership, keys, gallery, competitions, events, darkroom, studio, merch, newsletter, and equipment management |
 | API bridge | Same-origin `/api/*` route that forwards to the private API Worker over a Cloudflare service binding |
 | Performance layer | SWR fetch helpers, versioned API URL routing, thumbnail-aware gallery loading, and cached public JSON defaults |
 
@@ -102,7 +102,6 @@ src/
   pages/                Astro routes and the /api bridge
 public/
   hero/                 Local hero imagery
-  leadership/           Leadership imagery
   merch/                Merch imagery
 ```
 
@@ -110,7 +109,7 @@ public/
 
 | Asset group | Source | License or usage note |
 | --- | --- | --- |
-| `public/ppc-logo.webp`, local hero, leadership, merch, and map assets | Purdue Photography Club project assets | Club-owned or used with club permission |
+| `public/ppc-logo.webp`, local hero, merch, and map assets | Purdue Photography Club project assets | Club-owned or used with club permission |
 | Remote images from `images.unsplash.com` | Unsplash | Used under the [Unsplash License](https://unsplash.com/license) |
 | User-submitted gallery and competition images | Uploaded by members through the dashboard/API | Displayed according to club submission permissions |
 | UI primitives inspired by shadcn/ui | shadcn/ui | MIT license |
