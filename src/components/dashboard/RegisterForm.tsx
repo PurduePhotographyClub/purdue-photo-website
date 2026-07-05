@@ -169,7 +169,7 @@ export default function RegisterForm({ turnstileSiteKey }: RegisterFormProps) {
           <label htmlFor="RegisterForm-full-name" className="block text-[10px] tracking-[0.2em] uppercase text-neutral-500 mb-2">
             Full Name
           </label>
-          <input id="RegisterForm-full-name" aria-label="John Doe"
+          <input id="RegisterForm-full-name"
             type="text"
             value={name}
             onChange={(e) => dispatch({ type: "fieldChanged", field: "name", value: e.target.value })}
@@ -182,7 +182,7 @@ export default function RegisterForm({ turnstileSiteKey }: RegisterFormProps) {
           <label htmlFor="RegisterForm-email" className="block text-[10px] tracking-[0.2em] uppercase text-neutral-500 mb-2">
             Email
           </label>
-          <input id="RegisterForm-email" aria-label="you@purdue.edu"
+          <input id="RegisterForm-email"
             type="email"
             value={email}
             onChange={(e) => dispatch({ type: "fieldChanged", field: "email", value: e.target.value })}
@@ -195,7 +195,7 @@ export default function RegisterForm({ turnstileSiteKey }: RegisterFormProps) {
           <label htmlFor="RegisterForm-password" className="block text-[10px] tracking-[0.2em] uppercase text-neutral-500 mb-2">
             Password
           </label>
-          <input id="RegisterForm-password" aria-label="Min. 8 characters"
+          <input id="RegisterForm-password"
             type="password"
             value={password}
             onChange={(e) => dispatch({ type: "fieldChanged", field: "password", value: e.target.value })}
@@ -208,7 +208,7 @@ export default function RegisterForm({ turnstileSiteKey }: RegisterFormProps) {
           <label htmlFor="RegisterForm-confirm-password" className="block text-[10px] tracking-[0.2em] uppercase text-neutral-500 mb-2">
             Confirm Password
           </label>
-          <input id="RegisterForm-confirm-password" aria-label="••••••••"
+          <input id="RegisterForm-confirm-password"
             type="password"
             value={confirmPassword}
             onChange={(e) => dispatch({ type: "fieldChanged", field: "confirmPassword", value: e.target.value })}
@@ -225,7 +225,7 @@ export default function RegisterForm({ turnstileSiteKey }: RegisterFormProps) {
                 type="checkbox"
                 checked={newsletter}
                 onChange={(e) => dispatch({ type: "newsletterChanged", newsletter: e.target.checked })}
-                className="peer appearance-none size-4 border border-neutral-700 bg-white/[0.02] checked:bg-white checked:border-white transition-colors cursor-pointer"
+                className="peer appearance-none size-4 border border-neutral-700 bg-white/[0.02] checked:bg-white checked:border-white transition-colors cursor-pointer focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
               />
               <svg
                 className="absolute size-2.5 text-black opacity-0 peer-checked:opacity-100 pointer-events-none stroke-[3] transition-opacity"
@@ -271,7 +271,7 @@ export default function RegisterForm({ turnstileSiteKey }: RegisterFormProps) {
         <button
           type="submit"
           disabled={loading || !turnstileSiteKey || !turnstileReady || !turnstileToken}
-          className="w-full py-3 bg-white text-black text-[11px] tracking-[0.2em] uppercase hover:bg-neutral-200 transition-colors disabled:opacity-50"
+          className="w-full py-3 bg-white text-black text-[11px] tracking-[0.2em] uppercase hover:bg-neutral-200 transition-colors disabled:opacity-50 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
         >
           {loading ? "Creating account" : "Create Account"}
         </button>
@@ -283,7 +283,7 @@ export default function RegisterForm({ turnstileSiteKey }: RegisterFormProps) {
 
       <p className="text-center mt-6 text-xs text-neutral-500">
         Already have an account?{" "}
-        <a href="/login" className="text-neutral-300 hover:text-white transition-colors underline underline-offset-4">
+        <a href="/login" className="text-neutral-300 hover:text-white transition-colors underline underline-offset-4 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400">
           Sign In
         </a>
       </p>

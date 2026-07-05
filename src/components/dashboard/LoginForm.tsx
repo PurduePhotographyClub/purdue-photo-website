@@ -249,7 +249,7 @@ export default function LoginForm() {
           <label htmlFor="LoginForm-email" className="block text-[10px] tracking-[0.2em] uppercase text-neutral-500 mb-2">
             Email
           </label>
-          <input id="LoginForm-email" aria-label="you@purdue.edu"
+          <input id="LoginForm-email"
             type="email"
             value={email}
             onChange={(e) => dispatch({ type: "fieldChanged", field: "email", value: e.target.value })}
@@ -262,7 +262,7 @@ export default function LoginForm() {
           <label htmlFor="LoginForm-password" className="block text-[10px] tracking-[0.2em] uppercase text-neutral-500 mb-2">
             Password
           </label>
-          <input id="LoginForm-password" aria-label="••••••••"
+          <input id="LoginForm-password"
             type="password"
             value={password}
             onChange={(e) => dispatch({ type: "fieldChanged", field: "password", value: e.target.value })}
@@ -279,7 +279,7 @@ export default function LoginForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 bg-white text-black text-[11px] tracking-[0.2em] uppercase hover:bg-neutral-200 transition-colors disabled:opacity-50"
+          className="w-full py-3 bg-white text-black text-[11px] tracking-[0.2em] uppercase hover:bg-neutral-200 transition-colors disabled:opacity-50 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
         >
           {loading ? "Signing in" : "Sign In"}
         </button>
@@ -298,7 +298,7 @@ export default function LoginForm() {
 
       <button type="button"
         onClick={handleDiscordLogin}
-        className="w-full py-3 bg-[#5865F2] text-white text-[11px] tracking-[0.2em] uppercase hover:bg-[#4752C4] transition-colors flex items-center justify-center gap-2"
+        className="w-full py-3 bg-[#5865F2] text-white text-[11px] tracking-[0.2em] uppercase hover:bg-[#4752C4] transition-colors flex items-center justify-center gap-2 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
           <path d="M20.32 4.37a19.79 19.79 0 0 0-4.89-1.52.07.07 0 0 0-.08.04c-.21.38-.44.86-.61 1.25a18.27 18.27 0 0 0-5.49 0 12.64 12.64 0 0 0-.62-1.25.08.08 0 0 0-.08-.04 19.74 19.74 0 0 0-4.89 1.52.07.07 0 0 0-.03.03C.53 9.05-.32 13.58.1 18.06a.08.08 0 0 0 .03.06 19.9 19.9 0 0 0 5.99 3.03.08.08 0 0 0 .08-.03c.46-.63.87-1.3 1.23-1.99a.08.08 0 0 0-.04-.11 13.1 13.1 0 0 1-1.87-.89.08.08 0 0 1-.01-.13c.13-.09.25-.19.37-.29a.07.07 0 0 1 .08-.01c3.93 1.79 8.18 1.79 12.06 0a.07.07 0 0 1 .08.01c.12.1.25.2.37.29a.08.08 0 0 1-.01.13c-.6.35-1.22.65-1.87.89a.08.08 0 0 0-.04.11c.36.7.77 1.36 1.23 1.99a.08.08 0 0 0 .08.03 19.84 19.84 0 0 0 6-3.03.08.08 0 0 0 .03-.06c.5-5.18-.84-9.67-3.55-13.66a.06.06 0 0 0-.03-.03z" />
@@ -309,7 +309,7 @@ export default function LoginForm() {
       <button type="button"
         onClick={handlePasskeyLogin}
         disabled={passkeyLoading}
-        className="w-full py-3 mt-3 bg-white/[0.02] border border-neutral-800 text-neutral-300 text-[11px] tracking-[0.2em] uppercase hover:bg-white/[0.05] hover:border-neutral-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+        className="w-full py-3 mt-3 bg-white/[0.02] border border-neutral-800 text-neutral-300 text-[11px] tracking-[0.2em] uppercase hover:bg-white/[0.05] hover:border-neutral-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z" />

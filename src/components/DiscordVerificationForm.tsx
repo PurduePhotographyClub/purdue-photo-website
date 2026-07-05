@@ -347,7 +347,7 @@ export default function DiscordVerificationForm({ token, turnstileSiteKey }: Dis
         <button
           type="submit"
           disabled={state.loading || !hasRequiredNameFields || state.code.length !== 6 || !turnstileSiteKey || !state.turnstileReady || !state.turnstileToken}
-          className="w-full bg-white px-4 py-3 text-[11px] uppercase tracking-[0.2em] text-black transition-colors hover:bg-neutral-200 disabled:opacity-50"
+          className="w-full bg-white px-4 py-3 text-[11px] uppercase tracking-[0.2em] text-black transition-colors hover:bg-neutral-200 disabled:opacity-50 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
         >
           {state.loading ? "Verifying" : "Verify"}
         </button>

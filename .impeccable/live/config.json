@@ -1,0 +1,9 @@
+{
+  "files": [
+    "src/layouts/Layout.astro",
+    "src/layouts/DashboardLayout.astro"
+  ],
+  "insertBefore": "</body>",
+  "commentSyntax": "html",
+  "cspChecked": true
+}

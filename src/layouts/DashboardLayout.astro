@@ -62,7 +62,7 @@ const adminItems = [
   { href: '/dashboard/admin/events', label: 'Events', icon: 'calendar' },
   { href: '/dashboard/admin/merch', label: 'Merch', icon: 'shopping-bag' },
   { href: '/dashboard/admin/updates', label: 'Updates', icon: 'bell' },
-    { href: '/dashboard/admin/newsletter', label: 'Newsletter', icon: 'mail' },
+  { href: '/dashboard/admin/newsletter', label: 'Newsletter', icon: 'mail' },
 ];
 
 const roleBadge: Record<string, string> = {
@@ -95,13 +95,20 @@ const tierBadge: Record<string, string> = {
       <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 bg-neutral-950 w-[min(18rem,calc(100vw-2rem))] border-r border-neutral-800 transform -translate-x-full transition-transform duration-300 md:relative md:translate-x-0 md:w-64 flex flex-col h-dvh min-h-dvh flex-shrink-0 overflow-y-auto">
         <!-- Logo -->
         <div class="p-5 border-b border-neutral-800 flex items-center justify-between shrink-0">
-          <a href="/" class="flex items-center gap-3">
+          <a href="/" class="flex items-center gap-3 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400">
             <img src="/ppc-logo.webp" alt="PPC Logo" class="w-8 h-8 rounded-full brightness-[1.8] invert" style="mix-blend-mode: screen;" />
             <span class="text-xs tracking-[0.15em] uppercase text-neutral-300" style="font-family: 'Playfair Display', serif;">
               PPC Dashboard
             </span>
           </a>
-          <button id="mobile-menu-close" class="md:hidden text-neutral-400 hover:text-white">
+          <button
+            id="mobile-menu-close"
+            type="button"
+            aria-controls="sidebar"
+            aria-expanded="false"
+            aria-label="Close dashboard menu"
+            class="md:hidden flex min-h-11 min-w-11 items-center justify-center text-neutral-400 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
+          >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width={1.5} stroke="currentColor" class="w-5 h-5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -142,7 +149,8 @@ const tierBadge: Record<string, string> = {
           {navItems.map((item) => (
             <a
               href={item.href}
-              class={`flex items-center gap-3 px-5 py-2.5 text-xs tracking-wider transition-colors ${
+              aria-current={pathname === item.href ? 'page' : undefined}
+              class={`flex items-center gap-3 px-5 py-2.5 text-xs tracking-wider transition-colors focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-0 focus-visible:outline-neutral-400 ${
                 pathname === item.href
                   ? 'text-white bg-white/[0.04]'
                   : 'text-neutral-500 hover:text-white hover:bg-white/[0.02]'
@@ -160,7 +168,8 @@ const tierBadge: Record<string, string> = {
               {adminItems.map((item) => (
                 <a
                   href={item.href}
-                  class={`flex items-center gap-3 px-5 py-2.5 text-xs tracking-wider transition-colors ${
+                  aria-current={pathname === item.href ? 'page' : undefined}
+                  class={`flex items-center gap-3 px-5 py-2.5 text-xs tracking-wider transition-colors focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-0 focus-visible:outline-neutral-400 ${
                     pathname === item.href
                       ? 'text-white bg-white/[0.04]'
                       : 'text-neutral-500 hover:text-white hover:bg-white/[0.02]'
@@ -175,12 +184,13 @@ const tierBadge: Record<string, string> = {
 
         <!-- Bottom -->
         <div class="p-5 border-t border-neutral-800">
-          <a href="/" class="block text-[10px] tracking-[0.15em] uppercase text-neutral-600 hover:text-white transition-colors mb-3">
+          <a href="/" class="block text-[10px] tracking-[0.15em] uppercase text-neutral-600 hover:text-white transition-colors mb-3 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400">
             &larr; Back to Site
           </a>
           <button
             id="sign-out-btn"
-            class="block text-[10px] tracking-[0.15em] uppercase text-neutral-600 hover:text-red-400 transition-colors cursor-pointer"
+            type="button"
+            class="block text-[10px] tracking-[0.15em] uppercase text-neutral-600 hover:text-red-400 transition-colors cursor-pointer focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
           >
             Sign Out
           </button>
@@ -201,12 +211,19 @@ const tierBadge: Record<string, string> = {
         <!-- Mobile header -->
         <header class="md:hidden flex flex-wrap items-center justify-between gap-3 p-4 border-b border-neutral-800 shrink-0">
           <div class="flex min-w-0 items-center gap-3">
-            <button id="mobile-menu-open" class="text-neutral-400 hover:text-white">
+            <button
+              id="mobile-menu-open"
+              type="button"
+              aria-controls="sidebar"
+              aria-expanded="false"
+              aria-label="Open dashboard menu"
+              class="flex min-h-11 min-w-11 items-center justify-center text-neutral-400 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
+            >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width={1.5} stroke="currentColor" class="w-6 h-6">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
               </svg>
             </button>
-            <a href="/dashboard" class="truncate text-xs tracking-[0.15em] uppercase text-neutral-300">
+            <a href="/dashboard" class="truncate text-xs tracking-[0.15em] uppercase text-neutral-300 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400">
               Dashboard
             </a>
           </div>
@@ -258,8 +275,14 @@ const tierBadge: Record<string, string> = {
       const sidebar = document.getElementById('sidebar');
       const scrim = document.getElementById('mobile-scrim');
 
+      function setMenuExpanded(expanded: boolean) {
+        openBtn?.setAttribute('aria-expanded', String(expanded));
+        closeBtn?.setAttribute('aria-expanded', String(expanded));
+      }
+
       function toggleMenu(show: boolean) {
         if (!sidebar || !scrim) return;
+        setMenuExpanded(show);
         if (show) {
           scrim.classList.remove('hidden');
           requestAnimationFrame(() => {
@@ -278,6 +301,11 @@ const tierBadge: Record<string, string> = {
       openBtn?.addEventListener('click', () => toggleMenu(true));
       closeBtn?.addEventListener('click', () => toggleMenu(false));
       scrim?.addEventListener('click', () => toggleMenu(false));
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          toggleMenu(false);
+        }
+      });
     </script>
   </body>
 </html>

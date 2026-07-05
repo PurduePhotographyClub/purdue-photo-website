@@ -1,53 +1,59 @@
-import { Instagram } from "lucide-react";
-import { ImageWithFallback } from "./ImageWithFallback";
-
 interface Leader {
   name: string;
   role: string;
   term: string;
-  focus: string;
 }
 
-const portrait = "/leadership/kevin.webp";
-
 const currentLeaders: Leader[] = [
-  { name: "Ethan Sahin", role: "President", term: "2026-2027", focus: "50% 18%" },
-  { name: "Dylan Chu", role: "Vice President", term: "2026-2027", focus: "44% 22%" },
-  { name: "Jacob Croteau-DeFreece", role: "Treasurer", term: "2026-2027", focus: "56% 20%" },
-  { name: "Elyse Royer", role: "Secretary", term: "2026-2027", focus: "48% 24%" },
-  { name: "Tyler Szydlo", role: "Darkroom Manager", term: "2026-2027", focus: "42% 18%" },
-  { name: "Nathan Thomas", role: "Studio Manager", term: "2026-2027", focus: "58% 22%" },
-  { name: "Alejandro Griffith", role: "Social Media Manager", term: "2026-2027", focus: "52% 16%" },
-  { name: "Sasha Morrison", role: "Outreach/Event Coordinator", term: "2026-2027", focus: "46% 20%" },
+  { name: "Ethan Sahin", role: "President", term: "2026-2027" },
+  { name: "Dylan Chu", role: "Vice President", term: "2026-2027" },
+  { name: "Jacob Croteau-DeFreece", role: "Treasurer", term: "2026-2027" },
+  { name: "Elyse Royer", role: "Secretary", term: "2026-2027" },
+  { name: "Tyler Szydlo", role: "Darkroom Manager", term: "2026-2027" },
+  { name: "Nathan Thomas", role: "Studio Manager", term: "2026-2027" },
+  { name: "Alejandro Griffith", role: "Social Media Manager", term: "2026-2027" },
+  { name: "Sasha Morrison", role: "Outreach/Event Coordinator", term: "2026-2027" },
 ];
 
 const pastLeaders: Leader[] = [
-  { name: "Sebastian Murariu", role: "President", term: "2025-2026", focus: "50% 20%" },
-  { name: "Julian Vuong", role: "Vice President", term: "2025-2026", focus: "45% 21%" },
-  { name: "Ethan Sahin", role: "Darkroom/Studio Manager", term: "2025-2026", focus: "55% 18%" },
-  { name: "Kevin Kane", role: "Treasurer", term: "2025-2026", focus: "49% 17%" },
-  { name: "Justin Lin", role: "Secretary", term: "2025-2026", focus: "43% 20%" },
-  { name: "Kimberly Hung", role: "Outreach/Event Coordinator", term: "2025-2026", focus: "57% 23%" },
-  { name: "Linzzi Ji", role: "Social Media Manager", term: "2025-2026", focus: "51% 19%" },
+  { name: "Sebastian Murariu", role: "President", term: "2025-2026" },
+  { name: "Julian Vuong", role: "Vice President", term: "2025-2026" },
+  { name: "Ethan Sahin", role: "Darkroom/Studio Manager", term: "2025-2026" },
+  { name: "Kevin Kane", role: "Treasurer", term: "2025-2026" },
+  { name: "Justin Lin", role: "Secretary", term: "2025-2026" },
+  { name: "Kimberly Hung", role: "Outreach/Event Coordinator", term: "2025-2026" },
+  { name: "Linzzi Ji", role: "Social Media Manager", term: "2025-2026" },
 ];
 
 function LeaderCard({ leader, index }: { leader: Leader; index: number }) {
   const isVacant = leader.name === "Vacant";
+  const initials = leader.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("");
 
   return (
     <article className="group relative aspect-[4/5] overflow-hidden border border-neutral-800 bg-neutral-950 transition-colors duration-300 hover:border-neutral-500">
-      <ImageWithFallback
-        src={portrait}
-        alt={`${leader.name}, ${leader.role}`}
-        className={`absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 ${isVacant ? "opacity-35" : "opacity-90 group-hover:opacity-100"}`}
-        style={{ objectPosition: leader.focus }}
+      <div
+        className="absolute inset-0 opacity-[0.06]"
+        style={{
+          backgroundImage: "linear-gradient(to right, #404040 1px, transparent 1px), linear-gradient(to bottom, #404040 1px, transparent 1px)",
+          backgroundSize: "28px 28px",
+        }}
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-black/5" />
-      <div className="absolute left-4 top-4 border border-neutral-700/80 bg-black/50 px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-neutral-300 backdrop-blur-sm">
+      <div className="absolute inset-x-5 top-20 bottom-28 border border-neutral-800 bg-black/30" />
+      <div className="absolute inset-x-8 top-24 bottom-32 flex items-center justify-center border border-neutral-800/80 bg-white/[0.02]">
+        <span className={`text-5xl tracking-[0.08em] ${isVacant ? "text-neutral-700" : "text-neutral-300"}`} style={{ fontFamily: "'Playfair Display', serif" }}>
+          {isVacant ? "TBD" : initials}
+        </span>
+      </div>
+      <div className="absolute left-4 top-4 border border-neutral-700/80 bg-black/50 px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-neutral-300">
         {leader.term}
       </div>
-      <div className="absolute right-4 top-4 flex size-9 items-center justify-center border border-neutral-700/80 bg-black/45 text-neutral-200 backdrop-blur-sm transition-colors group-hover:border-neutral-300 group-hover:text-white">
-        <Instagram size={15} strokeWidth={1.5} />
+      <div className="absolute right-4 top-4 border border-neutral-700/80 bg-black/45 px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-neutral-400">
+        Board
       </div>
       <div className="absolute bottom-0 left-0 right-0 p-5">
         <p className="mb-2 break-words text-[10px] uppercase tracking-[0.18em] text-neutral-300 sm:tracking-[0.26em]">
@@ -92,7 +98,7 @@ export default function Leadership() {
                 Leadership
               </h1>
               <p className="mt-6 max-w-2xl text-sm uppercase tracking-[0.24em] text-neutral-400">
-                Current Leadership 2026-2027
+                Current board, 2026-2027.
               </p>
             </div>
             <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.24em] text-neutral-500">
@@ -115,7 +121,7 @@ export default function Leadership() {
               </h2>
             </div>
             <p className="max-w-md text-xs uppercase tracking-[0.2em] text-neutral-600">
-              Previous board
+              Previous board, 2025-2026.
             </p>
           </div>
           <LeadershipGrid leaders={pastLeaders} />

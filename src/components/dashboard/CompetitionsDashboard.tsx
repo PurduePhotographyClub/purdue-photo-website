@@ -37,9 +37,9 @@ export default function CompetitionsDashboard() {
           href={DISCORD_COMPETITION_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-neutral-800 text-[10px] tracking-[0.15em] uppercase text-neutral-400 hover:text-white hover:border-neutral-600 transition-colors shrink-0"
+          className="inline-flex min-h-11 items-center justify-center gap-2 px-4 py-2 border border-neutral-800 text-[10px] tracking-[0.15em] uppercase text-neutral-400 hover:text-white hover:border-neutral-600 transition-colors shrink-0 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
         >
-          Upload In Discord <ExternalLink size={12} />
+          Upload in Discord <ExternalLink size={12} />
         </a>
       </div>
 
@@ -76,14 +76,14 @@ export default function CompetitionsDashboard() {
                     href={DISCORD_COMPETITION_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-neutral-800 text-[10px] tracking-[0.15em] uppercase text-neutral-400 hover:text-white hover:border-neutral-600 transition-colors shrink-0"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 px-4 py-2 border border-neutral-800 text-[10px] tracking-[0.15em] uppercase text-neutral-400 hover:text-white hover:border-neutral-600 transition-colors shrink-0 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
                   >
                     Upload <ExternalLink size={12} />
                   </a>
                 ) : comp.status === "closed" ? (
                   <a
                     href="/competitions"
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-neutral-800 text-[10px] tracking-[0.15em] uppercase text-neutral-400 hover:text-white hover:border-neutral-600 transition-colors shrink-0"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 px-4 py-2 border border-neutral-800 text-[10px] tracking-[0.15em] uppercase text-neutral-400 hover:text-white hover:border-neutral-600 transition-colors shrink-0 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
                   >
                     Results <Trophy size={12} />
                   </a>

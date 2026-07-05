@@ -59,7 +59,7 @@ export default function ActivateForm() {
           <label htmlFor="ActivateForm-activation-key" className="block text-[10px] tracking-[0.2em] uppercase text-neutral-500 mb-2">
             Activation Key
           </label>
-          <input id="ActivateForm-activation-key" aria-label="XXXX-XXXX-XXXX-XXXX"
+          <input id="ActivateForm-activation-key"
             type="text"
             value={key}
             onChange={(e) => setKey(e.target.value)}
@@ -80,14 +80,14 @@ export default function ActivateForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 bg-white text-black text-[11px] tracking-[0.2em] uppercase hover:bg-neutral-200 transition-colors disabled:opacity-50"
+          className="w-full py-3 bg-white text-black text-[11px] tracking-[0.2em] uppercase hover:bg-neutral-200 transition-colors disabled:opacity-50 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
         >
           {loading ? "Activating" : "Activate Membership"}
         </button>
       </form>
 
       <p className="text-center mt-6 text-[10px] text-neutral-600">
-        Activation keys are emailed to your TooCOOL email. If you haven't received yours, please check your spam folder or contact support in the discord server.
+        Activation keys are sent to your TooCOOL email after purchase. Check spam, then ask in the Discord server if it is missing.
       </p>
       <p className="mt-4 text-center text-[10px] tracking-wider text-neutral-600">
         Don't know how to buy or activate?
@@ -95,7 +95,7 @@ export default function ActivateForm() {
           href={wikiHref}
           target="_blank"
           rel="noreferrer"
-          className="ml-1 inline-flex items-center gap-1 text-neutral-300 underline underline-offset-4 transition-colors hover:text-white"
+          className="ml-1 inline-flex items-center gap-1 text-neutral-300 underline underline-offset-4 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
         >
           Read the wiki <ExternalLink size={10} />
         </a>

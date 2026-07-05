@@ -313,7 +313,7 @@ function SecurityPanel({
               <button type="button"
                 onClick={onEnable2FA}
                 disabled={loading}
-                className="px-4 py-2.5 bg-white text-black text-[10px] tracking-[0.15em] uppercase hover:bg-neutral-200 transition-colors disabled:opacity-50"
+                className="px-4 py-2.5 bg-white text-black text-[10px] tracking-[0.15em] uppercase hover:bg-neutral-200 transition-colors disabled:opacity-50 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
               >
                 {loading ? "Setting up" : "Enable 2FA"}
               </button>
@@ -333,7 +333,7 @@ function SecurityPanel({
               <label htmlFor="SettingsPanel-enter-the-6-digit-code-from-your-app" className="block text-[10px] tracking-[0.2em] uppercase text-neutral-500 mb-2">
                 Enter the 6-digit code from your app
               </label>
-              <input id="SettingsPanel-enter-the-6-digit-code-from-your-app" aria-label="000000"
+              <input id="SettingsPanel-enter-the-6-digit-code-from-your-app"
                 type="text"
                 value={verifyCode}
                 onChange={(e) => onVerifyCodeChange(e.target.value)}
@@ -345,7 +345,7 @@ function SecurityPanel({
             <button type="button"
               onClick={onVerifyTotp}
               disabled={loading || verifyCode.length !== 6}
-              className="px-4 py-2.5 bg-white text-black text-[10px] tracking-[0.15em] uppercase hover:bg-neutral-200 transition-colors disabled:opacity-50"
+              className="px-4 py-2.5 bg-white text-black text-[10px] tracking-[0.15em] uppercase hover:bg-neutral-200 transition-colors disabled:opacity-50 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
             >
               {loading ? "Verifying" : "Verify & Enable"}
             </button>

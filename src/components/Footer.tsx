@@ -1,4 +1,4 @@
-import { Instagram, Mail, ExternalLink, Lock } from "lucide-react";
+import { Instagram, Mail, ExternalLink } from "lucide-react";
 
 const navLinks = [
   { to: "/gallery", label: "Gallery" },
@@ -6,7 +6,7 @@ const navLinks = [
   { to: "/leadership", label: "Leadership" },
   { to: "/facilities", label: "Facilities" },
   { to: "/membership", label: "Membership" },
-  { to: "/meetings", label: "Meetings" },
+  { to: "/events", label: "Events" },
   { to: "/request", label: "Request" },
 ];
 
@@ -27,42 +27,8 @@ function DiscordIcon({ size = 16, className = "" }: { size?: number; className?:
   );
 }
 
-function LockedNewsletter() {
-  return (
-    <div className="mt-6">
-      <div className="mb-2 flex items-center gap-2 text-neutral-500">
-        <Lock size={11} strokeWidth={1.5} aria-hidden="true" />
-        <p className="text-[10px] tracking-[0.3em] uppercase">Newsletter</p>
-      </div>
-      <p className="mb-3 text-[10px] text-neutral-600 tracking-wider leading-relaxed">
-        Sign-ups are paused for now.
-      </p>
-      <div className="grid gap-2" aria-label="Newsletter sign-up unavailable">
-        <input
-          aria-label="Your name"
-          type="text"
-          disabled
-          placeholder="Your name"
-          className="w-full bg-transparent border border-neutral-800 px-3 py-1.5 text-xs text-neutral-500 placeholder:text-neutral-700 disabled:cursor-not-allowed disabled:opacity-60"
-        />
-        <input
-          aria-label="Email address"
-          type="email"
-          disabled
-          placeholder="your@email.com"
-          className="w-full bg-transparent border border-neutral-800 px-3 py-1.5 text-xs text-neutral-500 placeholder:text-neutral-700 disabled:cursor-not-allowed disabled:opacity-60"
-        />
-        <button
-          type="button"
-          disabled
-          className="inline-flex items-center justify-center gap-2 border border-neutral-800 px-3 py-1.5 text-[10px] tracking-wider uppercase text-neutral-500 disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          <Lock size={10} strokeWidth={1.5} aria-hidden="true" />
-          Locked
-        </button>
-      </div>
-    </div>
-  );
+function isExternalHref(href: string) {
+  return /^https?:\/\//i.test(href);
 }
 
 export default function Footer() {
@@ -70,7 +36,8 @@ export default function Footer() {
   const subText = "text-neutral-500";
   const mutedText = "text-neutral-600";
   const faintText = "text-neutral-700";
-  const linkHover = "hover:text-white";
+  const linkHover = "hover:text-white focus-visible:text-white";
+  const focusRing = "focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400";
 
   return (
     <footer className={`border-t ${border} py-16 px-6 transition-colors duration-500`}>
@@ -84,7 +51,7 @@ export default function Footer() {
               </span>
             </div>
             <p className={`text-xs ${mutedText} tracking-wider leading-relaxed`}>
-              Where analog tradition meets digital innovation. Capturing moments in silver halide and silicon since 1934.
+              Film, digital, darkroom, and club work at Purdue since 1934.
             </p>
           </div>
           <div>
@@ -94,7 +61,7 @@ export default function Footer() {
                 <a
                   key={link.to}
                   href={link.to}
-                  className={`text-xs tracking-wider ${mutedText} ${linkHover} transition-colors`}
+                  className={`text-xs tracking-wider ${mutedText} ${linkHover} ${focusRing} transition-colors`}
                 >
                   {link.label}
                 </a>
@@ -102,22 +69,21 @@ export default function Footer() {
             </div>
           </div>
           <div>
-            <p className={`text-[10px] tracking-[0.3em] uppercase ${subText} mb-4`}>Connect With Us</p>
+            <p className={`text-[10px] tracking-[0.3em] uppercase ${subText} mb-4`}>Connect</p>
             <div className="flex flex-col gap-3">
               {socialLinks.map((social) => (
                 <a
                   key={social.label}
                   href={social.href}
-                  target={social.href.startsWith("mailto") ? undefined : "_blank"}
-                  rel="noopener noreferrer"
-                  className={`flex items-center gap-2.5 text-xs tracking-wider ${mutedText} ${linkHover} transition-colors`}
+                  target={isExternalHref(social.href) ? "_blank" : undefined}
+                  rel={isExternalHref(social.href) ? "noopener noreferrer" : undefined}
+                  className={`flex items-center gap-2.5 text-xs tracking-wider ${mutedText} ${linkHover} ${focusRing} transition-colors`}
                 >
                   <social.icon size={13} />
                   {social.label}
                 </a>
               ))}
             </div>
-            <LockedNewsletter />
           </div>
         </div>
         <div className={`border-t ${border} pt-8 flex flex-col md:flex-row items-center justify-between gap-4`}>
@@ -125,7 +91,7 @@ export default function Footer() {
             Est. 1934 &middot; Purdue Photography Club &middot; West Lafayette, IN
           </p>
           <p className={`text-[10px] ${faintText} tracking-wider`}>
-            Made with love by <a href="https://alesgsanudoo.com" target="_blank" rel="noopener noreferrer" className={`${subText} ${linkHover} transition-colors`}>Alejandro Griffith</a> &middot; &copy; 2026
+            Made with love by <a href="https://alesgsanudoo.com" target="_blank" rel="noopener noreferrer" className={`${subText} ${linkHover} ${focusRing} transition-colors`}>Alejandro Griffith</a> &middot; &copy; 2026
           </p>
         </div>
       </div>

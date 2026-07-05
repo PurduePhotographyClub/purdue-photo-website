@@ -15,7 +15,7 @@
   },
   "reactDoctor": {
     "ignore": {
-      "files": ["dist/**", ".wrangler/**"]
+      "files": ["dist/**", ".wrangler/**", ".github/skills/**"]
     }
   },
   "dependencies": {

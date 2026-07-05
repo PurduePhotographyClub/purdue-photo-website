@@ -1,0 +1,16 @@
+{
+  "detector": {
+    "ignoreRules": [
+      "single-font"
+    ],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "single-font",
+        "value": "space mono",
+        "reason": "Layout shell uses Space Mono while composed pages use documented Playfair headings",
+        "createdAt": "2026-07-04T12:19:19.595Z"
+      }
+    ]
+  }
+}
