@@ -154,7 +154,7 @@ const updateLinks = [
   {
     title: "Email",
     desc: "Questions about membership, facilities, or photographer requests.",
-    href: "mailto:purduephotographyclub@gmail.com",
+    href: "mailto:photo@purdue.edu",
     label: "Email PPC",
     icon: Mail,
   },

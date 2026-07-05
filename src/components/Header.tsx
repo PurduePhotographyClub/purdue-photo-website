@@ -7,7 +7,6 @@ const navLinks = [
   { to: "/events", label: "Events" },
   { to: "/gallery", label: "Gallery" },
   { to: "/competitions", label: "Competitions" },
-  { to: "/leadership", label: "Leadership" },
   { to: "/facilities", label: "Facilities" },
   { to: "/membership", label: "Membership" },
   { to: "/merch", label: "Merch" },
@@ -18,13 +17,13 @@ const primaryNavLinks = navLinks.filter((link) =>
   ["/events", "/gallery", "/membership", "/request"].includes(link.to)
 );
 const moreNavLinks = navLinks.filter((link) =>
-  ["/competitions", "/leadership", "/facilities", "/merch"].includes(link.to)
+  ["/competitions", "/facilities", "/merch"].includes(link.to)
 );
 
 const socialLinks = [
   { href: "https://www.instagram.com/purduephotoclub/", label: "Instagram", icon: Instagram },
   { href: "/discord", label: "Discord", icon: DiscordIcon },
-  { href: "mailto:purduephotographyclub@gmail.com", label: "Email", icon: Mail },
+  { href: "mailto:photo@purdue.edu", label: "Email", icon: Mail },
   { href: "https://linktr.ee/purduephotoclub", label: "Linktree", icon: ExternalLink },
   { href: "https://boilerlink.purdue.edu/organization/photoclub", label: "BoilerLink", icon: ExternalLink },
 ];
