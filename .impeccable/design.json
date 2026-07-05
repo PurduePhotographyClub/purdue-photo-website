@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-04T12:08:38Z",
+  "title": "Design System: Purdue Photography Club Website",
+  "extensions": {
+    "colorMeta": {
+      "neutral-950": {
+        "role": "primary",
+        "displayName": "Darkroom Black",
+        "canonical": "#0a0a0a",
+        "tonalRamp": ["#000000", "#0a0a0a", "#171717", "#262626", "#404040", "#737373", "#d4d4d4", "#f5f5f5"]
+      },
+      "neutral-800": {
+        "role": "neutral",
+        "displayName": "Film Gate",
+        "canonical": "#262626",
+        "tonalRamp": ["#0a0a0a", "#171717", "#262626", "#404040", "#525252", "#737373", "#a3a3a3", "#e5e5e5"]
+      },
+      "white": {
+        "role": "primary",
+        "displayName": "Contact White",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#262626", "#404040", "#737373", "#a3a3a3", "#d4d4d4", "#e5e5e5", "#f5f5f5", "#ffffff"]
+      },
+      "ppc-gold": {
+        "role": "secondary",
+        "displayName": "Purdue Gold",
+        "canonical": "#ceb888",
+        "tonalRamp": ["#2a2110", "#4d3c1d", "#735b2d", "#9b7d43", "#ceb888", "#d8c79b", "#eadbb3", "#f6edcf"]
+      },
+      "discord-blue": {
+        "role": "secondary",
+        "displayName": "Discord Blue",
+        "canonical": "#5865f2",
+        "tonalRamp": ["#11143f", "#1d236d", "#2d36a3", "#4752c4", "#5865f2", "#7b85f5", "#a8aff8", "#d8dcff"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Public hero headings and major page titles."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section headings and primary dashboard titles."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Readable explanatory copy and UI descriptions."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Navigation, chips, badges, field labels, and compact status text."
+      }
+    },
+    "shadows": [
+      {
+        "name": "photographic-print",
+        "value": "0 25px 50px -12px rgba(0,0,0,0.5)",
+        "purpose": "Stacked print collage shadows only."
+      },
+      {
+        "name": "floating-utility",
+        "value": "0 10px 15px -3px rgba(23,23,23,0.5), 0 4px 6px -4px rgba(23,23,23,0.5)",
+        "purpose": "Small floating widgets such as filter and donate controls."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-fast",
+        "value": "150ms ease-out",
+        "purpose": "Fast hover and active feedback."
+      },
+      {
+        "name": "state-standard",
+        "value": "300ms ease-out",
+        "purpose": "Button, menu, and surface transitions."
+      },
+      {
+        "name": "image-hover",
+        "value": "700ms ease-out",
+        "purpose": "Slow photographic zooms on hover."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "High-contrast white action button for primary public and auth actions.",
+      "html": "<button class=\"ds-btn-primary\">Join the Club</button>",
+      "css": ".ds-btn-primary{background:#fff;color:#000;border:1px solid #fff;border-radius:0;padding:12px 32px;font-family:'Space Mono',ui-monospace,monospace;font-size:12px;letter-spacing:.3em;text-transform:uppercase;transition:background-color .3s ease,color .3s ease,border-color .3s ease}.ds-btn-primary:hover{background:#e5e5e5;border-color:#e5e5e5}.ds-btn-primary:focus-visible{outline:2px solid #a3a3a3;outline-offset:3px}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Neutral outline button for filters, secondary CTAs, and dashboard alternates.",
+      "html": "<button class=\"ds-btn-secondary\">View Gallery</button>",
+      "css": ".ds-btn-secondary{background:transparent;color:#d4d4d4;border:1px solid #525252;border-radius:0;padding:12px 32px;font-family:'Space Mono',ui-monospace,monospace;font-size:12px;letter-spacing:.3em;text-transform:uppercase;transition:background-color .3s ease,color .3s ease,border-color .3s ease}.ds-btn-secondary:hover{background:#fff;color:#000;border-color:#fff}.ds-btn-secondary:focus-visible{outline:2px solid #a3a3a3;outline-offset:3px}"
+    },
+    {
+      "name": "Dark Card",
+      "kind": "card",
+      "refersTo": "card-dark",
+      "description": "Flat bordered surface for events, memberships, dashboard panels, and empty states.",
+      "html": "<article class=\"ds-card\"><p class=\"ds-card-kicker\">Open Now</p><h3 class=\"ds-card-title\">Monthly Competition</h3><p class=\"ds-card-copy\">Theme, deadlines, and member context stay legible on a quiet surface.</p></article>",
+      "css": ".ds-card{background:rgba(255,255,255,.02);border:1px solid #262626;border-radius:0;padding:24px;color:#f5f5f5;transition:border-color .3s ease}.ds-card:hover{border-color:#525252}.ds-card-kicker{margin:0 0 12px;color:#525252;font-family:'Space Mono',ui-monospace,monospace;font-size:10px;letter-spacing:.3em;text-transform:uppercase}.ds-card-title{margin:0 0 12px;color:#f5f5f5;font-family:'Playfair Display',Georgia,serif;font-size:24px;font-weight:400;letter-spacing:.04em}.ds-card-copy{margin:0;color:#a3a3a3;font-family:'Space Mono',ui-monospace,monospace;font-size:12px;line-height:1.7;letter-spacing:.04em}"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input-default",
+      "description": "Square dark field with mono label and brightened focus border.",
+      "html": "<label class=\"ds-field\"><span>Email</span><input placeholder=\"you@purdue.edu\" /></label>",
+      "css": ".ds-field{display:grid;gap:8px;color:#737373;font-family:'Space Mono',ui-monospace,monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase}.ds-field input{background:rgba(255,255,255,.02);border:1px solid #262626;border-radius:0;color:#f5f5f5;font-family:'Space Mono',ui-monospace,monospace;font-size:14px;letter-spacing:.04em;padding:12px 16px;text-transform:none;transition:border-color .3s ease}.ds-field input::placeholder{color:#525252}.ds-field input:focus{border-color:#737373;outline:none}.ds-field input:focus-visible{outline:2px solid #737373;outline-offset:3px}"
+    },
+    {
+      "name": "Media Chip",
+      "kind": "chip",
+      "description": "Small film/digital or status label with tight mono typography.",
+      "html": "<span class=\"ds-chip\">Film</span>",
+      "css": ".ds-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(23,23,23,.9);border:1px solid #404040;color:#a3a3a3;border-radius:0;padding:4px 8px;font-family:'Space Mono',ui-monospace,monospace;font-size:9px;letter-spacing:.2em;text-transform:uppercase}"
+    },
+    {
+      "name": "Floating Pill",
+      "kind": "custom",
+      "refersTo": "floating-pill",
+      "description": "Rounded utility control used by donate and lens-filter widgets.",
+      "html": "<button class=\"ds-floating-pill\">Filters</button>",
+      "css": ".ds-floating-pill{display:inline-flex;align-items:center;gap:10px;background:rgba(10,10,10,.9);border:1px solid #262626;border-radius:9999px;color:#737373;padding:10px 16px;font-family:'Space Mono',ui-monospace,monospace;font-size:10px;letter-spacing:.15em;text-transform:uppercase;box-shadow:0 10px 15px -3px rgba(23,23,23,.5);backdrop-filter:blur(8px);transition:border-color .3s ease,color .3s ease}.ds-floating-pill:hover{border-color:#404040;color:#d4d4d4}.ds-floating-pill:focus-visible{outline:2px solid #737373;outline-offset:3px}"
+    },
+    {
+      "name": "Navigation Link",
+      "kind": "nav",
+      "description": "Public and dashboard navigation label treatment.",
+      "html": "<a class=\"ds-nav-link\" href=\"#\">Gallery</a>",
+      "css": ".ds-nav-link{color:#737373;font-family:'Space Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.15em;text-transform:uppercase;text-decoration:none;transition:color .3s ease}.ds-nav-link:hover,.ds-nav-link:focus-visible{color:#fff;outline:none}.ds-nav-link[aria-current='page']{color:#fff}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Darkroom Contact Sheet",
+    "overview": "The system is a dark, photographic environment built from monochrome surfaces, thin neutral borders, film-grain texture, measured spacing, and real club imagery. Public pages are brand-first while the dashboard is product-first.",
+    "keyCharacteristics": [
+      "Dark monochrome base with white/gray hierarchy and rare color accents.",
+      "Playfair Display for club identity and editorial headings; Space Mono for labels, controls, navigation, and body copy.",
+      "Fine borders, square corners, low-opacity panels, and subtle texture instead of heavy card depth.",
+      "Photographic media, film-strip details, contact-sheet grids, and analog/digital tags as signature motifs.",
+      "Motion is state feedback and polish, not spectacle."
+    ],
+    "rules": [
+      {
+        "name": "The Monochrome First Rule",
+        "body": "A screen should read as black, white, and gray before any accent color is noticed.",
+        "section": "colors"
+      },
+      {
+        "name": "The Rare Gold Rule",
+        "body": "Purdue gold is for donation/support or special club moments; never wash the site in gold.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two-Font Rule",
+        "body": "Do not introduce a third display, sans, or mono family.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Interface Rule",
+        "body": "Operational UI is flat at rest. Borders and surface opacity distinguish layers before shadows do.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do preserve the existing darkroom identity: neutral-950, fine neutral borders, film grain, real photography, Playfair headings, and Space Mono UI copy.",
+      "Do use photographs and club assets as the public site's strongest visual material.",
+      "Do keep dashboard UI dense, flat, predictable, and aligned with existing member workflows.",
+      "Do use white primary buttons for clear action moments and neutral outline buttons for secondary actions.",
+      "Do check contrast whenever muted neutral text appears on dark or tinted backgrounds.",
+      "Do respect reduced motion for confetti, widget motion, hover transitions, and any future animation."
+    ],
+    "donts": [
+      "Don't redesign the website from scratch or replace the existing identity, layout direction, colors, vibe, or brand style.",
+      "Don't add random gradients, glassmorphism, huge shadows, over-rounded cards, fake depth, or unnecessary animation.",
+      "Don't introduce cheerful SaaS colors, beige/cream editorial templates, purple-blue gradients, or generic AI-looking design motifs.",
+      "Don't use color as decoration when it already has semantic meaning.",
+      "Don't use big shadows on normal dashboard cards or form panels.",
+      "Don't add a third font family or replace the committed Playfair Display and Space Mono pairing."
+    ]
+  }
+}

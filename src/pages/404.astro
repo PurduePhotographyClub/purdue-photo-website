@@ -56,7 +56,7 @@ import Layout from '../layouts/Layout.astro';
       </div>
 
       <div class="cta-content" data-speed="0.45">
-        <p class="cta-label">Let's get you back on track</p>
+        <p class="cta-label">Back to the site</p>
         <div class="cta-buttons">
           <a href="/" class="btn-primary">Back to Home</a>
           <a href="/gallery" class="btn-secondary">View Gallery</a>
@@ -69,8 +69,10 @@ import Layout from '../layouts/Layout.astro';
     const root = document.getElementById('parallax-root');
     if (root) {
       const elements = root.querySelectorAll<HTMLElement>('[data-speed]');
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
       function updateParallax() {
+        if (reduceMotion) return;
         const scrollY = window.scrollY;
         elements.forEach((el) => {
           const speed = parseFloat(el.getAttribute('data-speed') || '0');
@@ -86,21 +88,28 @@ import Layout from '../layouts/Layout.astro';
         });
       }
 
-      // Intersection Observer for fade-in
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('in-view');
-          }
+      const revealElements = root.querySelectorAll('.message-content, .cta-content, .aperture-icon, .hero-content');
+
+      if (reduceMotion) {
+        revealElements.forEach((el) => {
+          el.classList.add('in-view');
         });
-      }, { threshold: 0.15 });
+      } else {
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('in-view');
+            }
+          });
+        }, { threshold: 0.15 });
 
-      root.querySelectorAll('.message-content, .cta-content, .aperture-icon, .hero-content').forEach(el => {
-        observer.observe(el);
-      });
+        revealElements.forEach((el) => {
+          observer.observe(el);
+        });
 
-      window.addEventListener('scroll', updateParallax, { passive: true });
-      updateParallax();
+        window.addEventListener('scroll', updateParallax, { passive: true });
+        updateParallax();
+      }
     }
   </script>
 
@@ -343,6 +352,11 @@ import Layout from '../layouts/Layout.astro';
       background: white;
       color: black;
     }
+    .btn-primary:focus-visible,
+    .btn-secondary:focus-visible {
+      outline: 1px solid #a3a3a3;
+      outline-offset: 4px;
+    }
     .btn-secondary {
       padding: 0.75rem 2rem;
       border: 1px solid #262626;
@@ -372,8 +386,32 @@ import Layout from '../layouts/Layout.astro';
       opacity: 0.04;
     }
     .contact-frame {
-      border: 1px solid #333;
-      background: #111;
+      border: 1px solid #262626;
+      background: #171717;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .parallax-img,
+      .hero-content,
+      .message-content,
+      .cta-content,
+      .aperture-icon,
+      .scroll-hint,
+      .scroll-line,
+      .bokeh,
+      .contact-sheet {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
+      }
+
+      .hero-content,
+      .message-content,
+      .cta-content,
+      .aperture-icon,
+      .scroll-hint {
+        opacity: 1 !important;
+      }
     }
 
     /* ─── Animations ─── */

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { X, Film, Aperture } from "lucide-react";
 import { ImageWithFallback } from "./ImageWithFallback";
@@ -52,6 +52,23 @@ export default function Gallery() {
   const status: "loading" | "loaded" | "error" = !galleryRows && !error ? "loading" : error ? "error" : "loaded";
   const [filter, setFilter] = useState("All");
   const [selected, setSelected] = useState<number | null>(null);
+  const lightboxDialogRef = useRef<HTMLDialogElement | null>(null);
+
+  useEffect(() => {
+    if (selected === null) return;
+
+    const dialog = lightboxDialogRef.current;
+    if (!dialog) return;
+    if (!dialog.open) {
+      dialog.showModal();
+    }
+
+    return () => {
+      if (dialog.open) {
+        dialog.close();
+      }
+    };
+  }, [selected]);
 
   const filtered = filter === "All"
     ? images
@@ -78,7 +95,7 @@ export default function Gallery() {
           <div className="flex flex-wrap justify-center gap-3 mb-16">
             {galleryCategories.map((cat) => (
               <button type="button" key={cat} onClick={() => setFilter(cat)}
-                className={`text-xs tracking-[0.2em] uppercase px-4 py-2 border transition-all duration-300 flex items-center gap-2 ${filter === cat ? btnActive : btnInactive}`}>
+                className={`flex min-h-11 items-center gap-2 border px-4 py-2 text-xs uppercase tracking-[0.2em] transition-all duration-300 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400 ${filter === cat ? btnActive : btnInactive}`}>
                 {cat}
               </button>
             ))}
@@ -99,13 +116,15 @@ export default function Gallery() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-24">
-            <p className={`text-sm ${mutedText} tracking-wider`}>No pictures to display</p>
+            <p className={`text-sm ${mutedText} tracking-wider`}>
+              {images.length === 0 ? "No photos are published yet." : "No photos match this filter."}
+            </p>
           </div>
         ) : (
         <div className="columns-1 sm:columns-2 lg:columns-3 gap-2 space-y-2">
             {filtered.map((img, i) => (
               <button type="button" key={img.src + img.author}
-                className="break-inside-avoid group cursor-pointer relative overflow-hidden mb-2" onClick={() => setSelected(i)}>
+                className="group relative mb-2 break-inside-avoid cursor-pointer overflow-hidden focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400" onClick={() => setSelected(i)}>
                 <ImageWithFallback src={img.src} alt={img.cat}
                   className="w-full transition-all duration-700 group-hover:scale-[1.03]"
                   loading={i < 12 ? "eager" : "lazy"}
@@ -115,8 +134,8 @@ export default function Gallery() {
                   width={img.width ?? undefined}
                   height={img.height ?? undefined}
                 />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-end">
-                  <div className="p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-full">
+                <div className="absolute inset-0 flex items-end bg-black/25 transition-all duration-300 sm:bg-black/0 sm:group-hover:bg-black/30 sm:group-focus-visible:bg-black/30">
+                  <div className="w-full p-4 opacity-100 transition-opacity duration-300 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-visible:opacity-100">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs tracking-[0.2em] uppercase text-white">{img.cat}</p>
@@ -135,12 +154,16 @@ export default function Gallery() {
       </div>
 
       {selected !== null && (
-        <div
-          className="fixed inset-0 z-[120] flex h-dvh w-dvw flex-col items-center justify-center gap-4 bg-black/95 p-6 pt-16">
+        <dialog
+          aria-label="Gallery photo preview"
+          ref={lightboxDialogRef}
+          onClose={() => setSelected(null)}
+          className="fixed inset-0 z-[120] h-dvh max-h-none w-dvw max-w-none border-0 bg-black/95 p-6 pt-16 text-inherit backdrop:bg-transparent">
+          <div className="flex h-full w-full flex-col items-center justify-center gap-4">
           <button type="button" aria-label="Close gallery lightbox" className="absolute inset-0 cursor-default" onMouseDown={() => setSelected(null)} />
-          <button type="button" className="absolute top-6 right-6 z-10 text-neutral-400 hover:text-white" onClick={() => setSelected(null)}><X size={24} /></button>
+          <button type="button" className="absolute top-6 right-6 z-10 flex min-h-11 min-w-11 items-center justify-center text-neutral-400 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400" onClick={() => setSelected(null)}><X size={24} /></button>
           <img
-            src={filtered[selected]?.fullSrc} alt="" className="relative z-10 max-w-full max-h-[75vh] object-contain shrink min-h-0" loading="eager" decoding="async" />
+            src={filtered[selected]?.fullSrc} alt={filtered[selected]?.cat ?? "Selected gallery photo"} className="relative z-10 max-w-full max-h-[75vh] object-contain shrink min-h-0" loading="eager" decoding="async" />
           <div className="relative z-10 text-center shrink-0">
             <p className="text-xs tracking-[0.3em] uppercase text-neutral-400">
               {filtered[selected]?.cat} &middot; {filtered[selected]?.author} &middot; Shot on {filtered[selected]?.medium}
@@ -151,7 +174,8 @@ export default function Gallery() {
               </p>
             )}
           </div>
-        </div>
+          </div>
+        </dialog>
       )}
     </div>
   );

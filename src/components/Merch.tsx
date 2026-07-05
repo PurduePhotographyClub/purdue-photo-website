@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import useSWR from "swr";
-import { Aperture, ExternalLink, Film, Image as ImageIcon, PackageCheck, ShoppingBag, Sparkles } from "lucide-react";
+import { Aperture, ExternalLink, Film, Image as ImageIcon, PackageCheck, ShoppingBag } from "lucide-react";
 import { ImageWithFallback } from "./ImageWithFallback";
 import {
   DEFAULT_MERCH_CATEGORIES,
@@ -91,7 +91,7 @@ function ProductCard({ product }: { product: MerchProductContent }) {
           </span>
           {product.isFeatured && (
             <span className="inline-flex items-center gap-1.5 border border-white/30 bg-white/10 px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-white backdrop-blur-sm">
-              <Sparkles size={10} />
+              <PackageCheck size={10} />
               Featured
             </span>
           )}
@@ -125,7 +125,7 @@ function ProductCard({ product }: { product: MerchProductContent }) {
             href={product.buyUrl}
             target={external ? "_blank" : undefined}
             rel={external ? "noreferrer" : undefined}
-            className="flex w-full items-center justify-center gap-2 border border-neutral-200 bg-white px-4 py-3 text-[10px] uppercase tracking-[0.22em] text-black transition-colors hover:bg-neutral-200"
+            className="flex min-h-11 w-full items-center justify-center gap-2 border border-neutral-200 bg-white px-4 py-3 text-[10px] uppercase tracking-[0.22em] text-black transition-colors hover:bg-neutral-200 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
           >
             Buy
             {external && <ExternalLink size={12} />}
@@ -170,7 +170,7 @@ export default function Merch() {
       <section className="relative min-h-[58vh] overflow-hidden border-b border-neutral-800 px-6 py-24">
         <div className="absolute top-0 left-0 right-0 h-32 z-10 bg-gradient-to-b from-neutral-950 to-transparent" />
         <div className="absolute inset-0">
-          <ImageWithFallback src={heroImg} alt="Store where it shows film is not dead" className="h-full w-full opacity-35" />
+          <ImageWithFallback src={heroImg} alt="PPC merch display with a film is not dead sign" className="h-full w-full opacity-35" />
         </div>
         <div className="absolute inset-0 bg-gradient-to-b from-neutral-950/75 via-neutral-950/50 to-neutral-950" />
         <div
@@ -218,7 +218,7 @@ export default function Merch() {
                     key={item.id}
                     type="button"
                     onClick={() => setFilter(item.id)}
-                    className={`inline-flex items-center gap-2 border px-4 py-2 text-[10px] uppercase tracking-[0.18em] transition-colors ${
+                    className={`inline-flex min-h-11 items-center gap-2 border px-4 py-2 text-[10px] uppercase tracking-[0.18em] transition-colors focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400 ${
                       active
                         ? "border-neutral-200 bg-white text-black"
                         : "border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-200"

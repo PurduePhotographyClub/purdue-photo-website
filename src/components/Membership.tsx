@@ -19,8 +19,8 @@ const tierBadge: Record<string, { label: string; style: string }> = {
 };
 
 const roleBadge: Record<string, { label: string; style: string }> = {
-  officer: { label: "Officer", style: "bg-purple-900/50 text-purple-300 border-purple-800" },
-  admin: { label: "Administrator", style: "bg-amber-900/50 text-amber-300 border-amber-800" },
+  officer: { label: "Officer", style: "bg-amber-950/30 text-amber-300 border-amber-800/70" },
+  admin: { label: "Administrator", style: "bg-red-950/30 text-red-300 border-red-800/70" },
 };
 
 const wikiHref = "https://github.com/alesgsanudoo/ppc/wiki";
@@ -34,7 +34,7 @@ const purchaseSteps = [
   },
   {
     step: "02",
-    title: "Get Email",
+    title: "Check TooCOOL Email",
     desc: "Your activation key is sent to your TooCOOL email after purchase.",
     icon: Mail,
   },
@@ -175,7 +175,7 @@ export default function Membership({ currentTier, currentRole, isLoggedIn }: Pro
                         href={tier.buyUrl}
                         target={isExternalHref(tier.buyUrl) ? "_blank" : undefined}
                         rel={isExternalHref(tier.buyUrl) ? "noreferrer" : undefined}
-                        className="flex w-full items-center justify-center gap-2 bg-white py-3 text-xs tracking-[0.3em] uppercase text-black transition-all duration-300 hover:bg-neutral-200"
+                    className="flex min-h-11 w-full items-center justify-center gap-2 bg-white py-3 text-xs uppercase tracking-[0.3em] text-black transition-all duration-300 hover:bg-neutral-200 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
                       >
                         Buy Upgrade
                         {isExternalHref(tier.buyUrl) && <ExternalLink size={12} />}
@@ -183,7 +183,7 @@ export default function Membership({ currentTier, currentRole, isLoggedIn }: Pro
                     )}
                     <a
                       href="/activate"
-                      className="flex w-full items-center justify-center border border-neutral-700 py-3 text-xs tracking-[0.3em] uppercase text-neutral-400 transition-all duration-300 hover:border-white hover:text-white"
+                      className="flex min-h-11 w-full items-center justify-center border border-neutral-700 py-3 text-xs uppercase tracking-[0.3em] text-neutral-400 transition-all duration-300 hover:border-white hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
                     >
                       Activate Key
                     </a>
@@ -194,7 +194,7 @@ export default function Membership({ currentTier, currentRole, isLoggedIn }: Pro
                     href={cta.href}
                     target={cta.external ? "_blank" : undefined}
                     rel={cta.external ? "noreferrer" : undefined}
-                    className={`flex w-full items-center justify-center gap-2 mt-8 py-3 text-xs text-center tracking-[0.3em] uppercase transition-all duration-300 cursor-pointer ${
+                    className={`mt-8 flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 py-3 text-center text-xs uppercase tracking-[0.3em] transition-all duration-300 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400 ${
                       tier.featured
                         ? "bg-white text-black hover:bg-neutral-200"
                         : "border border-neutral-700 text-neutral-400 hover:border-white hover:text-white"
@@ -210,7 +210,7 @@ export default function Membership({ currentTier, currentRole, isLoggedIn }: Pro
         </div>
 
         <div className="mt-32 border-t border-neutral-800 pt-16">
-          <p className="mb-4 text-center text-xs uppercase tracking-[0.4em] text-neutral-500">How To</p>
+          <p className="mb-4 text-center text-xs uppercase tracking-[0.4em] text-neutral-500">Buying Access</p>
           <h3 className="mb-12 text-center text-xl tracking-wider text-neutral-100" style={{ fontFamily: "'Playfair Display', serif" }}>Buy & Activate</h3>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
             {purchaseSteps.map((item) => {
@@ -228,8 +228,8 @@ export default function Membership({ currentTier, currentRole, isLoggedIn }: Pro
             })}
           </div>
           <div className="mt-10 text-center">
-            <a href={wikiHref} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-neutral-600 px-8 py-3 text-xs uppercase tracking-[0.3em] text-neutral-300 transition-all duration-300 hover:bg-white hover:text-black">
-              Read The Wiki <ExternalLink size={12} />
+            <a href={wikiHref} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-2 border border-neutral-600 px-8 py-3 text-xs uppercase tracking-[0.3em] text-neutral-300 transition-all duration-300 hover:bg-white hover:text-black focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400">
+              Read the Wiki <ExternalLink size={12} />
             </a>
           </div>
         </div>

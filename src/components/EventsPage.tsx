@@ -40,7 +40,7 @@ export default function EventsPage() {
               Events
             </h1>
             <p className="mt-5 max-w-xl text-sm leading-relaxed tracking-wider text-neutral-400 select-text">
-              Photo walks, darkroom nights, critiques, socials, and club showcases.
+              Photo walks, darkroom nights, critiques, socials, and member photo nights.
             </p>
           </div>
 
@@ -101,7 +101,7 @@ function NextEvent({ event, now }: { event: WebsiteEvent; now: Date }) {
   const parts = formatEventDay(event.date);
 
   return (
-    <a href="#upcoming-events" className="group grid gap-5 md:grid-cols-[120px_1fr]">
+    <a href="#upcoming-events" className="group grid gap-5 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400 md:grid-cols-[120px_1fr]">
       <div className="relative flex min-h-40 flex-col items-center justify-center border border-neutral-700 bg-neutral-950">
         <span className="absolute right-3 top-3 flex size-3">
           <span className="absolute h-full w-full animate-ping rounded-full bg-amber-300 opacity-60" />
@@ -175,12 +175,12 @@ function DiscordInfoCard() {
         <div className="mb-10 flex size-14 items-center justify-center border border-neutral-800 bg-black/30 text-neutral-500">
           <CalendarDays size={20} strokeWidth={1.3} />
         </div>
-        <p className="mb-3 text-[10px] uppercase tracking-[0.3em] text-neutral-500">More Information</p>
+        <p className="mb-3 text-[10px] uppercase tracking-[0.3em] text-neutral-500">Discord Updates</p>
         <h3 className="text-xl tracking-wider text-neutral-100 group-hover:text-white" style={{ fontFamily: "'Playfair Display', serif" }}>
           RSVP, room changes, and last-minute updates live in Discord.
         </h3>
       </div>
-      <a href="/discord" className="mt-8 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-neutral-400 transition-colors hover:text-white">
+      <a href="/discord" className="mt-8 inline-flex min-h-11 items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-neutral-400 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400">
         Open Discord <ArrowRight size={12} />
       </a>
     </aside>

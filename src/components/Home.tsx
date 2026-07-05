@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import useSWR from "swr";
-import { Users, ArrowRight, Film, Trophy, Image, Lock, ShoppingBag } from "lucide-react";
+import { Users, ArrowRight, Film, Trophy, Image, Instagram, Mail, ShoppingBag } from "lucide-react";
 import { ImageWithFallback } from "./ImageWithFallback";
 import {
   formatEventMonth,
@@ -112,18 +112,66 @@ const merchHighlights = [
   { label: "Rolls", icon: Film },
 ];
 
+const visitorPaths = [
+  {
+    title: "Join PPC",
+    desc: "Membership covers club programming, Discord, competitions, and the steps for darkroom or studio access.",
+    href: "/membership",
+    label: "Start Membership",
+    icon: Users,
+  },
+  {
+    title: "Browse Work",
+    desc: "See member photography across film, digital, competitions, and recent gallery uploads.",
+    href: "/gallery",
+    label: "Open Gallery",
+    icon: Image,
+  },
+  {
+    title: "Request Photos",
+    desc: "Need coverage for an event, portrait, or organization program? Send the details.",
+    href: "/request",
+    label: "Request a Photographer",
+    icon: Film,
+  },
+];
+
+const updateLinks = [
+  {
+    title: "Discord",
+    desc: "Meeting reminders, room changes, competition prompts, and darkroom coordination.",
+    href: "/discord",
+    label: "Join Discord",
+    icon: Users,
+  },
+  {
+    title: "Instagram",
+    desc: "Photo walks, member work, merch drops, and public announcements.",
+    href: "https://www.instagram.com/purduephotoclub/",
+    label: "Follow Instagram",
+    icon: Instagram,
+  },
+  {
+    title: "Email",
+    desc: "Questions about membership, facilities, or photographer requests.",
+    href: "mailto:purduephotographyclub@gmail.com",
+    label: "Email PPC",
+    icon: Mail,
+  },
+];
+
 function HomeHero({ theme }: { theme: HomeTheme }) {
   const { heading } = theme;
 
   return (
-    <section className="relative h-screen flex items-center justify-center overflow-hidden">
+    <section className="relative flex min-h-[calc(100svh-7rem)] items-center justify-center overflow-hidden py-14 md:min-h-[calc(100svh-6rem)]">
       <div className="absolute top-0 left-0 right-0 h-32 z-10 bg-gradient-to-b from-neutral-950 to-transparent" />
       <div className="absolute inset-0">
         <ImageWithFallback src={heroImg} alt="Vintage camera" className="size-full object-cover grayscale opacity-40" loading="eager" decoding="async" fetchPriority="high" />
       </div>
       <div className="absolute inset-0 bg-gradient-to-b from-neutral-950/60 via-transparent to-neutral-950" />
 
-      <div className="relative z-10 text-center px-4 sm:px-6 md:px-8 w-full max-w-6xl -mt-16">
+      <div className="relative z-10 text-center px-4 sm:px-6 md:px-8 w-full max-w-6xl -mt-8 md:-mt-14">
         <h1
           className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl tracking-[0.05em] sm:tracking-[0.08em] md:tracking-[0.1em] mb-4 ${heading}`}
           style={{ fontFamily: "'Playfair Display', serif" }}
@@ -152,6 +200,47 @@ function HomeHero({ theme }: { theme: HomeTheme }) {
           backgroundSize: "32px 100%",
         }}
       />
+    </section>
+  );
+}
+
+function VisitorPathsSection({ theme }: { theme: HomeTheme }) {
+  const { border, cardBg, heading, mutedText, subText } = theme;
+
+  return (
+    <section className={`px-6 py-16 md:py-20 border-b ${border}`}>
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-10 grid gap-4 md:grid-cols-[0.9fr_1.1fr] md:items-end">
+          <div>
+            <h2 className={`text-3xl md:text-4xl tracking-wider ${heading}`} style={{ fontFamily: "'Playfair Display', serif" }}>
+              Find Your First Frame
+            </h2>
+          </div>
+          <p className={`max-w-2xl text-sm ${subText} tracking-wider leading-relaxed select-text md:justify-self-end`}>
+            New here? Start with what you need. The archive, calendar, and club resources are all still close by.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-1 md:grid-cols-3">
+          {visitorPaths.map((item) => (
+            <a
+              key={item.title}
+              href={item.href}
+              className={`group min-h-56 border ${border} ${cardBg} p-6 transition-colors hover:border-neutral-600 focus:outline-none focus-visible:border-neutral-400`}
+            >
+              <item.icon size={22} className={`${mutedText} mb-8 transition-colors group-hover:text-neutral-200`} strokeWidth={1.4} />
+              <h3 className={`mb-3 text-2xl tracking-wider ${heading}`} style={{ fontFamily: "'Playfair Display', serif" }}>
+                {item.title}
+              </h3>
+              <p className={`mb-8 text-xs ${mutedText} tracking-wider leading-relaxed select-text`}>
+                {item.desc}
+              </p>
+              <span className={`inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] ${subText} transition-colors group-hover:text-white`}>
+                {item.label} <ArrowRight size={12} />
+              </span>
+            </a>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }
@@ -227,11 +316,11 @@ function FeaturedPhotosSection({ galleryPhotos, galleryStatus, theme }: Featured
             ))}
           </div>
         ) : galleryPhotos.length === 0 ? (
-          <p className={`text-center text-sm ${mutedText} tracking-wider`}>No pictures to display</p>
+          <p className={`text-center text-sm ${mutedText} tracking-wider`}>No photos are published yet.</p>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1">
             {galleryPhotos.map((item) => (
-              <div key={item.img} className="group relative aspect-[3/4] overflow-hidden cursor-pointer">
+              <div key={item.img} className="group relative aspect-[3/4] overflow-hidden">
                 <div className="size-full">
                   <ImageWithFallback
                     src={item.img}
@@ -250,7 +339,7 @@ function FeaturedPhotosSection({ galleryPhotos, galleryStatus, theme }: Featured
                     {item.film ? "Film" : "Digital"}
                   </span>
                 </div>
-                <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent opacity-100 transition-opacity duration-300 sm:opacity-0 sm:group-hover:opacity-100">
                   <p className="text-[10px] tracking-widest uppercase text-neutral-300">{item.label}</p>
                 </div>
               </div>
@@ -388,7 +477,7 @@ function CompetitionTeaserSection({ compStatus, latestComp, theme }: Competition
             <div className="p-8 md:p-12 border border-neutral-800 bg-neutral-900/50 min-h-[300px]" />
           </div>
         ) : !latestComp ? (
-          <p className={`text-center text-sm ${mutedText} tracking-wider`}>No competitions to display</p>
+          <p className={`text-center text-sm ${mutedText} tracking-wider`}>No competitions are posted yet.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-1 items-stretch">
             <div className="relative aspect-[4/3] md:aspect-auto overflow-hidden bg-neutral-950">
@@ -427,53 +516,49 @@ function CompetitionTeaserSection({ compStatus, latestComp, theme }: Competition
   );
 }
 
-interface NewsletterSectionProps {
+interface FollowUpdatesSectionProps {
   theme: HomeTheme;
 }
 
-function NewsletterSection({ theme }: NewsletterSectionProps) {
+function FollowUpdatesSection({ theme }: FollowUpdatesSectionProps) {
   const { border, cardBg, heading, mutedText, subText } = theme;
 
   return (
-    <section id="newsletter" className={`py-24 px-6 border-t ${border}`}>
-      <div className="max-w-2xl mx-auto text-center">
-        <div className={`mx-auto mb-6 inline-flex size-12 items-center justify-center border ${border} ${cardBg} text-neutral-300`} aria-hidden="true">
-          <Lock size={18} strokeWidth={1.4} />
+    <section id="updates" className={`py-24 px-6 border-t ${border}`}>
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-10">
+          <div>
+            <p className={`text-xs tracking-[0.4em] uppercase ${mutedText} mb-4`}>Stay in the Loop</p>
+            <h2 className={`text-3xl md:text-4xl tracking-wider ${heading}`} style={{ fontFamily: "'Playfair Display', serif" }}>
+              Follow the Next Roll
+            </h2>
+          </div>
         </div>
-        <p className={`text-xs tracking-[0.4em] uppercase ${mutedText} mb-4`}>Stay in the Loop</p>
-        <h2 className={`text-3xl md:text-4xl tracking-wider mb-4 ${heading}`} style={{ fontFamily: "'Playfair Display', serif" }}>
-          Newsletter
-        </h2>
-        <p className={`text-sm ${subText} tracking-wider mb-10 leading-relaxed`}>
-          Newsletter sign-ups are paused for now. Follow our Discord and Instagram for meetings, competitions, photo walks, and darkroom hours.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 max-w-2xl mx-auto" aria-label="Newsletter sign-up unavailable">
-          <input
-            aria-label="Your name"
-            type="text"
-            disabled
-            placeholder="Your name"
-            className={`px-4 py-3 bg-transparent border ${border} text-neutral-500 text-sm tracking-wider placeholder:text-neutral-700 disabled:cursor-not-allowed disabled:opacity-60`}
-          />
-          <input
-            aria-label="Email address"
-            type="email"
-            disabled
-            placeholder="your@email.com"
-            className={`px-4 py-3 bg-transparent border ${border} text-neutral-500 text-sm tracking-wider placeholder:text-neutral-700 disabled:cursor-not-allowed disabled:opacity-60`}
-          />
-          <button
-            type="button"
-            disabled
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white/10 text-neutral-400 text-xs tracking-[0.3em] uppercase whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            <Lock size={12} strokeWidth={1.5} aria-hidden="true" />
-            Locked
-          </button>
+        <div className="grid grid-cols-1 gap-1 md:grid-cols-3">
+          {updateLinks.map((item) => {
+            const isExternal = item.href.startsWith("http");
+            return (
+              <a
+                key={item.title}
+                href={item.href}
+                target={isExternal ? "_blank" : undefined}
+                rel={isExternal ? "noopener noreferrer" : undefined}
+                className={`group flex min-h-48 flex-col border ${border} ${cardBg} p-6 transition-colors hover:border-neutral-600 focus:outline-none focus-visible:border-neutral-400`}
+              >
+                <item.icon size={20} className={`${mutedText} mb-7 transition-colors group-hover:text-neutral-200`} strokeWidth={1.4} />
+                <h3 className={`mb-3 text-xl tracking-wider ${heading}`} style={{ fontFamily: "'Playfair Display', serif" }}>
+                  {item.title}
+                </h3>
+                <p className={`mb-8 text-xs ${mutedText} tracking-wider leading-relaxed select-text`}>
+                  {item.desc}
+                </p>
+                <span className={`mt-auto inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] ${subText} transition-colors group-hover:text-white`}>
+                  {item.label} <ArrowRight size={12} />
+                </span>
+              </a>
+            );
+          })}
         </div>
-        <p className={`mt-5 text-xs ${mutedText} tracking-wider`}>
-          We will reopen this when the mailing list is ready.
-        </p>
       </div>
     </section>
   );
@@ -517,14 +602,15 @@ export default function Home() {
   const compStatus = statusFromSwr(latestComp, compError);
 
   return (
-    <div className="overflow-x-hidden select-none">
+    <div className="overflow-x-hidden">
       <HomeHero theme={homeTheme} />
-      <MerchStoreSection theme={homeTheme} />
+      <VisitorPathsSection theme={homeTheme} />
       <FeaturedPhotosSection galleryPhotos={galleryPhotos} galleryStatus={galleryStatus} theme={homeTheme} />
       <ClubStatsSection clubStats={clubStats} theme={homeTheme} />
       <PastEventsSection events={events} eventsStatus={eventsStatus} theme={homeTheme} />
       <CompetitionTeaserSection compStatus={compStatus} latestComp={latestComp} theme={homeTheme} />
-      <NewsletterSection theme={homeTheme} />
+      <MerchStoreSection theme={homeTheme} />
+      <FollowUpdatesSection theme={homeTheme} />
       <RequestCtaSection theme={homeTheme} />
     </div>
   );

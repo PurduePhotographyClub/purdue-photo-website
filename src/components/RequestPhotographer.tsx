@@ -113,11 +113,11 @@ function RequestSubmitted({ onReset, theme }: RequestSubmittedProps) {
         <CheckCircle size={48} className={`mx-auto mb-6 ${subText}`} strokeWidth={1} />
         <h2 className={`text-2xl tracking-wider mb-4 ${heading}`} style={{ fontFamily: "'Playfair Display', serif" }}>Request Submitted</h2>
         <p className={`text-sm ${subText} tracking-wider leading-relaxed max-w-md mx-auto`}>We'll get back to you within 48 hours.</p>
-        <p className={`text-xs ${mutedText} tracking-wider mt-8 mb-4`}>Do you want to submit another one?</p>
+        <p className={`text-xs ${mutedText} tracking-wider mt-8 mb-4`}>Need to submit another request?</p>
         <button
           type="button"
           onClick={onReset}
-          className="inline-flex items-center justify-center border border-neutral-800 px-5 py-3 text-xs uppercase tracking-[0.25em] text-neutral-200 transition-colors hover:border-neutral-500 hover:text-white"
+          className="inline-flex min-h-11 items-center justify-center border border-neutral-800 px-5 py-3 text-xs uppercase tracking-[0.25em] text-neutral-200 transition-colors hover:border-neutral-500 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
         >
           Submit Another Request
         </button>
@@ -134,7 +134,7 @@ function RequestIntro({ theme }: { theme: RequestTheme }) {
       <p className={`text-xs tracking-[0.4em] uppercase ${mutedText} mb-4`}>PPC Photographer Request</p>
       <h1 className={`text-4xl md:text-5xl tracking-wider ${heading}`} style={{ fontFamily: "'Playfair Display', serif" }}>Request a Photographer</h1>
       <p className={`text-sm ${subText} tracking-wider mt-6 max-w-lg mx-auto leading-relaxed`}>
-        Purdue Photography Club (PPC) will contact available club photographers. Any photographers that may contact you do not represent PPC.
+        Tell us what you need covered. We'll pass the request to club photographers; you confirm pay, timing, and deliverables with anyone who replies.
       </p>
     </div>
   );
@@ -158,11 +158,11 @@ function RequesterTypeChooser({ onOpenTerms, theme }: RequesterTypeChooserProps)
             key={option.type}
             type="button"
             onClick={() => onOpenTerms(option.type)}
-            className={`group min-h-64 border ${border} p-6 text-left transition-colors hover:border-neutral-500 focus:border-neutral-500 focus:outline-none`}
+            className={`group min-h-64 border ${border} p-6 text-left transition-colors hover:border-neutral-500 focus:border-neutral-500 focus:outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400`}
           >
             <Icon size={28} className={`${subText} mb-8 transition-colors group-hover:text-neutral-200`} strokeWidth={1.5} />
             <p className={`text-xs tracking-[0.35em] uppercase ${mutedText} mb-3`}>
-              Are you an
+              Requesting as
             </p>
             <h2 className={`text-2xl tracking-wider ${heading} mb-4`} style={{ fontFamily: "'Playfair Display', serif" }}>
               {option.label}
@@ -236,7 +236,7 @@ function RequestDetailsForm({
         <button
           type="button"
           onClick={onChangeRequesterType}
-          className={`text-[10px] tracking-[0.25em] uppercase ${mutedText} hover:text-neutral-200 transition-colors`}
+          className={`min-h-11 text-[10px] tracking-[0.25em] uppercase ${mutedText} hover:text-neutral-200 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400 transition-colors`}
         >
           Change
         </button>
@@ -246,13 +246,13 @@ function RequestDetailsForm({
 
       <div>
         <label htmlFor="RequestPhotographer-email" className={`block text-xs tracking-[0.2em] uppercase ${mutedText} mb-2`}>Email <span className="text-neutral-500">*</span></label>
-        <input id="RequestPhotographer-email" aria-label="you@purdue.edu" type="email" name="email" placeholder="you@purdue.edu" required
+        <input id="RequestPhotographer-email" type="email" name="email" placeholder="you@purdue.edu" required
           className={`w-full bg-transparent border ${border} px-4 py-3 text-sm tracking-wider ${inputText} ${focusBorder} focus:outline-none transition-colors`} />
       </div>
       <div>
         <label htmlFor="RequestPhotographer-phone-number" className={`block text-xs tracking-[0.2em] uppercase ${mutedText} mb-2`}>Phone Number
           <span className="ml-1 text-[10px] tracking-normal normal-case">(optional)</span> </label>
-        <input id="RequestPhotographer-phone-number" aria-label="555-1234"
+        <input id="RequestPhotographer-phone-number"
           type="tel"
           name="phoneNumber"
           value={phoneNumber}
@@ -267,12 +267,12 @@ function RequestDetailsForm({
       </div>
       <div>
         <label htmlFor="RequestPhotographer-field-252" className={`block text-xs tracking-[0.2em] uppercase ${mutedText} mb-2`}>{selectedOption?.label === "Individual" ? "Your Name" : "Name of Organization"} <span className="text-neutral-500">*</span></label>
-        <input id="RequestPhotographer-field-252" aria-label="Your name, club, department, company, etc." type="text" name="requesterName" placeholder="Your name, club, department, company, etc." required
+        <input id="RequestPhotographer-field-252" type="text" name="requesterName" placeholder="Your name, club, department, company, etc." required
           className={`w-full bg-transparent border ${border} px-4 py-3 text-sm tracking-wider ${inputText} ${focusBorder} focus:outline-none transition-colors`} />
       </div>
       <div>
         <label htmlFor="RequestPhotographer-location" className={`block text-xs tracking-[0.2em] uppercase ${mutedText} mb-2`}>Location <span className="text-neutral-500">*</span></label>
-        <input id="RequestPhotographer-location" aria-label="Event location" type="text" name="location" placeholder="Event location" required
+        <input id="RequestPhotographer-location" type="text" name="location" placeholder="Event location" required
           className={`w-full bg-transparent border ${border} px-4 py-3 text-sm tracking-wider ${inputText} ${focusBorder} focus:outline-none transition-colors`} />
       </div>
       <div>
@@ -292,11 +292,11 @@ function RequestDetailsForm({
         <legend className={`block text-xs tracking-[0.2em] uppercase ${mutedText} mb-2`}>Service Requested <span className="text-neutral-500">*</span></legend>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className={`flex items-center gap-3 border ${border} px-4 py-3 text-sm tracking-wider ${subText} cursor-pointer transition-colors hover:border-neutral-500`}>
-            <input type="checkbox" name="serviceType" value="photography" onChange={onClearServiceError} className="size-4 accent-white" />
+            <input type="checkbox" name="serviceType" value="photography" onChange={onClearServiceError} className="size-4 accent-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400" />
             Photography
           </label>
           <label className={`flex items-center gap-3 border ${border} px-4 py-3 text-sm tracking-wider ${subText} cursor-pointer transition-colors hover:border-neutral-500`}>
-            <input type="checkbox" name="serviceType" value="videography" onChange={onClearServiceError} className="size-4 accent-white" />
+            <input type="checkbox" name="serviceType" value="videography" onChange={onClearServiceError} className="size-4 accent-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400" />
             Videography
           </label>
         </div>
@@ -323,20 +323,20 @@ function RequestDetailsForm({
       </div>
       <div>
         <label htmlFor="RequestPhotographer-payment-amount" className={`block text-xs tracking-[0.2em] uppercase ${mutedText} mb-2`}>Payment Amount <span className="text-neutral-500">*</span></label>
-        <input id="RequestPhotographer-payment-amount" aria-label="e.g. $50, negotiable, volunteer, etc." type="text" name="paymentAmount" placeholder="e.g. $50, negotiable, volunteer, etc." required
+        <input id="RequestPhotographer-payment-amount" type="text" name="paymentAmount" placeholder="Budget, rate, volunteer, or negotiable" required
           className={`w-full bg-transparent border ${border} px-4 py-3 text-sm tracking-wider ${inputText} ${focusBorder} focus:outline-none transition-colors`} />
       </div>
       <div>
         <label htmlFor="RequestPhotographer-contact-information" className={`block text-xs tracking-[0.2em] uppercase ${mutedText} mb-2`}>Contact Information <span className="text-neutral-500">*</span></label>
         <p className={`text-[10px] ${mutedText} tracking-wider mb-3 leading-relaxed`}>
-          Photographers will use the contact information provided below to reach you as a backup to email or number provided above.
+          Add a preferred contact method or backup contact for photographers who reply.
         </p>
-        <textarea id="RequestPhotographer-contact-information" aria-label="Email, social media, preferred contact method, etc." rows={3} name="contactInformation" required placeholder="Email, social media, preferred contact method, etc."
+        <textarea id="RequestPhotographer-contact-information" rows={3} name="contactInformation" required placeholder="Email, social media, preferred contact method, etc."
           className={`w-full bg-transparent border ${border} px-4 py-3 text-sm tracking-wider ${inputText} ${focusBorder} focus:outline-none transition-colors resize-none`} />
       </div>
       <div>
         <label htmlFor="RequestPhotographer-comments" className={`block text-xs tracking-[0.2em] uppercase ${mutedText} mb-2`}>Comments</label>
-        <textarea id="RequestPhotographer-comments" aria-label="Anything photographers should know about the event, deliverables, access, or expectations." rows={4} name="comments" placeholder="Anything photographers should know about the event, deliverables, access, or expectations."
+        <textarea id="RequestPhotographer-comments" rows={4} name="comments" placeholder="Anything photographers should know about the event, deliverables, access, or expectations."
           className={`w-full bg-transparent border ${border} px-4 py-3 text-sm tracking-wider ${inputText} ${focusBorder} focus:outline-none transition-colors resize-none`} />
       </div>
       <div className="min-h-[65px]">
@@ -364,8 +364,8 @@ function RequestDetailsForm({
         <p className="text-xs tracking-wider text-red-300">{submitError}</p>
       )}
       <button type="button" onClick={onSubmit} disabled={submitting || !turnstileSiteKey || !turnstileReady || !turnstileToken}
-        className="w-full flex items-center justify-center gap-3 py-4 text-xs tracking-[0.3em] uppercase transition-colors bg-white text-black hover:bg-neutral-200 disabled:cursor-not-allowed disabled:bg-neutral-500">
-        <Send size={14} /> {submitting ? "Submitting;" : "Submit Request"}
+        className="w-full flex min-h-12 items-center justify-center gap-3 py-4 text-xs tracking-[0.3em] uppercase transition-colors bg-white text-black hover:bg-neutral-200 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400 disabled:cursor-not-allowed disabled:bg-neutral-500">
+        <Send size={14} /> {submitting ? "Submitting" : "Submit Request"}
       </button>
     </form>
   );
@@ -383,6 +383,7 @@ function RequestTermsDialog({ onAgree, onClose, theme }: RequestTermsDialogProps
   return (
     <dialog
       open
+      aria-modal="true"
       aria-labelledby="request-terms-title"
       onCancel={(event) => {
         event.preventDefault();
@@ -402,7 +403,7 @@ function RequestTermsDialog({ onAgree, onClose, theme }: RequestTermsDialogProps
             type="button"
             onClick={onClose}
             aria-label="Close request terms"
-            className={`${subText} hover:text-neutral-100 transition-colors`}
+            className={`flex min-h-11 min-w-11 items-center justify-center ${subText} hover:text-neutral-100 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400 transition-colors`}
           >
             <X size={20} />
           </button>
@@ -410,13 +411,13 @@ function RequestTermsDialog({ onAgree, onClose, theme }: RequestTermsDialogProps
 
         <div className={`space-y-4 text-xs ${subText} tracking-wider leading-relaxed`}>
           <p>
-            PPC will share your request with available club photographers, but does not guarantee coverage or represent photographers who contact you.
+            PPC shares your request with available club photographers. We cannot guarantee coverage, and photographers who reply work with you directly.
           </p>
           <p>
-            You are responsible for confirming payment, arrival time, deliverables, permissions, access, and any event rules directly with the photographer.
+            Confirm payment, arrival time, deliverables, permissions, access, and event rules with the photographer before the event.
           </p>
           <p>
-            Please submit accurate details and only include contact information you are comfortable sharing with interested photographers.
+            Include only contact details you are comfortable sharing with interested photographers.
           </p>
         </div>
 
@@ -424,14 +425,14 @@ function RequestTermsDialog({ onAgree, onClose, theme }: RequestTermsDialogProps
           <button
             type="button"
             onClick={onClose}
-            className={`border ${border} px-5 py-3 text-xs tracking-[0.25em] uppercase ${subText} hover:border-neutral-500 hover:text-neutral-100 transition-colors`}
+            className={`min-h-11 border ${border} px-5 py-3 text-xs tracking-[0.25em] uppercase ${subText} hover:border-neutral-500 hover:text-neutral-100 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400 transition-colors`}
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={onAgree}
-            className="bg-white px-5 py-3 text-xs tracking-[0.25em] uppercase text-black hover:bg-neutral-200 transition-colors"
+            className="min-h-11 bg-white px-5 py-3 text-xs tracking-[0.25em] uppercase text-black transition-colors hover:bg-neutral-200 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
           >
             I Agree
           </button>

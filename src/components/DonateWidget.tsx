@@ -101,7 +101,7 @@ export default function DonateWidget() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [isOpen]);
   return (
-    <div ref={panelRef} className="fixed bottom-[4rem] right-6 z-[60]">
+    <div ref={panelRef} data-floating-widget className="fixed bottom-[4rem] right-6 z-[60] transition-all duration-300">
 
       {isOpen && (
         <div

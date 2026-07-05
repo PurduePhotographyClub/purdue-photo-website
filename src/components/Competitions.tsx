@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { Trophy, Medal, Award, Instagram, ExternalLink, Film, Monitor } from "lucide-react";
 import { ImageWithFallback } from "./ImageWithFallback";
@@ -125,6 +125,23 @@ export default function Competitions() {
   const status: "loading" | "loaded" | "error" = data === undefined && !error ? "loading" : error ? "error" : "loaded";
   const [activePeriod, setActivePeriod] = useState(0);
   const [lightbox, setLightbox] = useState<Winner | null>(null);
+  const lightboxDialogRef = useRef<HTMLDialogElement | null>(null);
+
+  useEffect(() => {
+    if (!lightbox) return;
+
+    const dialog = lightboxDialogRef.current;
+    if (!dialog) return;
+    if (!dialog.open) {
+      dialog.showModal();
+    }
+
+    return () => {
+      if (dialog.open) {
+        dialog.close();
+      }
+    };
+  }, [lightbox]);
 
   const heading = "text-neutral-100";
   const mutedText = "text-neutral-500";
@@ -151,7 +168,7 @@ export default function Competitions() {
     <div className="min-h-screen px-6 py-24">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <p className={`text-xs tracking-[0.4em] uppercase ${mutedText} mb-4`}>Showcase Your Work</p>
+          <p className={`text-xs tracking-[0.4em] uppercase ${mutedText} mb-4`}>Monthly Photo Challenges</p>
           <h1 className={`text-4xl md:text-5xl tracking-wider ${heading}`} style={{ fontFamily: "'Playfair Display', serif" }}>Competitions</h1>
           <p className={`text-sm ${subText} tracking-wider mt-6 max-w-xl mx-auto`}>
             Themes and submissions live in Discord. Once winners are decided, admins publish the final results here.
@@ -196,8 +213,8 @@ export default function Competitions() {
                     )}
                   </div>
                   <a href={DISCORD_COMPETITION_URL} target="_blank" rel="noopener noreferrer"
-                    className={`inline-flex items-center justify-center gap-2 px-6 py-3 border ${ctaBorder} text-xs tracking-[0.25em] uppercase ${ctaHover} transition-all duration-300 shrink-0`}>
-                    Upload In Discord <ExternalLink size={12} />
+                    className={`inline-flex min-h-11 items-center justify-center gap-2 px-6 py-3 border ${ctaBorder} text-xs tracking-[0.25em] uppercase ${ctaHover} transition-all duration-300 shrink-0 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400`}>
+                    Upload in Discord <ExternalLink size={12} />
                   </a>
                 </div>
               </div>
@@ -205,14 +222,14 @@ export default function Competitions() {
 
             {competitions.length === 0 ? (
               <p className={`text-center text-sm ${mutedText} tracking-wider`}>
-                {openCompetitions.length > 0 ? "Past results will appear here after winners are posted." : "No competitions to display"}
+                {openCompetitions.length > 0 ? "Past results will appear here after winners are posted." : "No competitions are posted yet."}
               </p>
             ) : activeGroup ? (
               <>
                 <div className="flex flex-wrap justify-center gap-2 mb-16">
                   {periodGroups.map((group, i) => (
                     <button type="button" key={group.key} onClick={() => setActivePeriod(i)}
-                      className={`text-xs tracking-[0.2em] uppercase px-5 py-2.5 border transition-all duration-300 ${activePeriod === i ? btnActive : btnInactive}`}>
+                      className={`min-h-11 text-xs tracking-[0.2em] uppercase px-5 py-2.5 border transition-all duration-300 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400 ${activePeriod === i ? btnActive : btnInactive}`}>
                       {group.month} {group.year}
                     </button>
                   ))}
@@ -240,7 +257,7 @@ export default function Competitions() {
                               className={`group relative overflow-hidden border border-neutral-800 bg-neutral-950 ${winner.place === 1 ? "md:col-span-3" : ""}`}>
                               <button type="button"
                                 aria-label={`Open ${winner.title} by ${winner.photographer}`}
-                                className="block w-full cursor-pointer appearance-none bg-transparent p-0 text-left"
+                                className="block w-full cursor-pointer appearance-none bg-transparent p-0 text-left focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
                                 onClick={() => setLightbox(winner)}>
                                 <div className={`relative overflow-hidden ${winner.place === 1 ? "aspect-[16/10] md:aspect-[16/9]" : "aspect-[4/3]"}`}>
                                 <ImageWithFallback src={winner.img} alt={winner.title}
@@ -269,7 +286,7 @@ export default function Competitions() {
                               </button>
                               {winner.instagram && (
                                 <a href={`https://instagram.com/${winner.instagram.replace("@", "")}`} target="_blank" rel="noopener noreferrer"
-                                  className="absolute bottom-6 right-6 z-10 flex max-w-28 items-center gap-1.5 truncate text-[10px] tracking-wider text-neutral-400 transition-colors hover:text-white">
+                                  className="absolute bottom-6 right-6 z-10 flex min-h-11 max-w-28 items-center gap-1.5 truncate text-[10px] tracking-wider text-neutral-400 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400">
                                   <Instagram size={11} className="shrink-0" /><span className="truncate">{winner.instagram}</span>
                                 </a>
                               )}
@@ -290,7 +307,7 @@ export default function Competitions() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { step: "01", title: "Theme Opens", desc: "Open competitions are announced here and in Discord." },
-              { step: "02", title: "Upload In Discord", desc: "All entries are posted in the competition channel." },
+              { step: "02", title: "Upload in Discord", desc: "All entries are posted in the competition channel." },
               { step: "03", title: "Results Posted", desc: "After winners are decided, admins add the final images and placements here." },
             ].map((item) => (
               <div key={item.step} className="text-center">
@@ -302,18 +319,22 @@ export default function Competitions() {
           </div>
           <div className="text-center mt-10">
             <a href={DISCORD_COMPETITION_URL} target="_blank" rel="noopener noreferrer"
-              className={`inline-flex items-center gap-2 px-8 py-3 border ${ctaBorder} text-xs tracking-[0.3em] uppercase ${ctaHover} transition-all duration-300`}>
-              Go to Competition Channel <ExternalLink size={12} />
+              className={`inline-flex min-h-11 items-center gap-2 px-8 py-3 border ${ctaBorder} text-xs tracking-[0.3em] uppercase ${ctaHover} transition-all duration-300 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400`}>
+              Open Competition Channel <ExternalLink size={12} />
             </a>
           </div>
         </div>
       </div>
 
       {lightbox && (
-        <div
-          className="fixed inset-0 z-[120] flex h-dvh w-dvw items-center justify-center bg-black/95 p-6">
+        <dialog
+          aria-label="Competition photo preview"
+          ref={lightboxDialogRef}
+          onClose={() => setLightbox(null)}
+          className="fixed inset-0 z-[120] h-dvh max-h-none w-dvw max-w-none border-0 bg-black/95 p-6 text-inherit backdrop:bg-transparent">
+          <div className="flex h-full w-full items-center justify-center">
           <button type="button" aria-label="Close lightbox" className="absolute inset-0 cursor-default" onMouseDown={() => setLightbox(null)} />
-          <button type="button" className="absolute top-6 right-6 z-10 text-neutral-400 hover:text-white text-xs tracking-[0.2em] uppercase" onClick={() => setLightbox(null)}>Close</button>
+          <button type="button" className="absolute top-6 right-6 z-10 min-h-11 px-2 text-xs uppercase tracking-[0.2em] text-neutral-400 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400" onClick={() => setLightbox(null)}>Close</button>
           <div className="relative z-10 max-w-4xl w-full flex flex-col items-center">
             <img
               src={lightbox.img} alt={lightbox.title} className="max-w-full max-h-[70vh] object-contain mb-6" />
@@ -322,7 +343,7 @@ export default function Competitions() {
               <p className="text-sm text-neutral-300 tracking-wider mb-1">{lightbox.photographer}</p>
               {lightbox.instagram && (
                 <a href={`https://instagram.com/${lightbox.instagram.replace("@", "")}`} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs tracking-wider text-neutral-400 hover:text-white transition-colors">
+                  className="inline-flex min-h-11 items-center gap-1.5 text-xs tracking-wider text-neutral-400 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400">
                   <Instagram size={12} />{lightbox.instagram}
                 </a>
               )}
@@ -337,7 +358,8 @@ export default function Competitions() {
               </div>
             </div>
           </div>
-        </div>
+          </div>
+        </dialog>
       )}
     </div>
   );

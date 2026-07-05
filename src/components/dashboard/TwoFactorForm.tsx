@@ -119,7 +119,7 @@ export default function TwoFactorForm() {
             type="checkbox"
             checked={trustDevice}
             onChange={(e) => dispatch({ type: "trustDeviceChanged", trustDevice: e.target.checked })}
-            className="size-3.5 bg-transparent border border-neutral-700 rounded-sm"
+            className="size-3.5 bg-transparent border border-neutral-700 rounded-sm focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
           />
           <span className="text-[10px] tracking-wider text-neutral-500">
             Trust this device for 30 days
@@ -133,7 +133,7 @@ export default function TwoFactorForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 bg-white text-black text-[11px] tracking-[0.2em] uppercase hover:bg-neutral-200 transition-colors disabled:opacity-50"
+          className="w-full py-3 bg-white text-black text-[11px] tracking-[0.2em] uppercase hover:bg-neutral-200 transition-colors disabled:opacity-50 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
         >
           {loading ? "Verifying" : "Verify"}
         </button>
@@ -141,7 +141,7 @@ export default function TwoFactorForm() {
 
       <button type="button"
         onClick={() => dispatch({ type: "backupModeToggled" })}
-        className="w-full mt-4 text-[10px] tracking-wider text-neutral-500 hover:text-neutral-300 transition-colors"
+        className="w-full mt-4 text-[10px] tracking-wider text-neutral-500 hover:text-neutral-300 transition-colors focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
       >
         {useBackup ? "Use authenticator app instead" : "Use a backup code instead"}
       </button>

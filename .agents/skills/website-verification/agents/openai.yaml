@@ -1,0 +1,4 @@
+interface:
+  display_name: "Website Verification"
+  short_description: "Verify this Astro, React, and Cloudflare website before handoff."
+  default_prompt: "Use $website-verification to verify the current website changes."

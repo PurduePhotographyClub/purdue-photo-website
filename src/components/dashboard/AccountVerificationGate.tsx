@@ -56,7 +56,7 @@ export default function AccountVerificationGate({ name }: AccountVerificationGat
           Verify your account
         </h1>
         <p className="mb-6 text-xs leading-6 text-neutral-500">
-          Hi {firstName}. The dashboard is locked until this account is verified through Discord. Join the club Discord server, then connect your Discord account to continue.
+          Hi {firstName}. The dashboard needs Discord verification before you can continue. Join the club server, then connect your Discord account.
         </p>
 
         <div className="space-y-3">
@@ -64,7 +64,7 @@ export default function AccountVerificationGate({ name }: AccountVerificationGat
             type="button"
             onClick={handleLinkDiscord}
             disabled={discordLoading}
-            className="flex min-h-12 w-full items-center justify-center gap-2 bg-[#5865F2] px-4 py-3 text-center text-[10px] uppercase tracking-[0.15em] text-white transition-colors hover:bg-[#4752C4] disabled:opacity-50"
+            className="flex min-h-12 w-full items-center justify-center gap-2 bg-[#5865F2] px-4 py-3 text-center text-[10px] uppercase tracking-[0.15em] text-white transition-colors hover:bg-[#4752C4] disabled:opacity-50 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M20.32 4.37a19.79 19.79 0 0 0-4.89-1.52.07.07 0 0 0-.08.04c-.21.38-.44.86-.61 1.25a18.27 18.27 0 0 0-5.49 0 12.64 12.64 0 0 0-.62-1.25.08.08 0 0 0-.08-.04 19.74 19.74 0 0 0-4.89 1.52.07.07 0 0 0-.03.03C.53 9.05-.32 13.58.1 18.06a.08.08 0 0 0 .03.06 19.9 19.9 0 0 0 5.99 3.03.08.08 0 0 0 .08-.03c.46-.63.87-1.3 1.23-1.99a.08.08 0 0 0-.04-.11 13.1 13.1 0 0 1-1.87-.89.08.08 0 0 1-.01-.13c.13-.09.25-.19.37-.29a.07.07 0 0 1 .08-.01c3.93 1.79 8.18 1.79 12.06 0a.07.07 0 0 1 .08.01c.12.1.25.2.37.29a.08.08 0 0 1-.01.13c-.6.35-1.22.65-1.87.89a.08.08 0 0 0-.04.11c.36.7.77 1.36 1.23 1.99a.08.08 0 0 0 .08.03 19.84 19.84 0 0 0 6-3.03.08.08 0 0 0 .03-.06c.5-5.18-.84-9.67-3.55-13.66a.06.06 0 0 0-.03-.03z" />
@@ -73,7 +73,7 @@ export default function AccountVerificationGate({ name }: AccountVerificationGat
           </button>
           <a
             href="/discord"
-            className="flex min-h-11 w-full items-center justify-center border border-neutral-700 px-4 py-3 text-center text-[10px] uppercase tracking-[0.15em] text-neutral-300 transition-colors hover:border-neutral-500 hover:text-white"
+            className="flex min-h-11 w-full items-center justify-center border border-neutral-700 px-4 py-3 text-center text-[10px] uppercase tracking-[0.15em] text-neutral-300 transition-colors hover:border-neutral-500 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
           >
             Join Discord Server
           </a>
@@ -81,7 +81,7 @@ export default function AccountVerificationGate({ name }: AccountVerificationGat
 
         <div className="mt-5 border-t border-neutral-800 pt-4">
           <p className="break-words text-[10px] leading-5 text-neutral-600">
-            Discord verification checks server membership before unlocking the dashboard and will return you here when complete.
+            Discord verification checks server membership before returning you to the dashboard.
           </p>
         </div>
 
@@ -115,7 +115,7 @@ function getVerificationMessages(search: string) {
 
   let notice = "";
   if (created === "1") {
-    notice = "Account created. Join the Discord server, then connect Discord to unlock the dashboard.";
+    notice = "Account created. Join the Discord server, then connect Discord to continue to the dashboard.";
   } else if (discordStatus === "linked") {
     notice = "Discord connected. Refresh the dashboard if you are not redirected automatically.";
   }

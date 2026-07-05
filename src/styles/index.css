@@ -94,6 +94,13 @@
   border-color: var(--dashboard-border-strong);
 }
 
+body.ppc-nav-open [data-floating-widget] {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(0.5rem);
+  visibility: hidden;
+}
+
 /* Global Scrollbar (Lens Filter Style) */
 html {
   scrollbar-width: thin;
