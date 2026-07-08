@@ -112,7 +112,8 @@ function RequestSubmitted({ onReset, theme }: RequestSubmittedProps) {
       <div className="text-center max-w-xl mx-auto">
         <CheckCircle size={48} className={`mx-auto mb-6 ${subText}`} strokeWidth={1} />
         <h2 className={`text-2xl tracking-wider mb-4 ${heading}`} style={{ fontFamily: "'Playfair Display', serif" }}>Request Submitted</h2>
-        <p className={`text-sm ${subText} tracking-wider leading-relaxed max-w-md mx-auto`}>We'll get back to you within 48 hours.</p>
+        <p className={`text-sm ${subText} tracking-wider leading-relaxed max-w-md mx-auto`}>A PPC Member will get back to you as soon as possible.</p>
+        <p className={`text-sm ${subText} tracking-wider leading-relaxed max-w-md mx-auto`}>Thank you for supporting our club!</p>
         <p className={`text-xs ${mutedText} tracking-wider mt-8 mb-4`}>Need to submit another request?</p>
         <button
           type="button"

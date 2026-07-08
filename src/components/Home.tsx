@@ -477,7 +477,7 @@ function CompetitionTeaserSection({ compStatus, latestComp, theme }: Competition
             <div className="p-8 md:p-12 border border-neutral-800 bg-neutral-900/50 min-h-[300px]" />
           </div>
         ) : !latestComp ? (
-          <p className={`text-center text-sm ${mutedText} tracking-wider`}>No competitions are posted yet.</p>
+          <div></div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-1 items-stretch">
             <div className="relative aspect-[4/3] md:aspect-auto overflow-hidden bg-neutral-950">

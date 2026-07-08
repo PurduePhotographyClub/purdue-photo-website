@@ -38,7 +38,7 @@ export default function Facilities() {
           <h1 className={`text-4xl md:text-5xl tracking-wider ${heading}`} style={{ fontFamily: "'Playfair Display', serif" }}>Our Facilities</h1>
           <p className={`text-sm ${mutedText} tracking-wider mt-4`}>Darkroom, enlarging, scanning, studio, and equipment access in the PMU basement.</p>
         </div>
-        <div className="space-y-24">
+        {/* <div className="space-y-24">
           {facilities.map((fac, i) => (
             <div key={fac.title}
               className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
@@ -67,7 +67,7 @@ export default function Facilities() {
               </div>
             </div>
           ))}
-        </div>
+        </div> */}
 
         {/* Directions & Map */}
         <div className={`mt-32 border-t ${border} pt-20`}>
