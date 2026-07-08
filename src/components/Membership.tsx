@@ -227,11 +227,11 @@ export default function Membership({ currentTier, currentRole, isLoggedIn }: Pro
               );
             })}
           </div>
-          <div className="mt-10 text-center">
+          {/* <div className="mt-10 text-center">
             <a href={wikiHref} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-2 border border-neutral-600 px-8 py-3 text-xs uppercase tracking-[0.3em] text-neutral-300 transition-all duration-300 hover:bg-white hover:text-black focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400">
               Read the Wiki <ExternalLink size={12} />
             </a>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
