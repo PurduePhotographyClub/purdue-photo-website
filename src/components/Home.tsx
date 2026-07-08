@@ -10,7 +10,7 @@ import {
 import { fetchPublicJson, PUBLIC_API_SWR_OPTIONS } from "@/lib/http";
 
 const heroImg = "/hero/hero.webp";
-const filmNeg = "/hero/film.webp";
+const alejandroPhoto = "/hero/aleg-photo.webp";
 const justin = "/hero/justin.webp";
 const lightTrails = "/hero/light-trails.webp";
 const galleryPlaceholders = ["gallery-placeholder-1", "gallery-placeholder-2", "gallery-placeholder-3", "gallery-placeholder-4", "gallery-placeholder-5", "gallery-placeholder-6"];
@@ -252,17 +252,23 @@ function MerchStoreSection({ theme }: { theme: HomeTheme }) {
     <section className={`relative overflow-hidden py-14 px-6 md:py-24 border-b ${border}`}>
       <div className="absolute inset-0 bg-gradient-to-b from-neutral-950 via-neutral-950/90 to-neutral-950" />
       <div className="relative max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-4 sm:gap-8 md:gap-12 items-center">
-        <div className="relative mx-auto h-[300px] w-full max-w-md sm:h-[360px] sm:max-w-xl md:h-[430px] md:max-w-2xl xl:mx-0 xl:h-[500px] xl:max-w-none">
-          <div className="absolute left-2 top-1 z-10 w-[50%] max-w-sm rotate-[-5deg] bg-neutral-100 p-2 shadow-2xl shadow-black/50 sm:left-8 sm:-top-6 sm:w-[48%] sm:p-3">
-            <div className="aspect-[4/5] overflow-hidden bg-neutral-900">
-              <ImageWithFallback src={filmNeg} alt="Film negatives" className="size-full object-cover" loading="lazy" decoding="async" />
+        <div className="relative mx-auto h-[340px] w-full max-w-md sm:h-[460px] sm:max-w-xl md:h-[560px] md:max-w-2xl xl:mx-0 xl:h-[500px] xl:max-w-none">
+          <figure className="group absolute left-2 top-1 z-10 w-[50%] max-w-sm rotate-[-5deg] bg-neutral-100 p-2 shadow-2xl shadow-black/50 sm:left-8 sm:-top-6 sm:w-[48%] sm:p-3">
+            <div className="relative aspect-[4/5] overflow-hidden bg-neutral-900">
+              <ImageWithFallback src={alejandroPhoto} alt="Child playing among bubbles in a city square" className="size-full object-cover" loading="lazy" decoding="async" />
+              <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/65 to-transparent px-3 pb-3 pt-10 text-[9px] uppercase tracking-[0.22em] text-white opacity-100 transition-opacity motion-reduce:transition-none sm:opacity-0 sm:group-hover:opacity-100">
+                Photo by Alejandro Griffith
+              </figcaption>
             </div>
-          </div>
-          <div className="absolute right-2 top-4 z-10 w-[58%] max-w-md rotate-[4deg] bg-neutral-100 p-2 shadow-2xl shadow-black/50 sm:right-0 sm:top-4 sm:w-[54%] sm:p-3">
-            <div className="aspect-[4/5] overflow-hidden bg-neutral-900">
-              <ImageWithFallback src={justin} alt="Member photography print" className="size-full object-cover" loading="lazy" decoding="async" />
+          </figure>
+          <figure className="group absolute right-2 top-4 z-10 w-[58%] max-w-md rotate-[4deg] bg-neutral-100 p-2 shadow-2xl shadow-black/50 sm:right-0 sm:top-4 sm:w-[54%] sm:p-3">
+            <div className="relative aspect-[4/5] overflow-hidden bg-neutral-900">
+              <ImageWithFallback src={justin} alt="Member standing beneath the Milky Way at Mobius Arch" className="size-full object-cover" loading="lazy" decoding="async" />
+              <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/65 to-transparent px-3 pb-3 pt-10 text-[9px] uppercase tracking-[0.22em] text-white opacity-100 transition-opacity motion-reduce:transition-none sm:opacity-0 sm:group-hover:opacity-100">
+                Photo by Justin Lin
+              </figcaption>
             </div>
-          </div>
+          </figure>
         </div>
 
         <div className="xl:pl-6">
