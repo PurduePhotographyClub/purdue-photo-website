@@ -12,6 +12,7 @@ import {
   readErrorMessage,
   readJsonOrNull
 } from "@/lib/http";
+import { prepareGalleryUploadImages } from "@/lib/gallery-images";
 import { createKeyedStateSetter, keyedStateReducer } from "@/lib/reducer-state";
 
 const GALLERY_TAGS = [
@@ -131,7 +132,7 @@ function GalleryUploadPanel({
               onChange={onFileChange}
               className="block w-full max-w-full text-xs leading-6 text-neutral-500 file:mr-4 file:py-2.5 file:px-4 file:border file:border-neutral-800 file:text-[10px] file:tracking-wider file:uppercase file:bg-transparent file:text-neutral-400 hover:file:text-white hover:file:border-neutral-600 file:cursor-pointer file:transition-colors"
             />
-            <p className="text-[10px] text-neutral-600 mt-1.5 tracking-wider">JPG / JPEG only · Max 8 MB</p>
+            <p className="text-[10px] text-neutral-600 mt-1.5 tracking-wider">JPG / JPEG only · under 3 MB</p>
           </div>
           {preview && (
             <div className="size-20 shrink-0 overflow-hidden border border-neutral-800">
@@ -442,8 +443,20 @@ export default function GalleryManager({ userRole, userTier }: Props) {
     setSuccess("");
     setUploading(true);
 
+    let preparedImages;
+    try {
+      preparedImages = await prepareGalleryUploadImages(file);
+    } catch {
+      setError("Unable to optimize this JPEG. Please try another photo.");
+      setUploading(false);
+      return;
+    }
+
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", preparedImages.file, preparedImages.file.name);
+    formData.append("thumbnail", preparedImages.thumbnail, preparedImages.thumbnail.name);
+    formData.append("width", String(preparedImages.width));
+    formData.append("height", String(preparedImages.height));
     formData.append("title", title);
     formData.append("description", description);
     formData.append("tags", selectedTags.join(", "));
