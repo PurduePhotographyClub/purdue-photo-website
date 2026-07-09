@@ -112,7 +112,7 @@ export default function Gallery() {
         <div className="columns-1 sm:columns-2 lg:columns-3 gap-2 space-y-2">
             {filtered.map((img, i) => (
               <button type="button" key={img.fullSrc + img.author}
-                className="group relative mb-2 break-inside-avoid cursor-pointer overflow-hidden focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400" onClick={() => setSelected(i)}>
+                className="group relative mb-2 break-inside-avoid cursor-pointer overflow-hidden text-left focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400" onClick={() => setSelected(i)}>
                 <ImageWithFallback src={img.src} alt={img.cat}
                   className="w-full transition-all duration-700 group-hover:scale-[1.03]"
                   loading={i < 6 ? "eager" : "lazy"}
@@ -124,12 +124,12 @@ export default function Gallery() {
                 />
                 <div className="absolute inset-0 flex items-end bg-black/25 transition-all duration-300 sm:bg-black/0 sm:group-hover:bg-black/30 sm:group-focus-visible:bg-black/30">
                   <div className="w-full p-4 opacity-100 transition-opacity duration-300 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-visible:opacity-100">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs tracking-[0.2em] uppercase text-white">{img.cat}</p>
-                        <p className="text-xs text-neutral-400 mt-1">by {img.author}</p>
+                    <div className="flex items-end justify-between gap-4">
+                      <div className="min-w-0 flex-1 text-left">
+                        <p className="truncate text-xs tracking-[0.2em] uppercase text-white">{img.cat}</p>
+                        <p className="mt-1 truncate text-xs text-neutral-400">by {img.author}</p>
                       </div>
-                      <span className={`text-[9px] tracking-[0.2em] uppercase px-2 py-1 ${img.medium === "Film" ? "bg-neutral-900/90 text-neutral-400 border border-neutral-700" : "bg-white/10 backdrop-blur-sm text-neutral-300"}`}>
+                      <span className={`shrink-0 text-[9px] tracking-[0.2em] uppercase px-2 py-1 ${img.medium === "Film" ? "bg-neutral-900/90 text-neutral-400 border border-neutral-700" : "bg-white/10 backdrop-blur-sm text-neutral-300"}`}>
                         {img.medium === "Film" ? <span className="flex items-center gap-1"><Film size={8} /> Film</span> : <span className="flex items-center gap-1"><Aperture size={8} /> Digital</span>}
                       </span>
                     </div>
