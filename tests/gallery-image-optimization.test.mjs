@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
@@ -8,6 +9,11 @@ import {
   getGalleryUploadTargetSize,
   shouldReencodeGalleryImage,
 } from "../src/lib/gallery-images.ts";
+
+const gallerySource = await readFile(
+  new URL("../src/components/Gallery.tsx", import.meta.url),
+  "utf8",
+);
 
 test("gallery image sources prefer thumbnails for previews and titles for captions", () => {
   const sources = getGalleryImageSources({
@@ -56,5 +62,20 @@ test("gallery uploads resize large originals and lightweight previews", () => {
   assert.equal(
     shouldReencodeGalleryImage({ width: 1200, height: 800, size: 600_000 }),
     false,
+  );
+});
+
+test("gallery card captions keep title and author left aligned", () => {
+  assert.match(
+    gallerySource,
+    /className="group relative mb-2 break-inside-avoid cursor-pointer overflow-hidden text-left/,
+  );
+  assert.match(
+    gallerySource,
+    /<div className="min-w-0 flex-1 text-left">[\s\S]*?<p className="truncate text-xs tracking-\[0\.2em\] uppercase text-white">/,
+  );
+  assert.match(
+    gallerySource,
+    /<p className="mt-1 truncate text-xs text-neutral-400">by \{img\.author\}<\/p>/,
   );
 });
