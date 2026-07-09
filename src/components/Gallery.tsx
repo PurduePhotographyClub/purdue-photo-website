@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { X, Film, Aperture } from "lucide-react";
 import { ImageWithFallback } from "./ImageWithFallback";
+import { getGalleryImageSources } from "@/lib/gallery-images";
 import { fetchPublicJson, PUBLIC_API_SWR_OPTIONS } from "@/lib/http";
 
 interface GalleryImage {
@@ -18,35 +19,22 @@ interface GalleryImage {
 
 const galleryCategories = ["All", "Digital", "Film"];
 
-function readImageKey(...values: unknown[]): string | null {
-  for (const value of values) {
-    if (typeof value !== "string") continue;
-    const trimmed = value.trim();
-    if (trimmed) return trimmed;
-  }
-  return null;
-}
-
 export default function Gallery() {
   const { data: galleryRows, error } = useSWR<any[]>("/api/gallery", fetchPublicJson, PUBLIC_API_SWR_OPTIONS);
   const images: GalleryImage[] = (galleryRows ?? []).flatMap((r) => {
-    const tagStr = r.tags || "";
-    const tagList = tagStr.split(",").map((t: string) => t.trim().toLowerCase());
-    const isFilm = tagList.includes("film");
-    const originalKey = readImageKey(r.r2Key, r.r2_key, r.thumbnailR2Key, r.thumbnail_r2_key);
-    if (!originalKey) return [];
+    const source = getGalleryImageSources(r);
+    if (!source) return [];
 
-    const imageSrc = `/api/gallery/image/${originalKey}`;
     return [{
-      fullSrc: `/api/gallery/image/${originalKey}`,
-      height: r.height ?? null,
-      src: imageSrc,
-      cat: r.tags || r.title || "Photography",
-      author: r.uploaderName || "PPC Member",
-      medium: isFilm ? "Film" : "Digital",
-      camera: r.camera || null,
-      lens: r.lens || null,
-      width: r.width ?? null,
+      fullSrc: source.fullSrc,
+      height: source.height,
+      src: source.previewSrc,
+      cat: source.title,
+      author: source.author,
+      medium: source.medium,
+      camera: source.camera,
+      lens: source.lens,
+      width: source.width,
     }];
   });
   const status: "loading" | "loaded" | "error" = !galleryRows && !error ? "loading" : error ? "error" : "loaded";
@@ -123,13 +111,13 @@ export default function Gallery() {
         ) : (
         <div className="columns-1 sm:columns-2 lg:columns-3 gap-2 space-y-2">
             {filtered.map((img, i) => (
-              <button type="button" key={img.src + img.author}
+              <button type="button" key={img.fullSrc + img.author}
                 className="group relative mb-2 break-inside-avoid cursor-pointer overflow-hidden focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400" onClick={() => setSelected(i)}>
                 <ImageWithFallback src={img.src} alt={img.cat}
                   className="w-full transition-all duration-700 group-hover:scale-[1.03]"
-                  loading={i < 12 ? "eager" : "lazy"}
+                  loading={i < 6 ? "eager" : "lazy"}
                   decoding="async"
-                  fetchPriority={i < 3 ? "high" : "auto"}
+                  fetchPriority={i < 2 ? "high" : "auto"}
                   sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                   width={img.width ?? undefined}
                   height={img.height ?? undefined}
@@ -161,7 +149,7 @@ export default function Gallery() {
           className="fixed inset-0 z-[120] h-dvh max-h-none w-dvw max-w-none border-0 bg-black/95 p-6 pt-16 text-inherit backdrop:bg-transparent">
           <div className="flex h-full w-full flex-col items-center justify-center gap-4">
           <button type="button" aria-label="Close gallery lightbox" className="absolute inset-0 cursor-default" onMouseDown={() => setSelected(null)} />
-          <button type="button" className="absolute top-6 right-6 z-10 flex min-h-11 min-w-11 items-center justify-center text-neutral-400 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400" onClick={() => setSelected(null)}><X size={24} /></button>
+          <button type="button" aria-label="Close gallery lightbox" className="absolute top-6 right-6 z-10 flex min-h-11 min-w-11 items-center justify-center text-neutral-400 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400" onClick={() => setSelected(null)}><X size={24} /></button>
           <img
             src={filtered[selected]?.fullSrc} alt={filtered[selected]?.cat ?? "Selected gallery photo"} className="relative z-10 max-w-full max-h-[75vh] object-contain shrink min-h-0" loading="eager" decoding="async" />
           <div className="relative z-10 text-center shrink-0">

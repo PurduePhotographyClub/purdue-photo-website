@@ -7,6 +7,7 @@ import {
   normalizeEvent,
   splitEvents,
 } from "@/lib/events";
+import { getGalleryImageSources } from "@/lib/gallery-images";
 import { fetchPublicJson, PUBLIC_API_SWR_OPTIONS } from "@/lib/http";
 
 const heroImg = "/hero/hero.webp";
@@ -40,20 +41,17 @@ function statusFromSwr(data: unknown, error: unknown): "loading" | "loaded" | "e
   return error ? "error" : "loaded";
 }
 
-function mapGalleryRows(rows: any[]): GalleryItem[] {
+function mapGalleryRows(rows: Record<string, unknown>[]): GalleryItem[] {
   const items: GalleryItem[] = [];
   for (const r of rows.slice(0, 6)) {
-    const imageKey = r.r2Key || r.r2_key || r.thumbnailR2Key || r.thumbnail_r2_key;
-    if (!imageKey) continue;
-    const tagStr = r.tags || "";
-    const tagSet = new Set(tagStr.split(",").map((tag: string) => tag.trim().toLowerCase()));
-    const isFilm = tagSet.has("film");
+    const source = getGalleryImageSources(r);
+    if (!source) continue;
     items.push({
-      height: r.height ?? null,
-      img: `/api/gallery/image/${imageKey}`,
-      label: r.tags || r.title || "Photography",
-      film: isFilm,
-      width: r.width ?? null,
+      height: source.height,
+      img: source.previewSrc,
+      label: source.title,
+      film: source.medium === "Film",
+      width: source.width,
     });
   }
   return items;
@@ -332,8 +330,9 @@ function FeaturedPhotosSection({ galleryPhotos, galleryStatus, theme }: Featured
                     src={item.img}
                     alt={item.label}
                     className="size-full object-cover transition-all duration-700 group-hover:scale-110"
-                    loading="eager"
+                    loading="lazy"
                     decoding="async"
+                    fetchPriority="low"
                     sizes="(min-width: 1024px) 16vw, (min-width: 768px) 33vw, 50vw"
                     width={item.width ?? undefined}
                     height={item.height ?? undefined}
@@ -344,9 +343,6 @@ function FeaturedPhotosSection({ galleryPhotos, galleryStatus, theme }: Featured
                   <span className={`text-[8px] tracking-[0.2em] uppercase px-2 py-1 ${item.film ? `${tagBg} border ${tagBorder}` : "bg-white/10 backdrop-blur-sm text-neutral-300"}`}>
                     {item.film ? "Film" : "Digital"}
                   </span>
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent opacity-100 transition-opacity duration-300 sm:opacity-0 sm:group-hover:opacity-100">
-                  <p className="text-[10px] tracking-widest uppercase text-neutral-300">{item.label}</p>
                 </div>
               </div>
             ))}
