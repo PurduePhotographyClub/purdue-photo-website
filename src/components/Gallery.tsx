@@ -6,6 +6,7 @@ import {
   getGalleryImageSources,
   normalizeGalleryPageForUrl,
 } from "@/lib/gallery-images";
+import { getGalleryLayoutClassNames } from "@/lib/gallery-layout";
 import { fetchPublicJson, PUBLIC_API_SWR_OPTIONS } from "@/lib/http";
 
 interface GalleryImage {
@@ -87,6 +88,7 @@ export default function Gallery() {
   const shouldFocusResultsRef = useRef(false);
   const meta = galleryPage?.meta;
   const visiblePageNumbers = meta ? getVisiblePageNumbers(meta.page, meta.totalPages) : [];
+  const galleryLayout = getGalleryLayoutClassNames(visibleImages.length);
 
   useEffect(() => {
     if (selected === null) return;
@@ -161,9 +163,9 @@ export default function Gallery() {
           </p>
         )}
         {status === "loading" ? (
-          <div className="columns-1 sm:columns-2 lg:columns-3 gap-2 space-y-2">
+          <div className="columns-1 gap-2 sm:columns-2 lg:columns-3">
             {Array.from({ length: 9 }).map((_, i) => (
-              <div key={i} className="break-inside-avoid mb-2">
+              <div key={i} className="mb-2 block w-full break-inside-avoid">
                 <div className={`bg-neutral-800/50 animate-pulse ${i % 3 === 0 ? "aspect-[3/4]" : i % 3 === 1 ? "aspect-square" : "aspect-[4/5]"}`} />
               </div>
             ))}
@@ -186,12 +188,12 @@ export default function Gallery() {
             </p>
           </div>
         ) : (
-        <div className="columns-1 sm:columns-2 lg:columns-3 gap-2 space-y-2">
+        <div className={galleryLayout.container}>
             {visibleImages.map((img, i) => (
               <button type="button" key={img.fullSrc + img.author}
-                className="group relative mb-2 break-inside-avoid cursor-pointer overflow-hidden text-left focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400" onClick={() => setSelected(i)}>
+                className={`group relative ${galleryLayout.item} cursor-pointer overflow-hidden text-left focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400`} onClick={() => setSelected(i)}>
                 <ImageWithFallback src={img.src} alt={img.cat}
-                  className="w-full transition-all duration-700 group-hover:scale-[1.03]"
+                  className="block w-full transition-all duration-700 group-hover:scale-[1.03]"
                   loading={i < 6 ? "eager" : "lazy"}
                   decoding="async"
                   fetchPriority={i < 2 ? "high" : "auto"}
