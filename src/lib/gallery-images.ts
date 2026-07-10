@@ -1,5 +1,4 @@
 const GALLERY_IMAGE_PATH = "/api/gallery/image/photo/";
-const GALLERY_FULL_IMAGE_MAX_DIMENSION = 2200;
 const GALLERY_PREVIEW_IMAGE_MAX_DIMENSION = 900;
 const GALLERY_FULL_IMAGE_MIN_DIMENSION = 1200;
 const GALLERY_PREVIEW_IMAGE_MIN_DIMENSION = 480;
@@ -194,19 +193,28 @@ export function getGalleryUploadValidationError(
   if (file.size <= 0) {
     return "Choose a non-empty JPEG image.";
   }
-  if (file.size > GALLERY_FULL_IMAGE_MAX_BYTES) {
-    return "Choose a JPEG that is 3 MB or smaller.";
+  return null;
+}
+
+export function getGalleryUploadInitialQuality(sourceBytes: number) {
+  if (sourceBytes <= GALLERY_FULL_IMAGE_MAX_BYTES) {
+    return GALLERY_FULL_IMAGE_QUALITY;
   }
 
-  return null;
+  const estimatedQuality = GALLERY_FULL_IMAGE_QUALITY *
+    Math.sqrt(GALLERY_FULL_IMAGE_MAX_BYTES / sourceBytes);
+  return Math.max(
+    GALLERY_MIN_IMAGE_QUALITY,
+    Number(estimatedQuality.toFixed(2)),
+  );
 }
 
 export function getGalleryUploadTargetSize(
   dimensions: GalleryImageDimensions,
-  maxDimension: number,
+  maxDimension?: number,
 ): GalleryImageDimensions {
   const longestSide = Math.max(dimensions.width, dimensions.height);
-  if (longestSide <= maxDimension) {
+  if (maxDimension === undefined || longestSide <= maxDimension) {
     return {
       height: Math.round(dimensions.height),
       width: Math.round(dimensions.width),
@@ -298,9 +306,18 @@ async function renderJpegFile(
   });
 }
 
-function reduceGalleryImageSize(size: GalleryImageDimensions, minDimension: number) {
+function reduceGalleryImageSize(
+  size: GalleryImageDimensions,
+  minDimension: number,
+  currentBytes: number,
+  maxBytes: number,
+) {
   const longestSide = Math.max(size.width, size.height);
-  const nextLongestSide = Math.max(minDimension, Math.round(longestSide * 0.85));
+  const byteScale = Math.sqrt(maxBytes / currentBytes) * 0.95;
+  const nextLongestSide = Math.max(
+    minDimension,
+    Math.round(longestSide * Math.min(0.85, byteScale)),
+  );
   return getGalleryUploadTargetSize(size, nextLongestSide);
 }
 
@@ -314,24 +331,21 @@ async function renderJpegWithinLimit(
   lastModified: number,
 ) {
   let targetSize = size;
-  let quality = initialQuality;
 
-  for (let attempt = 0; attempt < 10; attempt += 1) {
-    const file = await renderJpegFile(source, targetSize, quality, name, lastModified);
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const file = await renderJpegFile(source, targetSize, initialQuality, name, lastModified);
     if (file.size <= maxBytes) {
-      return file;
-    }
-
-    if (quality > GALLERY_MIN_IMAGE_QUALITY) {
-      quality = Math.max(GALLERY_MIN_IMAGE_QUALITY, Number((quality - 0.08).toFixed(2)));
-      continue;
+      return {
+        file,
+        height: targetSize.height,
+        width: targetSize.width,
+      };
     }
 
     const longestSide = Math.max(targetSize.width, targetSize.height);
     if (longestSide <= minDimension) break;
 
-    targetSize = reduceGalleryImageSize(targetSize, minDimension);
-    quality = initialQuality;
+    targetSize = reduceGalleryImageSize(targetSize, minDimension, file.size, maxBytes);
   }
 
   throw new Error("Unable to keep the selected image under the gallery storage limit.");
@@ -345,13 +359,13 @@ export async function prepareGalleryUploadImages(file: File): Promise<PreparedGa
 
   const source = await loadGalleryImage(file);
   try {
-    const fullSize = getGalleryUploadTargetSize(source, GALLERY_FULL_IMAGE_MAX_DIMENSION);
+    const fullSize = getGalleryUploadTargetSize(source);
     const previewSize = getGalleryUploadTargetSize(source, GALLERY_PREVIEW_IMAGE_MAX_DIMENSION);
     const optimizedFile = await renderJpegWithinLimit(
       source,
       fullSize,
       GALLERY_FULL_IMAGE_MAX_BYTES,
-      GALLERY_FULL_IMAGE_QUALITY,
+      getGalleryUploadInitialQuality(file.size),
       GALLERY_FULL_IMAGE_MIN_DIMENSION,
       withJpegExtension(file.name),
       file.lastModified,
@@ -368,10 +382,10 @@ export async function prepareGalleryUploadImages(file: File): Promise<PreparedGa
     );
 
     return {
-      file: optimizedFile,
-      height: fullSize.height,
-      thumbnail,
-      width: fullSize.width,
+      file: optimizedFile.file,
+      height: optimizedFile.height,
+      thumbnail: thumbnail.file,
+      width: optimizedFile.width,
     };
   } finally {
     source.close?.();

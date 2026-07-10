@@ -6,6 +6,8 @@ import {
   GALLERY_FULL_IMAGE_MAX_BYTES,
   GALLERY_PREVIEW_IMAGE_MAX_BYTES,
   getGalleryImageSources,
+  getGalleryUploadInitialQuality,
+  getGalleryUploadValidationError,
   getGalleryUploadTargetSize,
   normalizeGalleryPage,
 } from "../src/lib/gallery-images.ts";
@@ -54,19 +56,19 @@ test("gallery image sources require both new opaque image URLs now that legacy r
   }), null);
 });
 
-test("gallery upload validation rejects one byte over the exact 3 MB limit", async () => {
-  const galleryImages = await import("../src/lib/gallery-images.ts");
-  const getValidationError = galleryImages.getGalleryUploadValidationError;
-
-  assert.equal(typeof getValidationError, "function");
-  assert.equal(getValidationError({
-    size: GALLERY_FULL_IMAGE_MAX_BYTES,
-    type: "image/jpeg",
-  }), null);
-  assert.match(getValidationError({
+test("gallery upload validation accepts large source JPEGs for client-side optimization", () => {
+  assert.equal(getGalleryUploadValidationError({
     size: GALLERY_FULL_IMAGE_MAX_BYTES + 1,
     type: "image/jpeg",
-  }), /3 (?:MB|MiB)/i);
+  }), null);
+  assert.match(getGalleryUploadValidationError({ size: 0, type: "image/jpeg" }), /non-empty/i);
+  assert.match(getGalleryUploadValidationError({ size: 100, type: "image/png" }), /JPG|JPEG/i);
+});
+
+test("gallery upload chooses one bounded full-resolution encoding quality from source bytes", () => {
+  assert.equal(getGalleryUploadInitialQuality(2_500_000), 0.82);
+  assert.equal(getGalleryUploadInitialQuality(4_000_000), 0.71);
+  assert.equal(getGalleryUploadInitialQuality(12_000_000), 0.52);
 });
 
 test("gallery page normalization supports the old array API during staggered deploys", () => {
@@ -84,7 +86,7 @@ test("gallery page normalization supports the old array API during staggered dep
   });
 });
 
-test("gallery manager blocks an oversized original before preview, optimization, or upload", () => {
+test("gallery manager validates the source before preview, optimization, or upload", () => {
   const validationIndexes = Array.from(
     galleryManagerSource.matchAll(/getGalleryUploadValidationError\(file\)/g),
     (match) => match.index,
@@ -105,8 +107,8 @@ test("gallery uploads reencode every full image to strip EXIF and produce lightw
   assert.equal(GALLERY_FULL_IMAGE_MAX_BYTES, 3_000_000);
   assert.equal(GALLERY_PREVIEW_IMAGE_MAX_BYTES, 450 * 1024);
   assert.deepEqual(
-    getGalleryUploadTargetSize({ width: 4032, height: 5236 }, 2200),
-    { width: 1694, height: 2200 },
+    getGalleryUploadTargetSize({ width: 4032, height: 5236 }),
+    { width: 4032, height: 5236 },
   );
   assert.deepEqual(
     getGalleryUploadTargetSize({ width: 4032, height: 5236 }, 900),
@@ -116,7 +118,11 @@ test("gallery uploads reencode every full image to strip EXIF and produce lightw
     galleryImagesSource,
     /const optimizedFile = await renderJpegWithinLimit\(/,
   );
+  assert.doesNotMatch(galleryImagesSource, /GALLERY_FULL_IMAGE_MAX_DIMENSION/);
+  assert.doesNotMatch(galleryImagesSource, /quality\s*-\s*0\.08/);
+  assert.match(galleryImagesSource, /getGalleryUploadInitialQuality\(file\.size\)/);
   assert.doesNotMatch(galleryImagesSource, /:\s*file;/);
+  assert.match(galleryManagerSource, /optimized automatically to 3 MB/i);
 });
 
 test("gallery card captions keep title and author left aligned", () => {

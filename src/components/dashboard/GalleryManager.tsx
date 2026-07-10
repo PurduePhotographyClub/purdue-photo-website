@@ -147,7 +147,7 @@ function GalleryUploadPanel({
               onChange={onFileChange}
               className="block w-full max-w-full text-xs leading-6 text-neutral-500 file:mr-4 file:py-2.5 file:px-4 file:border file:border-neutral-800 file:text-[10px] file:tracking-wider file:uppercase file:bg-transparent file:text-neutral-400 hover:file:text-white hover:file:border-neutral-600 file:cursor-pointer file:transition-colors"
             />
-            <p className="text-[10px] text-neutral-600 mt-1.5 tracking-wider">JPG / JPEG only · 3 MB max</p>
+            <p className="text-[10px] text-neutral-600 mt-1.5 tracking-wider">JPG / JPEG only · optimized automatically to 3 MB</p>
           </div>
           {preview && (
             <div className="size-20 shrink-0 overflow-hidden border border-neutral-800">
