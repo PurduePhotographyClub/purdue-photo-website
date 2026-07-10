@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { X, Film, Aperture } from "lucide-react";
 import { ImageWithFallback } from "./ImageWithFallback";
-import { getGalleryImageSources } from "@/lib/gallery-images";
+import {
+  getGalleryImageSources,
+  normalizeGalleryPageForUrl,
+} from "@/lib/gallery-images";
 import { fetchPublicJson, PUBLIC_API_SWR_OPTIONS } from "@/lib/http";
 
 interface GalleryImage {
@@ -17,11 +20,48 @@ interface GalleryImage {
   width: number | null;
 }
 
+interface GalleryPageResponse {
+  legacy: boolean;
+  photos: Record<string, unknown>[];
+  meta: {
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+    page: number;
+    perPage: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 const galleryCategories = ["All", "Digital", "Film"];
+const GALLERY_PAGE_SIZE = 15;
+const GALLERY_SWR_OPTIONS = {
+  ...PUBLIC_API_SWR_OPTIONS,
+  keepPreviousData: false,
+};
+
+function getVisiblePageNumbers(page: number, totalPages: number) {
+  return Array.from(new Set([1, page - 1, page, page + 1, totalPages]))
+    .filter((pageNumber) => pageNumber >= 1 && pageNumber <= totalPages)
+    .sort((first, second) => first - second);
+}
+
+async function fetchGalleryPage(url: string): Promise<GalleryPageResponse> {
+  const data = await fetchPublicJson<unknown>(url);
+  return normalizeGalleryPageForUrl<Record<string, unknown>>(data, url, GALLERY_PAGE_SIZE);
+}
 
 export default function Gallery() {
-  const { data: galleryRows, error } = useSWR<any[]>("/api/gallery", fetchPublicJson, PUBLIC_API_SWR_OPTIONS);
-  const images: GalleryImage[] = (galleryRows ?? []).flatMap((r) => {
+  const [filter, setFilter] = useState("All");
+  const [page, setPage] = useState(1);
+  const medium = filter === "All" ? "" : `&medium=${filter.toLowerCase()}`;
+  const galleryUrl = `/api/gallery?page=${page}&per_page=${GALLERY_PAGE_SIZE}&format=page${medium}`;
+  const { data: galleryPage, error, mutate } = useSWR<GalleryPageResponse>(
+    galleryUrl,
+    fetchGalleryPage,
+    GALLERY_SWR_OPTIONS,
+  );
+  const images: GalleryImage[] = (galleryPage?.photos ?? []).flatMap((r) => {
     const source = getGalleryImageSources(r);
     if (!source) return [];
 
@@ -37,10 +77,16 @@ export default function Gallery() {
       width: source.width,
     }];
   });
-  const status: "loading" | "loaded" | "error" = !galleryRows && !error ? "loading" : error ? "error" : "loaded";
-  const [filter, setFilter] = useState("All");
+  const visibleImages = galleryPage?.legacy && filter !== "All"
+    ? images.filter((image) => image.medium === filter)
+    : images;
+  const status: "loading" | "loaded" | "error" = !galleryPage && !error ? "loading" : error ? "error" : "loaded";
   const [selected, setSelected] = useState<number | null>(null);
+  const galleryResultsRef = useRef<HTMLDivElement | null>(null);
   const lightboxDialogRef = useRef<HTMLDialogElement | null>(null);
+  const shouldFocusResultsRef = useRef(false);
+  const meta = galleryPage?.meta;
+  const visiblePageNumbers = meta ? getVisiblePageNumbers(meta.page, meta.totalPages) : [];
 
   useEffect(() => {
     if (selected === null) return;
@@ -58,11 +104,26 @@ export default function Gallery() {
     };
   }, [selected]);
 
-  const filtered = filter === "All"
-    ? images
-    : filter === "Digital"
-      ? images.filter((i) => i.medium === "Digital")
-      : images.filter((i) => i.medium === "Film");
+  useEffect(() => {
+    if (!galleryPage || !shouldFocusResultsRef.current) return;
+    shouldFocusResultsRef.current = false;
+    galleryResultsRef.current?.focus({ preventScroll: true });
+    galleryResultsRef.current?.scrollIntoView({ block: "start" });
+  }, [galleryPage]);
+
+  const handleFilterChange = (category: string) => {
+    shouldFocusResultsRef.current = true;
+    setFilter(category);
+    setPage(1);
+    setSelected(null);
+  };
+
+  const handlePageChange = (nextPage: number) => {
+    if (!meta || nextPage < 1 || nextPage > meta.totalPages || nextPage === meta.page) return;
+    shouldFocusResultsRef.current = true;
+    setSelected(null);
+    setPage(nextPage);
+  };
 
   const heading = "text-neutral-100";
   const mutedText = "text-neutral-500";
@@ -79,17 +140,26 @@ export default function Gallery() {
           <p className={`text-sm ${mutedText} tracking-wider mt-4`}>Film & Digital, all mediums welcome</p>
         </div>
 
-        {status !== "loaded" && images.length === 0 ? null : (
-          <div className="flex flex-wrap justify-center gap-3 mb-16">
-            {galleryCategories.map((cat) => (
-              <button type="button" key={cat} onClick={() => setFilter(cat)}
-                className={`flex min-h-11 items-center gap-2 border px-4 py-2 text-xs uppercase tracking-[0.2em] transition-all duration-300 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400 ${filter === cat ? btnActive : btnInactive}`}>
-                {cat}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex flex-wrap justify-center gap-3 mb-16">
+          {galleryCategories.map((cat) => (
+            <button
+              type="button"
+              key={cat}
+              aria-pressed={filter === cat}
+              onClick={() => handleFilterChange(cat)}
+              className={`flex min-h-11 items-center gap-2 border px-4 py-2 text-xs uppercase tracking-[0.2em] transition-all duration-300 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400 ${filter === cat ? btnActive : btnInactive}`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
 
+        <div ref={galleryResultsRef} tabIndex={-1} className="scroll-mt-24 outline-none">
+        {meta && (
+          <p role="status" aria-live="polite" className="mb-4 text-center text-[10px] uppercase tracking-[0.2em] text-neutral-600">
+            Page {meta.page} of {meta.totalPages}
+          </p>
+        )}
         {status === "loading" ? (
           <div className="columns-1 sm:columns-2 lg:columns-3 gap-2 space-y-2">
             {Array.from({ length: 9 }).map((_, i) => (
@@ -100,17 +170,24 @@ export default function Gallery() {
           </div>
         ) : status === "error" ? (
           <div className="text-center py-24">
-            <p className={`text-sm ${mutedText} tracking-wider`}>Unable to load the gallery right now. Please try again later.</p>
+            <p className={`text-sm ${mutedText} tracking-wider mb-5`}>Unable to load the gallery right now. Please try again later.</p>
+            <button
+              type="button"
+              onClick={() => void mutate()}
+              className="min-h-11 border border-neutral-700 px-5 text-[10px] uppercase tracking-[0.2em] text-neutral-300 transition-colors hover:border-neutral-500 hover:text-white"
+            >
+              Try Again
+            </button>
           </div>
-        ) : filtered.length === 0 ? (
+        ) : visibleImages.length === 0 ? (
           <div className="text-center py-24">
             <p className={`text-sm ${mutedText} tracking-wider`}>
-              {images.length === 0 ? "No photos are published yet." : "No photos match this filter."}
+              {filter === "All" ? "No photos are published yet." : "No photos match this filter."}
             </p>
           </div>
         ) : (
         <div className="columns-1 sm:columns-2 lg:columns-3 gap-2 space-y-2">
-            {filtered.map((img, i) => (
+            {visibleImages.map((img, i) => (
               <button type="button" key={img.fullSrc + img.author}
                 className="group relative mb-2 break-inside-avoid cursor-pointer overflow-hidden text-left focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400" onClick={() => setSelected(i)}>
                 <ImageWithFallback src={img.src} alt={img.cat}
@@ -139,6 +216,47 @@ export default function Gallery() {
             ))}
         </div>
         )}
+
+        {status === "loaded" && meta && meta.totalPages > 1 && (
+          <nav aria-label="Gallery pagination" className="mt-14 flex flex-wrap items-center justify-center gap-2">
+            <button
+              type="button"
+              disabled={!meta.hasPreviousPage}
+              onClick={() => handlePageChange(meta.page - 1)}
+              className="min-h-11 border border-neutral-800 px-4 text-[10px] uppercase tracking-[0.2em] text-neutral-400 transition-colors hover:border-neutral-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              Previous
+            </button>
+            {visiblePageNumbers.map((pageNumber, index) => {
+              const previousPageNumber = visiblePageNumbers[index - 1];
+              return (
+                <span key={pageNumber} className="contents">
+                  {previousPageNumber && pageNumber - previousPageNumber > 1 && (
+                    <span aria-hidden="true" className="px-1 text-neutral-700">…</span>
+                  )}
+                  <button
+                    type="button"
+                    aria-label={`Go to gallery page ${pageNumber}`}
+                    aria-current={pageNumber === meta.page ? "page" : undefined}
+                    onClick={() => handlePageChange(pageNumber)}
+                    className={`min-h-11 min-w-11 border px-3 text-xs transition-colors ${pageNumber === meta.page ? btnActive : btnInactive}`}
+                  >
+                    {pageNumber}
+                  </button>
+                </span>
+              );
+            })}
+            <button
+              type="button"
+              disabled={!meta.hasNextPage}
+              onClick={() => handlePageChange(meta.page + 1)}
+              className="min-h-11 border border-neutral-800 px-4 text-[10px] uppercase tracking-[0.2em] text-neutral-400 transition-colors hover:border-neutral-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              Next
+            </button>
+          </nav>
+        )}
+        </div>
       </div>
 
       {selected !== null && (
@@ -148,17 +266,17 @@ export default function Gallery() {
           onClose={() => setSelected(null)}
           className="fixed inset-0 z-[120] h-dvh max-h-none w-dvw max-w-none border-0 bg-black/95 p-6 pt-16 text-inherit backdrop:bg-transparent">
           <div className="flex h-full w-full flex-col items-center justify-center gap-4">
-          <button type="button" aria-label="Close gallery lightbox" className="absolute inset-0 cursor-default" onMouseDown={() => setSelected(null)} />
+          <button type="button" tabIndex={-1} aria-label="Close gallery lightbox" className="absolute inset-0 cursor-default" onMouseDown={() => setSelected(null)} />
           <button type="button" aria-label="Close gallery lightbox" className="absolute top-6 right-6 z-10 flex min-h-11 min-w-11 items-center justify-center text-neutral-400 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400" onClick={() => setSelected(null)}><X size={24} /></button>
           <img
-            src={filtered[selected]?.fullSrc} alt={filtered[selected]?.cat ?? "Selected gallery photo"} className="relative z-10 max-w-full max-h-[75vh] object-contain shrink min-h-0" loading="eager" decoding="async" />
+            src={visibleImages[selected]?.fullSrc} alt={visibleImages[selected]?.cat ?? "Selected gallery photo"} className="relative z-10 max-w-full max-h-[75vh] object-contain shrink min-h-0" loading="eager" decoding="async" />
           <div className="relative z-10 text-center shrink-0">
             <p className="text-xs tracking-[0.3em] uppercase text-neutral-400">
-              {filtered[selected]?.cat} &middot; {filtered[selected]?.author} &middot; Shot on {filtered[selected]?.medium}
+              {visibleImages[selected]?.cat} &middot; {visibleImages[selected]?.author} &middot; Shot on {visibleImages[selected]?.medium}
             </p>
-            {(filtered[selected]?.camera || filtered[selected]?.lens) && (
+            {(visibleImages[selected]?.camera || visibleImages[selected]?.lens) && (
               <p className="text-[10px] tracking-[0.25em] uppercase text-neutral-500 mt-1.5">
-                {[filtered[selected]?.camera, filtered[selected]?.lens].filter(Boolean).join(" · ")}
+                {[visibleImages[selected]?.camera, visibleImages[selected]?.lens].filter(Boolean).join(" · ")}
               </p>
             )}
           </div>

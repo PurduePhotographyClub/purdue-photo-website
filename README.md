@@ -23,7 +23,7 @@ This repo is the website layer for the club. It renders the public marketing pag
 | Member dashboard | Activation, account settings, notifications, gallery uploads, competition tools, and member workflows |
 | Admin dashboard | Membership, keys, gallery, competitions, events, darkroom, studio, merch, newsletter, and equipment management |
 | API bridge | Same-origin `/api/*` route that forwards to the private API Worker over a Cloudflare service binding |
-| Performance layer | SWR fetch helpers, versioned API URL routing, thumbnail-aware gallery loading, and cached public JSON defaults |
+| Performance layer | SWR fetch helpers, versioned API URL routing, 15-photo gallery pagination, thumbnail-aware image loading, and cached public JSON defaults |
 
 ## Architecture
 

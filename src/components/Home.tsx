@@ -7,7 +7,11 @@ import {
   normalizeEvent,
   splitEvents,
 } from "@/lib/events";
-import { getGalleryImageSources } from "@/lib/gallery-images";
+import {
+  getGalleryImageSources,
+  normalizeGalleryPageForUrl,
+  type GalleryPage,
+} from "@/lib/gallery-images";
 import { fetchPublicJson, PUBLIC_API_SWR_OPTIONS } from "@/lib/http";
 
 const heroImg = "/hero/hero.webp";
@@ -78,6 +82,11 @@ async function fetchLatestCompetition(): Promise<CompItem | null> {
     winnerTitle: winner.entryTitle || winner.description || "Untitled",
     img: `/api/competitions/image/${winner.r2Key}`,
   };
+}
+
+async function fetchHomeGalleryPage(url: string) {
+  const data = await fetchPublicJson<unknown>(url);
+  return normalizeGalleryPageForUrl<Record<string, unknown>>(data, url, 6);
 }
 
 type LoadStatus = "loading" | "loaded" | "error";
@@ -593,13 +602,18 @@ function RequestCtaSection({ theme }: { theme: HomeTheme }) {
 }
 
 export default function Home() {
-  const { data: galleryRows, error: galleryError } = useSWR<any[]>("/api/gallery?limit=6", fetchPublicJson, PUBLIC_API_SWR_OPTIONS);
+  const { data: galleryPage, error: galleryError } = useSWR<GalleryPage<Record<string, unknown>>>(
+    "/api/gallery?page=1&per_page=6",
+    fetchHomeGalleryPage,
+    PUBLIC_API_SWR_OPTIONS,
+  );
   const { data: eventRows, error: eventsError } = useSWR<Record<string, unknown>[]>("/api/events?limit=12", fetchPublicJson, PUBLIC_API_SWR_OPTIONS);
   const { data: latestComp, error: compError } = useSWR<CompItem | null>("home-latest-competition", fetchLatestCompetition, PUBLIC_API_SWR_OPTIONS);
   const { data: clubStats } = useSWR<ClubStats>("/api/stats", fetchPublicJson, PUBLIC_API_SWR_OPTIONS);
+  const galleryRows = galleryPage?.photos;
   const galleryPhotos = useMemo(() => mapGalleryRows(galleryRows ?? []), [galleryRows]);
   const events = useMemo(() => mapEventRows(eventRows ?? []), [eventRows]);
-  const galleryStatus = statusFromSwr(galleryRows, galleryError);
+  const galleryStatus = statusFromSwr(galleryPage, galleryError);
   const eventsStatus = statusFromSwr(eventRows, eventsError);
   const compStatus = statusFromSwr(latestComp, compError);
 
