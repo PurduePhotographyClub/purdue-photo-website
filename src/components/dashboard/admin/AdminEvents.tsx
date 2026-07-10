@@ -284,6 +284,7 @@ export default function AdminEvents() {
                   </div>
                   <div className="flex items-center gap-2">
                     <button type="button"
+                      aria-label={`Edit ${event.title}`}
                       onClick={() => beginEdit(event)}
                       className="inline-flex size-9 items-center justify-center border border-neutral-800 text-neutral-500 transition-colors hover:border-neutral-600 hover:text-white"
                       title="Edit event"
@@ -291,6 +292,7 @@ export default function AdminEvents() {
                       <Pencil size={14} />
                     </button>
                     <button type="button"
+                      aria-label={`Delete ${event.title}`}
                       onClick={() => deleteEvent(event.id)}
                       className="inline-flex size-9 items-center justify-center border border-neutral-800 text-neutral-500 transition-colors hover:border-red-900 hover:text-red-400"
                       title="Delete event"
@@ -329,7 +331,7 @@ function EventForm({
     <div className="border border-neutral-800 bg-white/[0.02] p-5">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-xs uppercase tracking-wider text-neutral-400">{title}</h3>
-        <button type="button" onClick={onCancel} className="text-neutral-600 transition-colors hover:text-white" title="Cancel">
+        <button type="button" aria-label="Cancel editing event" onClick={onCancel} className="text-neutral-600 transition-colors hover:text-white" title="Cancel">
           <X size={16} />
         </button>
       </div>

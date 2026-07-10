@@ -201,6 +201,7 @@ export default function FilterWidget() {
               Lens Filters
             </span>
             <button type="button"
+              aria-label="Close lens filters"
               onClick={() => setIsOpen(false)}
               className="text-neutral-600 hover:text-white transition-colors"
             >

@@ -128,11 +128,11 @@ function MemberFilters({
           className={`${inputClass} pl-9 w-full`}
         />
       </div>
-      <select value={roleFilter} onChange={(e) => onRoleFilterChange(e.target.value)} className={inputClass}>
+      <select aria-label="Filter members by role" value={roleFilter} onChange={(e) => onRoleFilterChange(e.target.value)} className={inputClass}>
         <option value="all">All roles</option>
         {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
       </select>
-      <select value={statusFilter} onChange={(e) => onStatusFilterChange(e.target.value)} className={inputClass}>
+      <select aria-label="Filter members by status" value={statusFilter} onChange={(e) => onStatusFilterChange(e.target.value)} className={inputClass}>
         {STATUSES.map((s) => <option key={s} value={s}>{s === "all" ? "All statuses" : s}</option>)}
       </select>
     </div>
@@ -227,6 +227,7 @@ function MemberRow({
       </td>
       <td className="px-4 py-3">
         <select
+          aria-label={`Role for ${member.name}`}
           value={member.role}
           disabled={
             member.id === currentUserId ||
@@ -312,6 +313,7 @@ function MemberRow({
                 )}
                 <button type="button"
                   onClick={() => onDeleteRequest(member)}
+                  aria-label={`Delete ${member.name}`}
                   className="text-[9px] tracking-wider uppercase text-red-500 hover:text-red-400 flex items-center gap-1 transition-colors"
                   title="Delete"
                 >
@@ -345,7 +347,7 @@ function SuspendMemberModal({ inputClass, loading, onClose, onConfirm, onDateCha
       <div className="relative z-10 bg-neutral-950 border border-neutral-800 p-6 max-w-sm w-full">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm tracking-wider text-neutral-200">Suspend Member</h3>
-          <button type="button" onClick={onClose} className="text-neutral-600 hover:text-neutral-400"><X size={16} /></button>
+          <button type="button" aria-label="Close suspend member dialog" onClick={onClose} className="text-neutral-600 hover:text-neutral-400"><X size={16} /></button>
         </div>
         <p className="text-xs text-neutral-400 mb-1">
           Suspending <span className="text-neutral-200">{target.name}</span>
@@ -397,7 +399,7 @@ function DeleteMemberModal({ confirmText, inputClass, loading, onClose, onConfir
       <div className="relative z-10 bg-neutral-950 border border-red-900/30 p-6 max-w-sm w-full">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm tracking-wider text-red-400">Delete Member</h3>
-          <button type="button" onClick={onClose} className="text-neutral-600 hover:text-neutral-400"><X size={16} /></button>
+          <button type="button" aria-label="Close delete member dialog" onClick={onClose} className="text-neutral-600 hover:text-neutral-400"><X size={16} /></button>
         </div>
         <p className="text-xs text-neutral-400 mb-1">
           Permanently delete <span className="text-red-400">{target.name}</span> ({target.email})
@@ -464,7 +466,7 @@ function AssignKeyModal({
       <div className="relative z-10 bg-neutral-950 border border-neutral-800 p-6 max-w-sm w-full">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm tracking-wider text-neutral-200">Assign Key</h3>
-          <button type="button" onClick={onClose} className="text-neutral-600 hover:text-neutral-400"><X size={16} /></button>
+          <button type="button" aria-label="Close assign key dialog" onClick={onClose} className="text-neutral-600 hover:text-neutral-400"><X size={16} /></button>
         </div>
         <p className="text-xs text-neutral-400 mb-4">
           Assign an activation key to <span className="text-neutral-200">{target.name}</span>

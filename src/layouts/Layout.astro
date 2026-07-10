@@ -7,10 +7,11 @@ import DonateWidget from '../components/DonateWidget';
 import CookieConsent from '../components/CookieConsent';
 
 interface Props {
+  robots?: string;
   title?: string;
 }
 
-const { title = 'Purdue Photography Club' } = Astro.props;
+const { title = 'Purdue Photography Club', robots } = Astro.props;
 ---
 
 <!doctype html>
@@ -19,6 +20,7 @@ const { title = 'Purdue Photography Club' } = Astro.props;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
     <meta name="description" content="Purdue Photography Club - Where analog tradition meets digital innovation. Est. 1934." />
+    {robots && <meta name="robots" content={robots} />}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
   </head>

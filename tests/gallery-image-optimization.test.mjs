@@ -7,18 +7,21 @@ import {
   GALLERY_PREVIEW_IMAGE_MAX_BYTES,
   getGalleryImageSources,
   getGalleryUploadTargetSize,
-  shouldReencodeGalleryImage,
 } from "../src/lib/gallery-images.ts";
 
 const gallerySource = await readFile(
   new URL("../src/components/Gallery.tsx", import.meta.url),
   "utf8",
 );
+const galleryImagesSource = await readFile(
+  new URL("../src/lib/gallery-images.ts", import.meta.url),
+  "utf8",
+);
 
-test("gallery image sources prefer thumbnails for previews and titles for captions", () => {
+test("gallery image sources use opaque API URLs for previews and titles for captions", () => {
   const sources = getGalleryImageSources({
-    r2Key: "member/original.jpg",
-    thumbnailR2Key: "member/thumb.jpg",
+    imageUrl: "/api/gallery/image/photo/photo-id",
+    thumbnailUrl: "/api/gallery/image/photo/photo-id?variant=thumbnail",
     title: "Late Night Bus",
     tags: "Digital",
     uploaderName: "Jacob",
@@ -26,25 +29,25 @@ test("gallery image sources prefer thumbnails for previews and titles for captio
     height: 5236,
   });
 
-  assert.equal(sources?.previewSrc, "/api/gallery/image/member/thumb.jpg");
-  assert.equal(sources?.fullSrc, "/api/gallery/image/member/original.jpg");
+  assert.equal(sources?.previewSrc, "/api/gallery/image/photo/photo-id?variant=thumbnail");
+  assert.equal(sources?.fullSrc, "/api/gallery/image/photo/photo-id");
   assert.equal(sources?.title, "Late Night Bus");
   assert.equal(sources?.medium, "Digital");
 });
 
-test("gallery image sources fall back without showing tags as titles", () => {
+test("gallery image sources use the full opaque URL when a legacy photo has no preview", () => {
   const sources = getGalleryImageSources({
-    r2_key: "member/original.jpg",
-    thumbnail_r2_key: "",
+    imageUrl: "/api/gallery/image/photo/photo-id",
+    thumbnailUrl: "",
     tags: "Film",
   });
 
-  assert.equal(sources?.previewSrc, "/api/gallery/image/member/original.jpg");
+  assert.equal(sources?.previewSrc, "/api/gallery/image/photo/photo-id");
   assert.equal(sources?.title, "Untitled");
   assert.equal(sources?.medium, "Film");
 });
 
-test("gallery uploads resize large originals and lightweight previews", () => {
+test("gallery uploads reencode every full image to strip EXIF and produce lightweight previews", () => {
   assert.equal(GALLERY_FULL_IMAGE_MAX_BYTES, 3 * 1024 * 1024);
   assert.equal(GALLERY_PREVIEW_IMAGE_MAX_BYTES, 450 * 1024);
   assert.deepEqual(
@@ -55,14 +58,11 @@ test("gallery uploads resize large originals and lightweight previews", () => {
     getGalleryUploadTargetSize({ width: 4032, height: 5236 }, 900),
     { width: 693, height: 900 },
   );
-  assert.equal(
-    shouldReencodeGalleryImage({ width: 4032, height: 5236, size: 7_792_100 }),
-    true,
+  assert.match(
+    galleryImagesSource,
+    /const optimizedFile = await renderJpegWithinLimit\(/,
   );
-  assert.equal(
-    shouldReencodeGalleryImage({ width: 1200, height: 800, size: 600_000 }),
-    false,
-  );
+  assert.doesNotMatch(galleryImagesSource, /:\s*file;/);
 });
 
 test("gallery card captions keep title and author left aligned", () => {

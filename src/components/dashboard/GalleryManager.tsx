@@ -25,8 +25,8 @@ interface Photo {
   title: string | null;
   description: string | null;
   tags: string | null;
-  r2Key: string;
-  thumbnailR2Key: string | null;
+  imageUrl: string;
+  thumbnailUrl: string;
   createdAt: string;
 }
 
@@ -256,7 +256,7 @@ function GalleryPhotoGrid({ canUpload, loading, onDelete, onExpand, photos }: Ga
           {photos.map((photo) => (
             <div key={photo.id} className="group relative bg-white/[0.02] border border-neutral-800 overflow-hidden">
               <img
-                src={`/api/gallery/image/${photo.thumbnailR2Key || photo.r2Key}`}
+                src={photo.thumbnailUrl}
                 alt={photo.title || "Photo"}
                 loading="lazy"
                 className="w-full aspect-square object-cover"
@@ -318,7 +318,7 @@ function ExpandedPhotoModal({ onClose, onDelete, photo }: ExpandedPhotoModalProp
       </button>
       <div className="relative z-10 max-w-4xl w-full flex flex-col items-center">
         <img
-          src={`/api/gallery/image/${photo.r2Key}`}
+          src={photo.imageUrl}
           alt={photo.title || "Photo"}
           className="max-w-full max-h-[75vh] object-contain"
         />

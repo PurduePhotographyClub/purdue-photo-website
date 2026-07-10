@@ -324,10 +324,10 @@ function AdminEquipmentEditModal({
           )}
           <input aria-label="Name *" type="text" value={editForm.name} onChange={(e) => onChange({ name: e.target.value })} placeholder="Name *" required className={inputClass} />
           <input aria-label="Model" type="text" value={editForm.model} onChange={(e) => onChange({ model: e.target.value })} placeholder="Model" className={inputClass} />
-          <select value={editForm.category} onChange={(e) => onChange({ category: e.target.value })} className={selectClass}>
+          <select aria-label="Equipment category" value={editForm.category} onChange={(e) => onChange({ category: e.target.value })} className={selectClass}>
             {CATEGORY_OPTIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
-          <select value={editForm.condition} onChange={(e) => onChange({ condition: e.target.value })} className={selectClass}>
+          <select aria-label="Equipment condition" value={editForm.condition} onChange={(e) => onChange({ condition: e.target.value })} className={selectClass}>
             <option value="">No condition</option>
             {CONDITIONS.map((c) => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
           </select>
@@ -838,7 +838,7 @@ function useAdminEquipmentViewModel() {
               <button type="button" onClick={() => setHistorySearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-neutral-400 text-xs">✕</button>
             )}
           </div>
-          <select value={historyFilter} onChange={(e) => handleHistoryFilterChange(e.target.value)} className={`${selectClass} sm:w-52`}>
+          <select aria-label="Filter equipment history by action" value={historyFilter} onChange={(e) => handleHistoryFilterChange(e.target.value)} className={`${selectClass} sm:w-52`}>
             <option value="">All Actions</option>
             {actionOptions.map(([val, label]) => (
               <option key={val} value={val}>{label}</option>

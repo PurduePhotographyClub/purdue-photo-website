@@ -1,4 +1,4 @@
-const GALLERY_IMAGE_PATH = "/api/gallery/image";
+const GALLERY_IMAGE_PATH = "/api/gallery/image/photo/";
 const GALLERY_FULL_IMAGE_MAX_DIMENSION = 2200;
 const GALLERY_PREVIEW_IMAGE_MAX_DIMENSION = 900;
 const GALLERY_FULL_IMAGE_MIN_DIMENSION = 1200;
@@ -14,12 +14,10 @@ type GalleryMedium = "Digital" | "Film";
 interface GalleryRow {
   camera?: unknown;
   height?: unknown;
+  imageUrl?: unknown;
   lens?: unknown;
-  r2_key?: unknown;
-  r2Key?: unknown;
   tags?: unknown;
-  thumbnail_r2_key?: unknown;
-  thumbnailR2Key?: unknown;
+  thumbnailUrl?: unknown;
   title?: unknown;
   uploaderName?: unknown;
   width?: unknown;
@@ -28,12 +26,10 @@ interface GalleryRow {
 interface GalleryImageSource {
   author: string;
   camera: string | null;
-  fullKey: string;
   fullSrc: string;
   height: number | null;
   lens: string | null;
   medium: GalleryMedium;
-  previewKey: string;
   previewSrc: string;
   title: string;
   width: number | null;
@@ -42,10 +38,6 @@ interface GalleryImageSource {
 interface GalleryImageDimensions {
   height: number;
   width: number;
-}
-
-interface GalleryImageSize extends GalleryImageDimensions {
-  size: number;
 }
 
 interface PreparedGalleryUploadImages {
@@ -77,8 +69,9 @@ function readNumber(value: unknown) {
     : null;
 }
 
-function buildGalleryImageSrc(key: string) {
-  return `${GALLERY_IMAGE_PATH}/${key}`;
+function readGalleryImageUrl(value: unknown) {
+  const url = readString(value);
+  return url?.startsWith(GALLERY_IMAGE_PATH) ? url : null;
 }
 
 function readMedium(tags: unknown): GalleryMedium {
@@ -93,24 +86,19 @@ function readMedium(tags: unknown): GalleryMedium {
 }
 
 export function getGalleryImageSources(row: GalleryRow): GalleryImageSource | null {
-  const fullKey = readString(row.r2Key, row.r2_key);
-  const thumbnailKey = readString(row.thumbnailR2Key, row.thumbnail_r2_key);
-  const resolvedFullKey = fullKey ?? thumbnailKey;
+  const fullSrc = readGalleryImageUrl(row.imageUrl);
 
-  if (!resolvedFullKey) return null;
-
-  const previewKey = thumbnailKey ?? resolvedFullKey;
+  if (!fullSrc) return null;
+  const previewSrc = readGalleryImageUrl(row.thumbnailUrl) ?? fullSrc;
 
   return {
     author: readString(row.uploaderName) ?? "PPC Member",
     camera: readString(row.camera),
-    fullKey: resolvedFullKey,
-    fullSrc: buildGalleryImageSrc(resolvedFullKey),
+    fullSrc,
     height: readNumber(row.height),
     lens: readString(row.lens),
     medium: readMedium(row.tags),
-    previewKey,
-    previewSrc: buildGalleryImageSrc(previewKey),
+    previewSrc,
     title: readString(row.title) ?? "Untitled",
     width: readNumber(row.width),
   };
@@ -133,14 +121,6 @@ export function getGalleryUploadTargetSize(
     height: Math.round(dimensions.height * ratio),
     width: Math.round(dimensions.width * ratio),
   };
-}
-
-export function shouldReencodeGalleryImage(
-  image: GalleryImageSize,
-  maxDimension = GALLERY_FULL_IMAGE_MAX_DIMENSION,
-) {
-  return Math.max(image.width, image.height) > maxDimension ||
-    image.size > GALLERY_FULL_IMAGE_MAX_BYTES;
 }
 
 function withJpegExtension(fileName: string, suffix = "") {
@@ -265,23 +245,15 @@ export async function prepareGalleryUploadImages(file: File): Promise<PreparedGa
   try {
     const fullSize = getGalleryUploadTargetSize(source, GALLERY_FULL_IMAGE_MAX_DIMENSION);
     const previewSize = getGalleryUploadTargetSize(source, GALLERY_PREVIEW_IMAGE_MAX_DIMENSION);
-    const shouldReencode = shouldReencodeGalleryImage({
-      height: source.height,
-      size: file.size,
-      width: source.width,
-    });
-
-    const optimizedFile = shouldReencode
-      ? await renderJpegWithinLimit(
-        source,
-        fullSize,
-        GALLERY_FULL_IMAGE_MAX_BYTES,
-        GALLERY_FULL_IMAGE_QUALITY,
-        GALLERY_FULL_IMAGE_MIN_DIMENSION,
-        withJpegExtension(file.name),
-        file.lastModified,
-      )
-      : file;
+    const optimizedFile = await renderJpegWithinLimit(
+      source,
+      fullSize,
+      GALLERY_FULL_IMAGE_MAX_BYTES,
+      GALLERY_FULL_IMAGE_QUALITY,
+      GALLERY_FULL_IMAGE_MIN_DIMENSION,
+      withJpegExtension(file.name),
+      file.lastModified,
+    );
 
     const thumbnail = await renderJpegWithinLimit(
       source,
