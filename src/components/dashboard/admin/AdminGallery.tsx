@@ -1,6 +1,7 @@
-import { useMemo, useReducer } from "react";
+import { useMemo, useReducer, useState } from "react";
 import useSWR from "swr";
 import { Search, X } from "lucide-react";
+import ModalDialog from "@/components/ModalDialog";
 import {
   fetchApi,
   fetchJson,
@@ -8,7 +9,17 @@ import {
   readErrorMessage,
   readJson
 } from "@/lib/http";
+import {
+  normalizeGalleryPageForUrl,
+  type GalleryPage,
+} from "@/lib/gallery-images";
 import { createKeyedStateSetter, keyedStateReducer } from "@/lib/reducer-state";
+
+const ADMIN_GALLERY_PAGE_SIZE = 60;
+const ADMIN_GALLERY_SWR_OPTIONS = {
+  ...PUBLIC_API_SWR_OPTIONS,
+  keepPreviousData: false,
+};
 
 interface Photo {
   id: string;
@@ -22,6 +33,18 @@ interface Photo {
   uploaderId: string;
   uploaderName: string | null;
   createdAt: string;
+}
+const EMPTY_ADMIN_GALLERY_PHOTOS: Photo[] = [];
+
+async function fetchAdminGalleryPage(url: string) {
+  const data = await fetchJson<unknown>(url);
+  return normalizeGalleryPageForUrl<Photo>(data, url, ADMIN_GALLERY_PAGE_SIZE);
+}
+
+function getVisiblePageNumbers(page: number, totalPages: number) {
+  return Array.from(new Set([1, page - 1, page, page + 1, totalPages]))
+    .filter((pageNumber) => pageNumber >= 1 && pageNumber <= totalPages)
+    .sort((first, second) => first - second);
 }
 
 interface AdminGalleryState {
@@ -249,8 +272,8 @@ interface PhotoPreviewModalProps {
 
 function PhotoPreviewModal({ onClose, photo }: PhotoPreviewModalProps) {
   return (
-    <div className="fixed inset-0 z-[120] flex h-dvh w-dvw items-center justify-center bg-black/90 p-4">
-      <button type="button" aria-label="Close photo preview" className="absolute inset-0 cursor-default" onMouseDown={onClose} />
+    <ModalDialog ariaLabel="Gallery photo preview" onClose={onClose} className="flex items-center justify-center bg-black/90 p-4">
+      <button type="button" tabIndex={-1} aria-label="Close photo preview" className="absolute inset-0 cursor-default" onMouseDown={onClose} />
       <div className="relative z-10 max-w-4xl max-h-[90vh] w-full flex flex-col">
         <div className="flex items-center justify-between mb-3">
           <div>
@@ -272,7 +295,7 @@ function PhotoPreviewModal({ onClose, photo }: PhotoPreviewModalProps) {
           {photo.description && <span className="basis-full text-neutral-400">{photo.description}</span>}
         </div>
       </div>
-    </div>
+    </ModalDialog>
   );
 }
 
@@ -285,8 +308,8 @@ interface DeletePhotoModalProps {
 
 function DeletePhotoModal({ deleting, onClose, onDelete, target }: DeletePhotoModalProps) {
   return (
-    <div className="fixed inset-0 z-[120] flex h-dvh w-dvw items-center justify-center bg-black/80 p-4">
-      <button type="button" aria-label="Close delete photo dialog" className="absolute inset-0 cursor-default" onMouseDown={onClose} />
+    <ModalDialog ariaLabel="Delete gallery photo" onClose={onClose} preventClose={deleting} className="flex items-center justify-center bg-black/80 p-4">
+      <button type="button" tabIndex={-1} aria-label="Close delete photo dialog" className="absolute inset-0 cursor-default" onMouseDown={() => !deleting && onClose()} />
       <div className="relative z-10 bg-neutral-950 border border-red-900/30 p-6 max-w-md w-full">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm tracking-wider text-red-400">Delete Photo</h3>
@@ -326,7 +349,7 @@ function DeletePhotoModal({ deleting, onClose, onDelete, target }: DeletePhotoMo
           </button>
         </div>
       </div>
-    </div>
+    </ModalDialog>
   );
 }
 
@@ -378,9 +401,9 @@ function EditPhotoModal({
   const trimmedNewTag = newTagInput.trim();
 
   return (
-    <div className="fixed inset-0 z-[120] flex h-dvh w-dvw items-center justify-center bg-black/80 p-4">
-      <button type="button" aria-label="Close edit photo dialog" className="absolute inset-0 cursor-default" onMouseDown={onClose} />
-      <div className="relative z-10 bg-neutral-950 border border-neutral-800 p-6 max-w-lg w-full">
+    <ModalDialog ariaLabel="Edit gallery photo" onClose={onClose} preventClose={saving} className="flex items-center justify-center bg-black/80 p-4">
+      <button type="button" tabIndex={-1} aria-label="Close edit photo dialog" className="absolute inset-0 cursor-default" onMouseDown={() => !saving && onClose()} />
+      <div className="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto border border-neutral-800 bg-neutral-950 p-6">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-sm tracking-wider text-neutral-200">Edit Photo</h3>
           <button type="button" aria-label="Close edit photo dialog" disabled={saving} onClick={onClose} className="text-neutral-600 hover:text-neutral-400 disabled:opacity-50">
@@ -499,11 +522,55 @@ function EditPhotoModal({
           </div>
         </form>
       </div>
-    </div>
+    </ModalDialog>
+  );
+}
+
+interface AdminGalleryPaginationProps {
+  meta: GalleryPage<Photo>["meta"];
+  onPageChange: (page: number) => void;
+  pageNumbers: number[];
+}
+
+function AdminGalleryPagination({ meta, onPageChange, pageNumbers }: AdminGalleryPaginationProps) {
+  if (meta.totalPages <= 1) return null;
+
+  return (
+    <nav aria-label="Admin gallery pagination" className="flex flex-wrap items-center justify-center gap-2">
+      <button
+        type="button"
+        disabled={!meta.hasPreviousPage}
+        onClick={() => onPageChange(meta.page - 1)}
+        className="min-h-11 border border-neutral-800 px-4 text-[10px] uppercase tracking-wider text-neutral-400 disabled:opacity-30"
+      >
+        Previous
+      </button>
+      {pageNumbers.map((pageNumber) => (
+        <button
+          type="button"
+          key={pageNumber}
+          aria-label={`Go to admin gallery page ${pageNumber}`}
+          aria-current={pageNumber === meta.page ? "page" : undefined}
+          onClick={() => onPageChange(pageNumber)}
+          className={`min-h-11 min-w-11 border px-3 text-xs ${pageNumber === meta.page ? "border-white text-white" : "border-neutral-800 text-neutral-500"}`}
+        >
+          {pageNumber}
+        </button>
+      ))}
+      <button
+        type="button"
+        disabled={!meta.hasNextPage}
+        onClick={() => onPageChange(meta.page + 1)}
+        className="min-h-11 border border-neutral-800 px-4 text-[10px] uppercase tracking-wider text-neutral-400 disabled:opacity-30"
+      >
+        Next
+      </button>
+    </nav>
   );
 }
 
 export default function AdminGallery() {
+  const [page, setPage] = useState(1);
   const [state, dispatchState] = useReducer(keyedStateReducer<AdminGalleryState>, initialAdminGalleryState);
   const {
     error,
@@ -543,11 +610,19 @@ export default function AdminGallery() {
   const inputClass = "w-full bg-transparent border border-neutral-800 px-3 py-2.5 text-sm text-neutral-200 placeholder:text-neutral-700 focus:border-neutral-600 focus:outline-none transition-colors";
 
   const {
-    data: photos = [],
+    data: galleryPage,
     error: loadError,
     isLoading: loading,
     mutate: mutatePhotos,
-  } = useSWR<Photo[]>("/api/gallery", fetchJson, PUBLIC_API_SWR_OPTIONS);
+  } = useSWR<GalleryPage<Photo>>(
+    `/api/gallery?page=${page}&per_page=${ADMIN_GALLERY_PAGE_SIZE}&format=page`,
+    fetchAdminGalleryPage,
+    ADMIN_GALLERY_SWR_OPTIONS,
+  );
+  const photos = galleryPage?.photos ?? EMPTY_ADMIN_GALLERY_PHOTOS;
+  const pageNumbers = galleryPage
+    ? getVisiblePageNumbers(galleryPage.meta.page, galleryPage.meta.totalPages)
+    : [];
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -556,7 +631,10 @@ export default function AdminGallery() {
     try {
       const res = await fetchApi(`/api/gallery/${deleteId}`, { method: "DELETE" });
       if (res.ok) {
-        void mutatePhotos((current = []) => current.filter((p) => p.id !== deleteId), { revalidate: false });
+        const refreshedPage = await mutatePhotos();
+        if (refreshedPage && refreshedPage.meta.page !== page) {
+          setPage(refreshedPage.meta.page);
+        }
         setSuccess("Photo deleted.");
         setDeleteId(null);
       } else {
@@ -600,7 +678,12 @@ export default function AdminGallery() {
       });
       if (res.ok) {
         const updated = await readJson<Photo>(res);
-        void mutatePhotos((current = []) => current.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)), { revalidate: false });
+        void mutatePhotos((current) => current
+          ? {
+            ...current,
+            photos: current.photos.map((photo) => photo.id === updated.id ? { ...photo, ...updated } : photo),
+          }
+          : current, { revalidate: false });
         setSuccess("Photo updated.");
         setEditPhoto(null);
       } else {
@@ -683,6 +766,14 @@ export default function AdminGallery() {
       .join(", ");
     setEditTags(updated);
   };
+  const handlePageChange = (nextPage: number) => {
+    if (!galleryPage || nextPage < 1 || nextPage > galleryPage.meta.totalPages) return;
+    setFilterTag(null);
+    setFilterUser(null);
+    setUserSearch("");
+    setPreviewPhoto(null);
+    setPage(nextPage);
+  };
 
   if (loading) return <AdminGallerySkeleton />;
 
@@ -703,7 +794,8 @@ export default function AdminGallery() {
       />
 
       <p className="text-[10px] text-neutral-600 tracking-wider">
-        Showing {filteredPhotos.length} of {photos.length} photo{filteredPhotos.length !== 1 ? "s" : ""}
+        Showing {filteredPhotos.length} on this page · {galleryPage?.meta.total ?? photos.length} total photo{(galleryPage?.meta.total ?? photos.length) !== 1 ? "s" : ""}
+        {(filterTag || filterUser) && " · filters apply to this page"}
       </p>
 
       <AdminGalleryGrid
@@ -715,6 +807,14 @@ export default function AdminGallery() {
         onTagChange={setFilterTag}
         photos={photos}
       />
+
+      {galleryPage && (
+        <AdminGalleryPagination
+          meta={galleryPage.meta}
+          onPageChange={handlePageChange}
+          pageNumbers={pageNumbers}
+        />
+      )}
 
       {previewPhoto && (
         <PhotoPreviewModal onClose={() => setPreviewPhoto(null)} photo={previewPhoto} />

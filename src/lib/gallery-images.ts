@@ -6,7 +6,7 @@ const GALLERY_PREVIEW_IMAGE_MIN_DIMENSION = 480;
 const GALLERY_FULL_IMAGE_QUALITY = 0.82;
 const GALLERY_PREVIEW_IMAGE_QUALITY = 0.7;
 const GALLERY_MIN_IMAGE_QUALITY = 0.52;
-export const GALLERY_FULL_IMAGE_MAX_BYTES = 3 * 1024 * 1024;
+export const GALLERY_FULL_IMAGE_MAX_BYTES = 3_000_000;
 export const GALLERY_PREVIEW_IMAGE_MAX_BYTES = 450 * 1024;
 
 type GalleryMedium = "Digital" | "Film";
@@ -21,6 +21,87 @@ interface GalleryRow {
   title?: unknown;
   uploaderName?: unknown;
   width?: unknown;
+}
+
+export interface GalleryPageMeta {
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  page: number;
+  perPage: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface GalleryPage<T> {
+  legacy: boolean;
+  meta: GalleryPageMeta;
+  photos: T[];
+}
+
+interface GalleryPageFallback {
+  page: number;
+  perPage: number;
+}
+
+function isPositiveInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+}
+
+function hasGalleryPageMeta(value: unknown): value is GalleryPageMeta {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const meta = value as Partial<GalleryPageMeta>;
+  return typeof meta.hasNextPage === "boolean" &&
+    typeof meta.hasPreviousPage === "boolean" &&
+    isPositiveInteger(meta.page) &&
+    isPositiveInteger(meta.perPage) &&
+    typeof meta.total === "number" &&
+    Number.isSafeInteger(meta.total) &&
+    meta.total >= 0 &&
+    isPositiveInteger(meta.totalPages);
+}
+
+export function normalizeGalleryPage<T>(
+  value: unknown,
+  fallback: GalleryPageFallback,
+): GalleryPage<T> {
+  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+    const page = value as Partial<GalleryPage<T>>;
+    if (Array.isArray(page.photos) && hasGalleryPageMeta(page.meta)) {
+      return { legacy: false, photos: page.photos, meta: page.meta };
+    }
+  }
+
+  const photos = Array.isArray(value) ? value as T[] : [];
+  const hasNextPage = photos.length === fallback.perPage;
+  const total = ((fallback.page - 1) * fallback.perPage) + photos.length + (hasNextPage ? 1 : 0);
+
+  return {
+    legacy: true,
+    photos,
+    meta: {
+      hasNextPage,
+      hasPreviousPage: fallback.page > 1,
+      page: fallback.page,
+      perPage: fallback.perPage,
+      total,
+      totalPages: fallback.page + (hasNextPage ? 1 : 0),
+    },
+  };
+}
+
+export function normalizeGalleryPageForUrl<T>(
+  value: unknown,
+  url: string,
+  defaultPerPage: number,
+): GalleryPage<T> {
+  const requestUrl = new URL(url, "https://gallery.local");
+  const requestedPage = Number(requestUrl.searchParams.get("page"));
+  const requestedPerPage = Number(requestUrl.searchParams.get("per_page"));
+
+  return normalizeGalleryPage<T>(value, {
+    page: isPositiveInteger(requestedPage) ? requestedPage : 1,
+    perPage: isPositiveInteger(requestedPerPage) ? requestedPerPage : defaultPerPage,
+  });
 }
 
 interface GalleryImageSource {
@@ -87,9 +168,9 @@ function readMedium(tags: unknown): GalleryMedium {
 
 export function getGalleryImageSources(row: GalleryRow): GalleryImageSource | null {
   const fullSrc = readGalleryImageUrl(row.imageUrl);
+  const previewSrc = readGalleryImageUrl(row.thumbnailUrl);
 
-  if (!fullSrc) return null;
-  const previewSrc = readGalleryImageUrl(row.thumbnailUrl) ?? fullSrc;
+  if (!fullSrc || !previewSrc) return null;
 
   return {
     author: readString(row.uploaderName) ?? "PPC Member",
@@ -102,6 +183,22 @@ export function getGalleryImageSources(row: GalleryRow): GalleryImageSource | nu
     title: readString(row.title) ?? "Untitled",
     width: readNumber(row.width),
   };
+}
+
+export function getGalleryUploadValidationError(
+  file: Pick<File, "size" | "type">,
+): string | null {
+  if (file.type !== "image/jpeg") {
+    return "Choose a JPG or JPEG image.";
+  }
+  if (file.size <= 0) {
+    return "Choose a non-empty JPEG image.";
+  }
+  if (file.size > GALLERY_FULL_IMAGE_MAX_BYTES) {
+    return "Choose a JPEG that is 3 MB or smaller.";
+  }
+
+  return null;
 }
 
 export function getGalleryUploadTargetSize(
@@ -241,6 +338,11 @@ async function renderJpegWithinLimit(
 }
 
 export async function prepareGalleryUploadImages(file: File): Promise<PreparedGalleryUploadImages> {
+  const validationError = getGalleryUploadValidationError(file);
+  if (validationError) {
+    throw new Error(validationError);
+  }
+
   const source = await loadGalleryImage(file);
   try {
     const fullSize = getGalleryUploadTargetSize(source, GALLERY_FULL_IMAGE_MAX_DIMENSION);

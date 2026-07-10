@@ -1,24 +1,32 @@
 import {
+  useEffect,
   useReducer,
   useRef,
+  useState,
   type FormEvent,
   type RefObject
 } from "react";
 import useSWR from "swr";
 import AccessUpsellPanel from "@/components/dashboard/AccessUpsellPanel";
+import ModalDialog from "@/components/ModalDialog";
 import {
   fetchApi,
   fetchJson,
-  readErrorMessage,
-  readJsonOrNull
+  readErrorMessage
 } from "@/lib/http";
-import { prepareGalleryUploadImages } from "@/lib/gallery-images";
+import {
+  getGalleryUploadValidationError,
+  normalizeGalleryPageForUrl,
+  prepareGalleryUploadImages,
+  type GalleryPage,
+} from "@/lib/gallery-images";
 import { createKeyedStateSetter, keyedStateReducer } from "@/lib/reducer-state";
 
 const GALLERY_TAGS = [
   "Film",
   "Digital",
 ] as const;
+const GALLERY_MANAGER_PAGE_SIZE = 60;
 
 interface Photo {
   id: string;
@@ -29,6 +37,7 @@ interface Photo {
   thumbnailUrl: string;
   createdAt: string;
 }
+const EMPTY_GALLERY_PHOTOS: Photo[] = [];
 
 interface Props {
   userRole: string;
@@ -37,7 +46,13 @@ interface Props {
 
 async function fetchGalleryPhotos(url: string) {
   const data = await fetchJson<unknown>(url);
-  return Array.isArray(data) ? data as Photo[] : [];
+  return normalizeGalleryPageForUrl<Photo>(data, url, GALLERY_MANAGER_PAGE_SIZE);
+}
+
+function getVisiblePageNumbers(page: number, totalPages: number) {
+  return Array.from(new Set([1, page - 1, page, page + 1, totalPages]))
+    .filter((pageNumber) => pageNumber >= 1 && pageNumber <= totalPages)
+    .sort((first, second) => first - second);
 }
 
 interface GalleryManagerState {
@@ -132,7 +147,7 @@ function GalleryUploadPanel({
               onChange={onFileChange}
               className="block w-full max-w-full text-xs leading-6 text-neutral-500 file:mr-4 file:py-2.5 file:px-4 file:border file:border-neutral-800 file:text-[10px] file:tracking-wider file:uppercase file:bg-transparent file:text-neutral-400 hover:file:text-white hover:file:border-neutral-600 file:cursor-pointer file:transition-colors"
             />
-            <p className="text-[10px] text-neutral-600 mt-1.5 tracking-wider">JPG / JPEG only · under 3 MB</p>
+            <p className="text-[10px] text-neutral-600 mt-1.5 tracking-wider">JPG / JPEG only · 3 MB max</p>
           </div>
           {preview && (
             <div className="size-20 shrink-0 overflow-hidden border border-neutral-800">
@@ -227,15 +242,16 @@ interface GalleryPhotoGridProps {
   onDelete: (photoId: string) => void;
   onExpand: (photoId: string) => void;
   photos: Photo[];
+  total: number;
 }
 
-function GalleryPhotoGrid({ canUpload, loading, onDelete, onExpand, photos }: GalleryPhotoGridProps) {
+function GalleryPhotoGrid({ canUpload, loading, onDelete, onExpand, photos, total }: GalleryPhotoGridProps) {
   return (
     <div>
       <div className="flex items-baseline justify-between mb-4">
         <p className="text-[9px] tracking-[0.3em] uppercase text-neutral-600">Your Photos</p>
         {!loading && photos.length > 0 && (
-          <p className="text-[10px] text-neutral-600">{photos.length} photo{photos.length !== 1 ? "s" : ""}</p>
+          <p className="text-[10px] text-neutral-600">{photos.length} shown · {total} total</p>
         )}
       </div>
       {loading ? (
@@ -265,7 +281,7 @@ function GalleryPhotoGrid({ canUpload, loading, onDelete, onExpand, photos }: Ga
                   (e.target as HTMLImageElement).parentElement!.classList.add("min-h-[120px]");
                 }}
               />
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+              <div className="absolute inset-0 flex items-end bg-black/60 p-3 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                 <div className="flex-1 min-w-0">
                   {photo.title && (
                     <p className="text-xs text-white truncate">{photo.title}</p>
@@ -308,8 +324,8 @@ interface ExpandedPhotoModalProps {
 
 function ExpandedPhotoModal({ onClose, onDelete, photo }: ExpandedPhotoModalProps) {
   return (
-    <div className="fixed inset-0 z-[120] flex h-dvh w-dvw items-center justify-center bg-black/95 p-6">
-      <button type="button" aria-label="Close expanded photo" className="absolute inset-0 cursor-default" onMouseDown={onClose} />
+    <ModalDialog ariaLabel="Gallery photo preview" onClose={onClose} className="flex items-center justify-center bg-black/95 p-6">
+      <button type="button" tabIndex={-1} aria-label="Close expanded photo" className="absolute inset-0 cursor-default" onMouseDown={onClose} />
       <button type="button"
         className="absolute top-6 right-6 z-10 text-neutral-400 hover:text-white text-sm"
         onClick={onClose}
@@ -343,7 +359,7 @@ function ExpandedPhotoModal({ onClose, onDelete, photo }: ExpandedPhotoModalProp
           </button>
         </div>
       </div>
-    </div>
+    </ModalDialog>
   );
 }
 
@@ -355,8 +371,8 @@ interface DeletePhotoModalProps {
 
 function DeletePhotoModal({ deleting, onClose, onConfirm }: DeletePhotoModalProps) {
   return (
-    <div className="fixed inset-0 z-[120] flex h-dvh w-dvw items-center justify-center bg-black/80 p-6">
-      <button type="button" aria-label="Close delete photo dialog" className="absolute inset-0 cursor-default" onMouseDown={() => !deleting && onClose()} />
+    <ModalDialog ariaLabel="Delete gallery photo" onClose={onClose} preventClose={deleting} className="flex items-center justify-center bg-black/80 p-6">
+      <button type="button" tabIndex={-1} aria-label="Close delete photo dialog" className="absolute inset-0 cursor-default" onMouseDown={() => !deleting && onClose()} />
       <div className="relative z-10 bg-neutral-950 border border-neutral-800 p-6 max-w-sm w-full">
         <p className="text-[9px] tracking-[0.3em] uppercase text-red-900 mb-2">Confirm</p>
         <p className="text-sm text-neutral-200 tracking-wider mb-1">Delete this photo?</p>
@@ -378,11 +394,12 @@ function DeletePhotoModal({ deleting, onClose, onConfirm }: DeletePhotoModalProp
           </button>
         </div>
       </div>
-    </div>
+    </ModalDialog>
   );
 }
 
 export default function GalleryManager({ userRole, userTier }: Props) {
+  const [page, setPage] = useState(1);
   const [state, dispatchState] = useReducer(
     keyedStateReducer<GalleryManagerState>,
     initialGalleryManagerState,
@@ -416,21 +433,47 @@ export default function GalleryManager({ userRole, userTier }: Props) {
   const setDeleteTarget = createKeyedStateSetter(dispatchState, "deleteTarget");
   const setDeleting = createKeyedStateSetter(dispatchState, "deleting");
   const fileRef = useRef<HTMLInputElement>(null);
+  const previewUrlRef = useRef<string | null>(null);
   const canUpload = userRole === "admin" || userRole === "officer" || !!userTier;
   const {
-    data: photos = [],
+    data: galleryPage,
     error: loadError,
     isLoading: loading,
     mutate: mutatePhotos,
-  } = useSWR<Photo[]>("/api/gallery?mine=true", fetchGalleryPhotos);
+  } = useSWR<GalleryPage<Photo>>(
+    `/api/gallery?mine=true&page=${page}&per_page=${GALLERY_MANAGER_PAGE_SIZE}&format=page`,
+    fetchGalleryPhotos,
+  );
+  const photos = galleryPage?.photos ?? EMPTY_GALLERY_PHOTOS;
+  const pageNumbers = galleryPage
+    ? getVisiblePageNumbers(galleryPage.meta.page, galleryPage.meta.totalPages)
+    : [];
+
+  const replacePreview = (nextPreview: string | null) => {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    previewUrlRef.current = nextPreview;
+    setPreview(nextPreview);
+  };
+
+  useEffect(() => () => {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+  }, []);
 
   const handleFileChange = () => {
     const file = fileRef.current?.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setPreview(url);
+      const validationError = getGalleryUploadValidationError(file);
+      if (validationError) {
+        replacePreview(null);
+        setError(validationError);
+        if (fileRef.current) fileRef.current.value = "";
+        return;
+      }
+
+      setError("");
+      replacePreview(URL.createObjectURL(file));
     } else {
-      setPreview(null);
+      replacePreview(null);
     }
   };
 
@@ -438,6 +481,12 @@ export default function GalleryManager({ userRole, userTier }: Props) {
     e.preventDefault();
     const file = fileRef.current?.files?.[0];
     if (!file) return;
+
+    const validationError = getGalleryUploadValidationError(file);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
 
     setError("");
     setSuccess("");
@@ -455,8 +504,6 @@ export default function GalleryManager({ userRole, userTier }: Props) {
     const formData = new FormData();
     formData.append("file", preparedImages.file, preparedImages.file.name);
     formData.append("thumbnail", preparedImages.thumbnail, preparedImages.thumbnail.name);
-    formData.append("width", String(preparedImages.width));
-    formData.append("height", String(preparedImages.height));
     formData.append("title", title);
     formData.append("description", description);
     formData.append("tags", selectedTags.join(", "));
@@ -476,24 +523,21 @@ export default function GalleryManager({ userRole, userTier }: Props) {
         return;
       }
 
-      const newPhoto = await readJsonOrNull<Photo>(res);
-
       setTitle("");
       setDescription("");
       setSelectedTags([]);
       setCamera("");
       setLens("");
       setShowName(true);
-      setPreview(null);
+      replacePreview(null);
       if (fileRef.current) fileRef.current.value = "";
       setSuccess("Photo uploaded successfully!");
       setTimeout(() => setSuccess(""), 4000);
 
-      // Add the new photo to the top of the list immediately
-      if (newPhoto?.id) {
-        void mutatePhotos((current = []) => [newPhoto, ...current], { revalidate: false });
-      } else {
+      if (page === 1) {
         void mutatePhotos();
+      } else {
+        setPage(1);
       }
     } catch {
       setError("Upload failed. Please try again.");
@@ -507,7 +551,10 @@ export default function GalleryManager({ userRole, userTier }: Props) {
     try {
       const res = await fetchApi(`/api/gallery/${deleteTarget}`, { method: "DELETE" });
       if (res.ok) {
-        void mutatePhotos((current = []) => current.filter((p) => p.id !== deleteTarget), { revalidate: false });
+        const refreshedPage = await mutatePhotos();
+        if (refreshedPage && refreshedPage.meta.page !== page) {
+          setPage(refreshedPage.meta.page);
+        }
         setExpanded(null);
       } else {
         setError(await readErrorMessage(res, "Failed to delete photo."));
@@ -526,6 +573,12 @@ export default function GalleryManager({ userRole, userTier }: Props) {
     setSelectedTags((prev) =>
       prev.includes(tag) ? prev.filter((selectedTag) => selectedTag !== tag) : [...prev, tag]
     );
+  };
+  const handlePageChange = (nextPage: number) => {
+    if (!galleryPage || nextPage < 1 || nextPage > galleryPage.meta.totalPages) return;
+    setExpanded(null);
+    setDeleteTarget(null);
+    setPage(nextPage);
   };
 
   return (
@@ -568,7 +621,41 @@ export default function GalleryManager({ userRole, userTier }: Props) {
         onDelete={setDeleteTarget}
         onExpand={setExpanded}
         photos={photos}
+        total={galleryPage?.meta.total ?? photos.length}
       />
+
+      {galleryPage && galleryPage.meta.totalPages > 1 && (
+        <nav aria-label="Member gallery pagination" className="flex flex-wrap items-center justify-center gap-2">
+          <button
+            type="button"
+            disabled={!galleryPage.meta.hasPreviousPage}
+            onClick={() => handlePageChange(galleryPage.meta.page - 1)}
+            className="min-h-11 border border-neutral-800 px-4 text-[10px] uppercase tracking-wider text-neutral-400 disabled:opacity-30"
+          >
+            Previous
+          </button>
+          {pageNumbers.map((pageNumber) => (
+            <button
+              type="button"
+              key={pageNumber}
+              aria-label={`Go to member gallery page ${pageNumber}`}
+              aria-current={pageNumber === galleryPage.meta.page ? "page" : undefined}
+              onClick={() => handlePageChange(pageNumber)}
+              className={`min-h-11 min-w-11 border px-3 text-xs ${pageNumber === galleryPage.meta.page ? "border-white text-white" : "border-neutral-800 text-neutral-500"}`}
+            >
+              {pageNumber}
+            </button>
+          ))}
+          <button
+            type="button"
+            disabled={!galleryPage.meta.hasNextPage}
+            onClick={() => handlePageChange(galleryPage.meta.page + 1)}
+            className="min-h-11 border border-neutral-800 px-4 text-[10px] uppercase tracking-wider text-neutral-400 disabled:opacity-30"
+          >
+            Next
+          </button>
+        </nav>
+      )}
 
       {expandedPhoto && (
         <ExpandedPhotoModal
