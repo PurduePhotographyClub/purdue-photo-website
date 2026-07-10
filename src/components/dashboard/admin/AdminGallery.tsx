@@ -12,8 +12,8 @@ import { createKeyedStateSetter, keyedStateReducer } from "@/lib/reducer-state";
 
 interface Photo {
   id: string;
-  r2Key: string;
-  thumbnailR2Key: string | null;
+  imageUrl: string;
+  thumbnailUrl: string;
   title: string | null;
   description: string | null;
   tags: string | null;
@@ -127,6 +127,7 @@ function AdminGalleryFilters({
         )}
       </div>
       <select
+        aria-label="Filter gallery by tag"
         value={filterTag || "all"}
         onChange={(e) => onTagChange(e.target.value === "all" ? null : e.target.value)}
         className={inputClass}
@@ -174,7 +175,7 @@ function AdminGalleryGrid({
             onClick={() => onPreview(photo)}
           >
             <img
-              src={`/api/gallery/image/${photo.thumbnailR2Key || photo.r2Key}`}
+              src={photo.thumbnailUrl}
               alt={photo.title || "Gallery photo"}
               loading="lazy"
               className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
@@ -261,7 +262,7 @@ function PhotoPreviewModal({ onClose, photo }: PhotoPreviewModalProps) {
           </button>
         </div>
         <img
-          src={`/api/gallery/image/${photo.r2Key}`}
+          src={photo.imageUrl}
           alt={photo.title || "Gallery photo"}
           className="w-full max-h-[75vh] object-contain rounded"
         />
@@ -295,7 +296,7 @@ function DeletePhotoModal({ deleting, onClose, onDelete, target }: DeletePhotoMo
         </div>
         <div className="flex gap-4 mb-4">
           <img
-            src={`/api/gallery/image/${target.thumbnailR2Key || target.r2Key}`}
+            src={target.thumbnailUrl}
             alt=""
             className="size-20 object-cover border border-neutral-800 flex-shrink-0"
           />
@@ -389,7 +390,7 @@ function EditPhotoModal({
 
         <div className="flex gap-4 mb-5">
           <img
-            src={`/api/gallery/image/${photo.thumbnailR2Key || photo.r2Key}`}
+            src={photo.thumbnailUrl}
             alt=""
             className="size-24 object-cover border border-neutral-800 flex-shrink-0"
           />

@@ -214,13 +214,13 @@ function AdminKeyFilters({
           className={`${inputClass} pl-9 w-full`}
         />
       </div>
-      <select value={statusFilter} onChange={(e) => onStatusFilterChange(e.target.value as "all" | KeyStatus)} className={inputClass}>
+      <select aria-label="Filter keys by status" value={statusFilter} onChange={(e) => onStatusFilterChange(e.target.value as "all" | KeyStatus)} className={inputClass}>
         <option value="all">All statuses</option>
         <option value="available">Available</option>
         <option value="used">Used</option>
         <option value="expired">Expired</option>
       </select>
-      <select value={roleFilter} onChange={(e) => onRoleFilterChange(e.target.value)} className={inputClass}>
+      <select aria-label="Filter keys by tier" value={roleFilter} onChange={(e) => onRoleFilterChange(e.target.value)} className={inputClass}>
         <option value="all">All tiers</option>
         <option value="member">Member</option>
         <option value="facilities">Facilities</option>
@@ -270,6 +270,7 @@ function AdminKeysTable({ copiedId, filtered, onCopy, onDelete, showKeys }: Admi
                     </code>
                     <button type="button"
                       onClick={() => onCopy(k)}
+                      aria-label="Copy activation key"
                       className="text-neutral-600 hover:text-neutral-400 transition-colors"
                       title="Copy key"
                     >
@@ -319,6 +320,7 @@ function AdminKeysTable({ copiedId, filtered, onCopy, onDelete, showKeys }: Admi
                 <td className="px-4 py-3">
                   <button type="button"
                     onClick={() => onDelete(k)}
+                    aria-label="Delete activation key"
                     className="text-neutral-600 hover:text-red-400 transition-colors"
                     title="Delete key"
                   >
@@ -352,7 +354,7 @@ function DeleteKeyModal({ deleteLoading, onClose, onDelete, showKeys, target }: 
       <div className="relative z-10 bg-neutral-950 border border-red-900/30 p-6 max-w-sm w-full">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm tracking-wider text-red-400">Delete Key</h3>
-          <button type="button" onClick={onClose} className="text-neutral-600 hover:text-neutral-400"><X size={16} /></button>
+          <button type="button" aria-label="Close delete key dialog" onClick={onClose} className="text-neutral-600 hover:text-neutral-400"><X size={16} /></button>
         </div>
         <p className="text-xs text-neutral-400 mb-1">
           Delete key <code className="text-neutral-300 font-mono">{showKeys ? target.key : maskKey(target.key)}</code>?

@@ -1305,7 +1305,7 @@ function AddFilmStockForm({
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <input aria-label="ISO" type="number" placeholder="ISO (optional)" value={newFilmIso} onChange={(e) => onFilmIsoChange(e.target.value)} className={inputClass} />
-        <select value={newFilmProcess} onChange={(e) => onFilmProcessChange(e.target.value)} className={selectClass}>
+        <select aria-label="Film process" value={newFilmProcess} onChange={(e) => onFilmProcessChange(e.target.value)} className={selectClass}>
           <option value="C-41">C-41</option>
           <option value="B&W">B&W</option>
           <option value="E-6 Slide">E-6 Slide</option>

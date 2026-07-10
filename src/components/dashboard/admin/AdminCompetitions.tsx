@@ -349,7 +349,7 @@ function ResultUploadModal({
             <h3 className="text-xs tracking-[0.2em] uppercase text-neutral-400">{editingResultId ? "Edit Result" : "Upload Result"}</h3>
             <p className="text-sm text-neutral-200 mt-2">{competition.title}</p>
           </div>
-          <button type="button" onClick={onClose} className="text-neutral-600 hover:text-white" disabled={uploading}>
+          <button type="button" aria-label="Close result dialog" onClick={onClose} className="text-neutral-600 hover:text-white" disabled={uploading}>
             <X size={16} />
           </button>
         </div>
@@ -485,6 +485,7 @@ function DeleteCompetitionModal({
             </p>
           </div>
           <button type="button"
+            aria-label="Close delete competition dialog"
             onClick={onClose}
             className="text-neutral-600 hover:text-white"
             disabled={deleting}

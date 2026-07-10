@@ -7,6 +7,7 @@ type SessionPayload = {
 };
 
 const DASHBOARD_VERIFY_PATH = "/dashboard/verify";
+const GALLERY_ROBOTS_TAG = "noindex, nofollow, noimageindex, noarchive";
 const SESSION_AWARE_PATHS = new Set([
   "/activate",
   "/login",
@@ -41,7 +42,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = context.url;
 
   if (pathname.startsWith("/_astro/") || pathname.startsWith("/favicon")) {
-    return withSecurityHeaders(await next());
+    return withSecurityHeaders(await next(), pathname);
   }
 
   const { user, session } = shouldResolveSession(pathname)
@@ -52,13 +53,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   if (user?.suspendedUntil && new Date(user.suspendedUntil) > new Date()) {
     if (pathname.startsWith("/dashboard") || pathname === "/activate" || pathname === "/login") {
-      return withSecurityHeaders(context.redirect("/403"));
+      return withSecurityHeaders(context.redirect("/403"), pathname);
     }
   }
 
   if (pathname.startsWith("/dashboard")) {
     if (!user || !session) {
-      return withSecurityHeaders(context.redirect("/login"));
+      return withSecurityHeaders(context.redirect("/login"), pathname);
     }
 
     if (user.membershipExpiresAt && new Date(user.membershipExpiresAt) < new Date()) {
@@ -67,26 +68,26 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
     const currentUser = context.locals.user;
     if (!currentUser) {
-      return withSecurityHeaders(context.redirect("/login"));
+      return withSecurityHeaders(context.redirect("/login"), pathname);
     }
 
     const isVerified = isAccountVerified(currentUser);
     if (!isVerified && pathname !== DASHBOARD_VERIFY_PATH) {
-      return withSecurityHeaders(context.redirect(DASHBOARD_VERIFY_PATH));
+      return withSecurityHeaders(context.redirect(DASHBOARD_VERIFY_PATH), pathname);
     }
 
     if (isVerified && pathname === DASHBOARD_VERIFY_PATH) {
-      return withSecurityHeaders(context.redirect("/dashboard"));
+      return withSecurityHeaders(context.redirect("/dashboard"), pathname);
     }
 
     if (pathname.startsWith("/dashboard/admin")) {
       const role = context.locals.user?.role;
       if (role !== "admin" && role !== "officer") {
-        return withSecurityHeaders(context.redirect("/403"));
+        return withSecurityHeaders(context.redirect("/403"), pathname);
       }
 
       if (pathname === "/dashboard/admin" || pathname === "/dashboard/admin/") {
-        return withSecurityHeaders(context.redirect("/dashboard/admin/members"));
+        return withSecurityHeaders(context.redirect("/dashboard/admin/members"), pathname);
       }
     }
 
@@ -97,23 +98,31 @@ export const onRequest = defineMiddleware(async (context, next) => {
     ];
 
     if (!isActivated && memberOnlyRoutes.some((route) => pathname.startsWith(route))) {
-      return withSecurityHeaders(context.redirect("/403"));
+      return withSecurityHeaders(context.redirect("/403"), pathname);
     }
   }
 
   if (pathname === "/activate" && user && session && !isAccountVerified(user)) {
-    return withSecurityHeaders(context.redirect(DASHBOARD_VERIFY_PATH));
+    return withSecurityHeaders(context.redirect(DASHBOARD_VERIFY_PATH), pathname);
   }
 
-  return withSecurityHeaders(await next());
+  return withSecurityHeaders(await next(), pathname);
 });
 
-function withSecurityHeaders(response: Response) {
+function withSecurityHeaders(response: Response, pathname: string) {
   const headers = new Headers(response.headers);
   for (const [name, value] of SECURITY_HEADERS) {
     if (!headers.has(name)) {
       headers.set(name, value);
     }
+  }
+
+  if (pathname.startsWith("/dashboard")) {
+    headers.set("Cache-Control", "private, no-store");
+  }
+
+  if (pathname === "/gallery" || pathname === "/gallery/") {
+    headers.set("X-Robots-Tag", GALLERY_ROBOTS_TAG);
   }
 
   return new Response(response.body, {

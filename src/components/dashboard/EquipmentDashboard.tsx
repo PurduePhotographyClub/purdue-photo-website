@@ -322,7 +322,7 @@ function EquipmentSearchBar({ category, inputClass, onCategoryChange, onChange, 
           <button type="button" onClick={() => onChange("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-neutral-400 text-xs">✕</button>
         )}
       </div>
-      <select value={category} onChange={(e) => onCategoryChange(e.target.value)} className={`${selectClass} sm:w-44`}>
+      <select aria-label="Equipment category" value={category} onChange={(e) => onCategoryChange(e.target.value)} className={`${selectClass} sm:w-44`}>
         {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
       </select>
     </div>

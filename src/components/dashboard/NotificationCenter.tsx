@@ -181,7 +181,7 @@ export default function NotificationCenter() {
       type: "set",
       field: "notifications",
       value: (current) => current.map((notification) =>
-        ids.includes(notification.id)
+        targetIds.has(notification.id)
           ? { ...notification, readAt }
           : notification,
       ),
@@ -250,11 +250,12 @@ export default function NotificationCenter() {
     if (!all && ids.length === 0) return;
 
     dispatchState({ type: "patch", value: { loadState: "updating", message: "" } });
+    const targetIds = new Set(ids);
     if (!all) {
       dispatchState({
         type: "set",
         field: "notifications",
-        value: (current) => current.filter((notification) => !ids.includes(notification.id)),
+        value: (current) => current.filter((notification) => !targetIds.has(notification.id)),
       });
     }
 
