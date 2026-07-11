@@ -456,6 +456,9 @@ function ConnectionsPanel({
       <p className="text-xs leading-5 text-neutral-500 mb-4">
         Link Discord to redeem server membership, enable Discord login for this account, and keep website tier roles synced in the server.
       </p>
+      <p className="text-[10px] leading-5 text-neutral-600 mb-4">
+        Your name and last name will be used as your Discord nickname when you connect your account.
+      </p>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border border-neutral-800 bg-neutral-900/40 px-4 py-3">
         <div className="min-w-0">
           <p className="text-sm text-neutral-300">Discord</p>
