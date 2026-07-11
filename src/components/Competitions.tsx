@@ -11,7 +11,8 @@ interface Winner {
   title: string;
   photographer: string;
   instagram: string | null;
-  img: string;
+  fullImageUrl: string;
+  previewImageUrl: string;
   medium: "Film" | "Digital";
 }
 
@@ -82,14 +83,15 @@ async function fetchCompetitionPageData(): Promise<CompetitionPageData> {
         .filter((r) => r.place && r.place <= 3)
         .sort((a, b) => a.place - b.place)
         .map((r) => {
-          const r2Key = r.r2Key || r.r2_key || "";
+          const entryId = r.entryId || r.entry_id || "";
           const instagram = r.photographerInstagram || r.photographer_instagram || null;
           return {
             place: r.place as 1 | 2 | 3,
             title: r.entryTitle || r.entry_title || "Untitled",
             photographer: r.photographerName || r.photographer_name || "PPC Member",
             instagram,
-            img: r2Key ? `/api/competitions/image/${r2Key}` : "",
+            fullImageUrl: entryId ? `/api/competitions/image/photo/${entryId}` : "",
+            previewImageUrl: entryId ? `/api/competitions/image/photo/${entryId}?variant=thumbnail` : "",
             medium: (r.medium === "film" ? "Film" : "Digital") as "Film" | "Digital",
           };
         });
@@ -260,7 +262,7 @@ export default function Competitions() {
                                 className="block w-full cursor-pointer appearance-none bg-transparent p-0 text-left focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
                                 onClick={() => setLightbox(winner)}>
                                 <div className={`relative overflow-hidden ${winner.place === 1 ? "aspect-[16/10] md:aspect-[16/9]" : "aspect-[4/3]"}`}>
-                                <ImageWithFallback src={winner.img} alt={winner.title}
+                                <ImageWithFallback src={winner.previewImageUrl} alt={winner.title}
                                   className={`w-full h-full object-contain ${winner.medium === "Film" ? "grayscale" : ""}`} />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                                 <div className="absolute top-4 left-4">
@@ -337,7 +339,7 @@ export default function Competitions() {
           <button type="button" className="absolute top-6 right-6 z-10 min-h-11 px-2 text-xs uppercase tracking-[0.2em] text-neutral-400 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400" onClick={() => setLightbox(null)}>Close</button>
           <div className="relative z-10 max-w-4xl w-full flex flex-col items-center">
             <img
-              src={lightbox.img} alt={lightbox.title} className="max-w-full max-h-[70vh] object-contain mb-6" />
+              src={lightbox.fullImageUrl} alt={lightbox.title} className="max-w-full max-h-[70vh] object-contain mb-6" />
             <div className="text-center">
               <h3 className="text-xl tracking-wider mb-2 text-white" style={{ fontFamily: "'Playfair Display', serif" }}>"{lightbox.title}"</h3>
               <p className="text-sm text-neutral-300 tracking-wider mb-1">{lightbox.photographer}</p>

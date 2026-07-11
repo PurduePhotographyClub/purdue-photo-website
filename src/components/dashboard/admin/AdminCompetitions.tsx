@@ -1,6 +1,10 @@
 import { useReducer, useRef } from "react";
 import useSWR from "swr";
 import { Edit3, Loader2, Plus, Search, Trash2, Trophy, Upload, X } from "lucide-react";
+import {
+  getGalleryUploadSourceValidationError,
+  prepareGalleryUploadImages,
+} from "@/lib/gallery-images";
 import { fetchApi, readErrorMessage, readJson } from "@/lib/http";
 import { createKeyedStateSetter, keyedStateReducer } from "@/lib/reducer-state";
 
@@ -22,7 +26,6 @@ interface CompetitionResult {
   place: 1 | 2 | 3;
   entryTitle: string | null;
   entryDescription: string | null;
-  r2Key: string | null;
   medium: "film" | "digital" | null;
   userId: string | null;
   pairedUserId: string | null;
@@ -68,6 +71,86 @@ const emptyResultForm = {
 };
 
 type ResultFormState = typeof emptyResultForm;
+
+type PreparedResultUploadImages = Awaited<ReturnType<typeof prepareGalleryUploadImages>>;
+
+async function prepareCompetitionResultImages(
+  file: File,
+): Promise<{ error: string } | { images: PreparedResultUploadImages }> {
+  const validationError = await getGalleryUploadSourceValidationError(file);
+  if (validationError) return { error: validationError };
+
+  try {
+    return { images: await prepareGalleryUploadImages(file) };
+  } catch {
+    return { error: "Unable to optimize this JPEG. Please try another photo." };
+  }
+}
+
+function appendCompetitionResultImages(
+  form: FormData,
+  images: PreparedResultUploadImages | null,
+) {
+  if (!images) return;
+  form.append("file", images.file, images.file.name);
+  form.append("thumbnail", images.thumbnail, images.thumbnail.name);
+}
+
+interface SubmitCompetitionResultOptions {
+  competitionId: string;
+  editingResultId: string | null;
+  file: File | undefined;
+  isCurrentFile: () => boolean;
+  members: Member[];
+  resultForm: ResultFormState;
+}
+
+type CompetitionResultSubmission =
+  | { error: string }
+  | { success: true }
+  | { cancelled: true };
+
+async function submitCompetitionResult(
+  options: SubmitCompetitionResultOptions,
+): Promise<CompetitionResultSubmission> {
+  const { competitionId, editingResultId, file, isCurrentFile, members, resultForm } = options;
+  if (!editingResultId && !file) {
+    return { error: "Choose an image before uploading a result." };
+  }
+  if (resultForm.userId !== "manual" && !members.some((member) => member.id === resultForm.userId)) {
+    return { error: "Search for and select a member, or check manual photographer name." };
+  }
+
+  let preparedImages: PreparedResultUploadImages | null = null;
+  if (file) {
+    const preparedResult = await prepareCompetitionResultImages(file);
+    if (!isCurrentFile()) return { cancelled: true };
+    if ("error" in preparedResult) return preparedResult;
+    preparedImages = preparedResult.images;
+  }
+
+  const form = new FormData();
+  if (editingResultId) form.append("resultId", editingResultId);
+  form.append("place", resultForm.place);
+  form.append("title", resultForm.title);
+  form.append("photographerName", resultForm.photographerName);
+  form.append("photographerInstagram", resultForm.photographerInstagram);
+  form.append("description", resultForm.description);
+  form.append("medium", resultForm.medium);
+  form.append("userId", resultForm.userId);
+  appendCompetitionResultImages(form, preparedImages);
+
+  try {
+    const res = await fetchApi(`/api/competitions/${competitionId}/results`, {
+      method: editingResultId ? "PATCH" : "POST",
+      body: form,
+    });
+    if (res.ok) return { success: true };
+    return { error: await readErrorMessage(res, editingResultId ? "Failed to edit result." : "Failed to upload result.") };
+  } catch {
+    return { error: editingResultId ? "Unable to edit result. Please try again." : "Unable to upload result. Please try again." };
+  }
+}
 
 interface AdminCompetitionsState {
   creating: boolean;
@@ -272,9 +355,9 @@ function CompetitionList({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 {results.map((result) => (
                   <div key={result.id} className="border border-neutral-800 bg-black/20 overflow-hidden">
-                    {result.r2Key && (
+                    {result.entryId && (
                       <div className="aspect-[4/3] bg-neutral-900 overflow-hidden">
-                        <img src={`/api/competitions/image/${result.r2Key}`} alt={result.entryTitle || "Competition result"} className="size-full object-cover" />
+                        <img src={`/api/competitions/image/photo/${result.entryId}?variant=thumbnail`} alt={result.entryTitle || "Competition result"} className="size-full object-cover" />
                       </div>
                     )}
                     <div className="p-3">
@@ -364,7 +447,7 @@ function ResultUploadModal({
             <option value="digital">Digital</option>
             <option value="film">Film</option>
           </select>
-          <input aria-label="Result photo file" ref={resultFileRef} type="file" accept="image/jpeg,image/png,image/webp" required={!editingResultId} className="text-[10px] text-neutral-500 file:mr-3 file:px-3 file:py-2 file:border file:border-neutral-800 file:bg-transparent file:text-neutral-400 file:text-[10px] file:tracking-wider file:uppercase file:cursor-pointer" />
+          <input aria-label="Result photo file" ref={resultFileRef} type="file" accept="image/jpeg" required={!editingResultId} className="text-[10px] text-neutral-500 file:mr-3 file:px-3 file:py-2 file:border file:border-neutral-800 file:bg-transparent file:text-neutral-400 file:text-[10px] file:tracking-wider file:uppercase file:cursor-pointer" />
         </div>
 
         <div className="space-y-2">
@@ -629,45 +712,28 @@ export default function AdminCompetitions() {
     if (!uploadingFor) return;
 
     const file = resultFileRef.current?.files?.[0];
-    if (!editingResultId && !file) {
-      setError("Choose an image before uploading a result.");
-      return;
-    }
-    if (resultForm.userId !== "manual" && !members.some((member) => member.id === resultForm.userId)) {
-      setError("Search for and select a member, or check manual photographer name.");
-      return;
-    }
-
     setError("");
     setUploading(true);
-    const form = new FormData();
-    if (editingResultId) form.append("resultId", editingResultId);
-    form.append("place", resultForm.place);
-    form.append("title", resultForm.title);
-    form.append("photographerName", resultForm.photographerName);
-    form.append("photographerInstagram", resultForm.photographerInstagram);
-    form.append("description", resultForm.description);
-    form.append("medium", resultForm.medium);
-    form.append("userId", resultForm.userId);
-    if (file) form.append("file", file);
 
     try {
-      const res = await fetchApi(`/api/competitions/${uploadingFor}/results`, {
-        method: editingResultId ? "PATCH" : "POST",
-        body: form,
+      const submission = await submitCompetitionResult({
+        competitionId: uploadingFor,
+        editingResultId,
+        file,
+        isCurrentFile: () => resultFileRef.current?.files?.[0] === file,
+        members,
+        resultForm,
       });
-      if (res.ok) {
+      if ("success" in submission) {
         setUploadingFor(null);
         setEditingResultId(null);
         setMemberQuery("");
         setResultForm(emptyResultForm);
         if (resultFileRef.current) resultFileRef.current.value = "";
         await refreshData();
-      } else {
-        setError(await readErrorMessage(res, editingResultId ? "Failed to edit result." : "Failed to upload result."));
+      } else if ("error" in submission) {
+        setError(submission.error);
       }
-    } catch {
-      setError(editingResultId ? "Unable to edit result. Please try again." : "Unable to upload result. Please try again.");
     } finally {
       setUploading(false);
     }

@@ -35,8 +35,8 @@ interface LatestWinner {
   title: string;
   theme: string | null;
   description: string | null;
+  entryId: string;
   entryTitle: string | null;
-  r2Key: string;
   winnerName: string | null;
 }
 
@@ -80,7 +80,7 @@ async function fetchLatestCompetition(): Promise<CompItem | null> {
     theme: winner.theme || "Photography",
     winner: winner.winnerName || "PPC Member",
     winnerTitle: winner.entryTitle || winner.description || "Untitled",
-    img: `/api/competitions/image/${winner.r2Key}`,
+    img: `/api/competitions/image/photo/${winner.entryId}?variant=thumbnail`,
   };
 }
 
