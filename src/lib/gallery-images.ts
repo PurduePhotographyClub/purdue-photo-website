@@ -1,12 +1,19 @@
+import { readJpegDimensions } from "./jpeg-dimensions.ts";
+
 const GALLERY_IMAGE_PATH = "/api/gallery/image/photo/";
+export const GALLERY_FULL_IMAGE_MAX_DIMENSION = 2200;
 const GALLERY_PREVIEW_IMAGE_MAX_DIMENSION = 900;
 const GALLERY_FULL_IMAGE_MIN_DIMENSION = 1200;
 const GALLERY_PREVIEW_IMAGE_MIN_DIMENSION = 480;
-const GALLERY_FULL_IMAGE_QUALITY = 0.82;
-const GALLERY_PREVIEW_IMAGE_QUALITY = 0.7;
-const GALLERY_MIN_IMAGE_QUALITY = 0.52;
-export const GALLERY_FULL_IMAGE_MAX_BYTES = 3_000_000;
+const GALLERY_FULL_IMAGE_QUALITY = 0.78;
+const GALLERY_PREVIEW_IMAGE_QUALITY = 0.68;
+export const GALLERY_FULL_IMAGE_MAX_BYTES = 1_500_000;
+export const GALLERY_FULL_IMAGE_TARGET_BYTES = 700 * 1024;
 export const GALLERY_PREVIEW_IMAGE_MAX_BYTES = 450 * 1024;
+export const GALLERY_PREVIEW_IMAGE_TARGET_BYTES = 160 * 1024;
+export const GALLERY_SOURCE_IMAGE_MAX_BYTES = 50_000_000;
+export const GALLERY_SOURCE_IMAGE_MAX_DIMENSION = 16_384;
+export const GALLERY_SOURCE_IMAGE_MAX_PIXELS = 70_000_000;
 
 type GalleryMedium = "Digital" | "Film";
 
@@ -193,20 +200,39 @@ export function getGalleryUploadValidationError(
   if (file.size <= 0) {
     return "Choose a non-empty JPEG image.";
   }
+  if (file.size > GALLERY_SOURCE_IMAGE_MAX_BYTES) {
+    return "Choose a JPEG that is 50 MB or smaller before optimization.";
+  }
   return null;
 }
 
-export function getGalleryUploadInitialQuality(sourceBytes: number) {
-  if (sourceBytes <= GALLERY_FULL_IMAGE_MAX_BYTES) {
-    return GALLERY_FULL_IMAGE_QUALITY;
+export async function getGalleryUploadSourceValidationError(
+  file: File,
+): Promise<string | null> {
+  const validationError = getGalleryUploadValidationError(file);
+  if (validationError) return validationError;
+
+  let dimensions: GalleryImageDimensions | null = null;
+  try {
+    dimensions = readJpegDimensions(await file.arrayBuffer());
+  } catch {
+    // The same user-facing validation message covers unreadable local files.
   }
 
-  const estimatedQuality = GALLERY_FULL_IMAGE_QUALITY *
-    Math.sqrt(GALLERY_FULL_IMAGE_MAX_BYTES / sourceBytes);
-  return Math.max(
-    GALLERY_MIN_IMAGE_QUALITY,
-    Number(estimatedQuality.toFixed(2)),
-  );
+  if (!dimensions) {
+    return "Choose a valid JPG or JPEG image.";
+  }
+
+  const longestSide = Math.max(dimensions.width, dimensions.height);
+  const pixels = dimensions.width * dimensions.height;
+  if (
+    longestSide > GALLERY_SOURCE_IMAGE_MAX_DIMENSION ||
+    pixels > GALLERY_SOURCE_IMAGE_MAX_PIXELS
+  ) {
+    return "Choose a JPEG no larger than 70 megapixels or 16,384 px per side.";
+  }
+
+  return null;
 }
 
 export function getGalleryUploadTargetSize(
@@ -216,15 +242,15 @@ export function getGalleryUploadTargetSize(
   const longestSide = Math.max(dimensions.width, dimensions.height);
   if (maxDimension === undefined || longestSide <= maxDimension) {
     return {
-      height: Math.round(dimensions.height),
-      width: Math.round(dimensions.width),
+      height: Math.max(1, Math.round(dimensions.height)),
+      width: Math.max(1, Math.round(dimensions.width)),
     };
   }
 
   const ratio = maxDimension / longestSide;
   return {
-    height: Math.round(dimensions.height * ratio),
-    width: Math.round(dimensions.width * ratio),
+    height: Math.max(1, Math.round(dimensions.height * ratio)),
+    width: Math.max(1, Math.round(dimensions.width * ratio)),
   };
 }
 
@@ -324,6 +350,7 @@ function reduceGalleryImageSize(
 async function renderJpegWithinLimit(
   source: LoadedGalleryImage,
   size: GalleryImageDimensions,
+  targetBytes: number,
   maxBytes: number,
   initialQuality: number,
   minDimension: number,
@@ -331,41 +358,55 @@ async function renderJpegWithinLimit(
   lastModified: number,
 ) {
   let targetSize = size;
+  let fallback: {
+    file: File;
+    height: number;
+    width: number;
+  } | null = null;
 
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const file = await renderJpegFile(source, targetSize, initialQuality, name, lastModified);
-    if (file.size <= maxBytes) {
-      return {
-        file,
-        height: targetSize.height,
-        width: targetSize.width,
-      };
+    const candidate = {
+      file,
+      height: targetSize.height,
+      width: targetSize.width,
+    };
+
+    if (file.size <= targetBytes) {
+      return candidate;
+    }
+    if (file.size <= maxBytes && (!fallback || file.size < fallback.file.size)) {
+      fallback = candidate;
     }
 
     const longestSide = Math.max(targetSize.width, targetSize.height);
     if (longestSide <= minDimension) break;
 
-    targetSize = reduceGalleryImageSize(targetSize, minDimension, file.size, maxBytes);
+    const nextSize = reduceGalleryImageSize(targetSize, minDimension, file.size, targetBytes);
+    if (nextSize.width === targetSize.width && nextSize.height === targetSize.height) break;
+    targetSize = nextSize;
   }
 
+  if (fallback) return fallback;
   throw new Error("Unable to keep the selected image under the gallery storage limit.");
 }
 
 export async function prepareGalleryUploadImages(file: File): Promise<PreparedGalleryUploadImages> {
-  const validationError = getGalleryUploadValidationError(file);
+  const validationError = await getGalleryUploadSourceValidationError(file);
   if (validationError) {
     throw new Error(validationError);
   }
 
   const source = await loadGalleryImage(file);
   try {
-    const fullSize = getGalleryUploadTargetSize(source);
+    const fullSize = getGalleryUploadTargetSize(source, GALLERY_FULL_IMAGE_MAX_DIMENSION);
     const previewSize = getGalleryUploadTargetSize(source, GALLERY_PREVIEW_IMAGE_MAX_DIMENSION);
     const optimizedFile = await renderJpegWithinLimit(
       source,
       fullSize,
+      GALLERY_FULL_IMAGE_TARGET_BYTES,
       GALLERY_FULL_IMAGE_MAX_BYTES,
-      getGalleryUploadInitialQuality(file.size),
+      GALLERY_FULL_IMAGE_QUALITY,
       GALLERY_FULL_IMAGE_MIN_DIMENSION,
       withJpegExtension(file.name),
       file.lastModified,
@@ -374,6 +415,7 @@ export async function prepareGalleryUploadImages(file: File): Promise<PreparedGa
     const thumbnail = await renderJpegWithinLimit(
       source,
       previewSize,
+      GALLERY_PREVIEW_IMAGE_TARGET_BYTES,
       GALLERY_PREVIEW_IMAGE_MAX_BYTES,
       GALLERY_PREVIEW_IMAGE_QUALITY,
       GALLERY_PREVIEW_IMAGE_MIN_DIMENSION,
