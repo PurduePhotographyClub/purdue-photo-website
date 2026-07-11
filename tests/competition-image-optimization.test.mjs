@@ -2,15 +2,16 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const source = await readFile(
-  new URL("../src/components/dashboard/admin/AdminCompetitions.tsx", import.meta.url),
-  "utf8",
-);
+const source = (await Promise.all([
+  "../src/components/dashboard/admin/AdminCompetitions.tsx",
+  "../src/components/dashboard/admin/competitions/ResultUploadModal.tsx",
+  "../src/components/dashboard/admin/competitions/useAdminCompetitions.ts",
+].map((path) => readFile(new URL(path, import.meta.url), "utf8")))).join("\n");
 
 test("competition result uploads share gallery JPEG validation and optimization", () => {
   assert.match(source, /getGalleryUploadSourceValidationError/);
   assert.match(source, /prepareGalleryUploadImages/);
-  assert.match(source, /accept="image\/jpeg"/);
+  assert.match(source, /accept="image\/jpeg(?:,\.jpg,\.jpeg)?"/);
 
   const sourceValidation = source.indexOf("getGalleryUploadSourceValidationError(file)");
   const optimization = source.indexOf("prepareGalleryUploadImages(file)");
