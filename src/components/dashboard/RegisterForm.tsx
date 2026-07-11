@@ -281,6 +281,10 @@ export default function RegisterForm({ turnstileSiteKey }: RegisterFormProps) {
         Discord sign-up is disabled. You can verify by linking Discord after creating an account.
       </p>
 
+      <p className="mt-3 text-center text-[10px] leading-5 text-neutral-600">
+        Your name and last name will be used as your Discord nickname when you connect your account.
+      </p>
+
       <p className="text-center mt-6 text-xs text-neutral-500">
         Already have an account?{" "}
         <a href="/login" className="text-neutral-300 hover:text-white transition-colors underline underline-offset-4 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400">

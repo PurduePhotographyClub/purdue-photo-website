@@ -58,6 +58,9 @@ export default function AccountVerificationGate({ name }: AccountVerificationGat
         <p className="mb-6 text-xs leading-6 text-neutral-500">
           Hi {firstName}. The dashboard needs Discord verification before you can continue. Join the club server, then connect your Discord account.
         </p>
+        <p className="mb-6 border border-neutral-800 bg-white/[0.02] px-4 py-3 text-[10px] leading-5 text-neutral-500">
+          Your name and last name will be used as your Discord nickname when you connect your account.
+        </p>
 
         <div className="space-y-3">
           <button
