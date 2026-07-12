@@ -19,7 +19,7 @@ export function revalidateNotificationCaches() {
 export async function patchNotificationReadState({
   all = false,
   ids = [],
-  keepalive = false,
+  keepalive = true,
   read = true,
 }: PatchNotificationReadStateOptions) {
   if (!all && ids.length === 0) return;

@@ -6,8 +6,12 @@ import { fetchJson, PUBLIC_API_SWR_OPTIONS } from "@/lib/http";
 import {
   patchNotificationReadState,
   RECENT_NOTIFICATIONS_URL,
-  revalidateNotificationCaches,
 } from "@/lib/notification-cache";
+import {
+  getNotificationCategoryLabel,
+  type NotificationItem,
+  type RecentNotificationsResponse,
+} from "@/lib/notification-model";
 
 interface DashboardUpdate {
   id: string;
@@ -22,39 +26,10 @@ interface DashboardUpdateResponse {
   updates?: DashboardUpdate[];
 }
 
-type NotificationCategory = "competitions" | "dashboard" | "darkroom" | "equipment" | "film" | "studio";
-
-interface NotificationItem {
-  body: string;
-  category: NotificationCategory;
-  createdAt: string;
-  href: string;
-  id: string;
-  priority: "high" | "normal";
-  readAt: string | null;
-  title: string;
-  type: string;
-}
-
-interface NotificationsResponse {
-  notifications: NotificationItem[];
-  meta: {
-    unreadCount: number;
-  };
-}
-
-const categoryLabels: Record<NotificationCategory, string> = {
-  competitions: "Competition",
-  dashboard: "Dashboard",
-  darkroom: "Darkroom",
-  equipment: "Equipment",
-  film: "Film",
-  studio: "Studio",
-};
-
 export default function DashboardHomePanels() {
   const [selectedUpdate, setSelectedUpdate] = useState<DashboardUpdate | null>(null);
   const [selectedNotification, setSelectedNotification] = useState<NotificationItem | null>(null);
+  const pendingReadIdsRef = useRef(new Set<string>());
   const {
     data: updateData,
     error: updateError,
@@ -65,9 +40,12 @@ export default function DashboardHomePanels() {
     error: notificationsError,
     isLoading: notificationsLoading,
     mutate: mutateNotifications,
-  } = useSWR<NotificationsResponse>(RECENT_NOTIFICATIONS_URL, fetchJson, {
+  } = useSWR<RecentNotificationsResponse>(RECENT_NOTIFICATIONS_URL, fetchJson, {
     ...PUBLIC_API_SWR_OPTIONS,
+    errorRetryCount: 3,
     refreshInterval: 60_000,
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
   });
 
   const updates = updateData?.updates ?? [];
@@ -75,7 +53,9 @@ export default function DashboardHomePanels() {
   const unreadCount = notificationsData?.meta.unreadCount ?? 0;
 
   const markRecentNotificationRead = async (notification: NotificationItem) => {
-    if (notification.readAt) return;
+    if (notification.readAt || pendingReadIdsRef.current.has(notification.id)) return;
+
+    pendingReadIdsRef.current.add(notification.id);
 
     const readAt = new Date().toISOString();
     void mutateNotifications((current) => current
@@ -94,12 +74,12 @@ export default function DashboardHomePanels() {
     try {
       await patchNotificationReadState({
         ids: [notification.id],
-        keepalive: true,
         read: true,
       });
-      await revalidateNotificationCaches();
     } catch {
       await mutateNotifications();
+    } finally {
+      pendingReadIdsRef.current.delete(notification.id);
     }
   };
 
@@ -209,8 +189,8 @@ export default function DashboardHomePanels() {
             </div>
           )}
 
-          {!notificationsLoading && notificationsError && (
-            <p className="border-l border-red-800/70 pl-4 text-xs leading-6 text-red-300">
+          {!notificationsLoading && notificationsError && notifications.length === 0 && (
+            <p role="alert" className="border-l border-red-800/70 pl-4 text-xs leading-6 text-red-300">
               Notifications are unavailable.
             </p>
           )}
@@ -222,7 +202,7 @@ export default function DashboardHomePanels() {
             </div>
           )}
 
-          {!notificationsLoading && !notificationsError && notifications.length > 0 && (
+          {!notificationsLoading && notifications.length > 0 && (
             <div
               className="max-h-80 overflow-y-auto overscroll-contain pr-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-neutral-700"
               aria-label="Recent notifications"
@@ -249,7 +229,7 @@ export default function DashboardHomePanels() {
                             {notification.body}
                           </p>
                           <p className="mt-2 text-[9px] uppercase tracking-[0.16em] text-neutral-700">
-                            {categoryLabels[notification.category]} / {formatDate(notification.createdAt)}
+                            {getNotificationCategoryLabel(notification.category)} / {formatDate(notification.createdAt)}
                           </p>
                         </div>
                       </div>
@@ -258,6 +238,12 @@ export default function DashboardHomePanels() {
                 ))}
               </ul>
             </div>
+          )}
+
+          {!notificationsLoading && notificationsError && notifications.length > 0 && (
+            <p role="status" className="mt-3 text-[10px] text-amber-300">
+              Showing saved notifications while updates reconnect.
+            </p>
           )}
 
           <a
@@ -387,7 +373,7 @@ function NotificationDialog({ notification, onClose }: NotificationDialogProps) 
       <div className="flex items-start justify-between gap-4 border-b border-neutral-800/80 px-5 py-4">
         <div>
           <p className="text-[9px] uppercase tracking-[0.24em] text-neutral-500">
-            {categoryLabels[notification.category]} notification
+            {getNotificationCategoryLabel(notification.category)} notification
           </p>
           <h2
             id={titleId}
