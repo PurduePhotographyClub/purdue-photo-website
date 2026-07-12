@@ -5,27 +5,12 @@ import { fetchJson, PUBLIC_API_SWR_OPTIONS } from "@/lib/http";
 import {
   patchNotificationReadState,
   RECENT_NOTIFICATIONS_URL,
-  revalidateNotificationCaches,
 } from "@/lib/notification-cache";
-
-interface NotificationItem {
-  body: string;
-  category: "competitions" | "dashboard" | "darkroom" | "film" | "studio";
-  createdAt: string;
-  href: string;
-  id: string;
-  priority: "high" | "normal";
-  readAt: string | null;
-  title: string;
-  type: string;
-}
-
-interface NotificationsResponse {
-  notifications: NotificationItem[];
-  meta: {
-    unreadCount: number;
-  };
-}
+import {
+  getNotificationCategoryLabel,
+  type NotificationItem,
+  type RecentNotificationsResponse,
+} from "@/lib/notification-model";
 
 type DashboardNotificationBellPlacement = "floating" | "inline";
 
@@ -33,27 +18,23 @@ interface DashboardNotificationBellProps {
   placement?: DashboardNotificationBellPlacement;
 }
 
-const categoryLabels: Record<NotificationItem["category"], string> = {
-  competitions: "Competition",
-  dashboard: "Dashboard",
-  darkroom: "Darkroom",
-  film: "Film",
-  studio: "Studio",
-};
-
 export default function DashboardNotificationBell({
   placement = "floating",
 }: DashboardNotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const pendingReadIdsRef = useRef(new Set<string>());
   const isInline = placement === "inline";
   const popoverId = `dashboard-notifications-popover-${placement}`;
-  const { data, error, isLoading, mutate } = useSWR<NotificationsResponse>(
+  const { data, error, isLoading, mutate } = useSWR<RecentNotificationsResponse>(
     RECENT_NOTIFICATIONS_URL,
     fetchJson,
     {
       ...PUBLIC_API_SWR_OPTIONS,
+      errorRetryCount: 3,
       refreshInterval: 60_000,
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
     },
   );
   const notifications = data?.notifications ?? [];
@@ -69,7 +50,9 @@ export default function DashboardNotificationBell({
     : "absolute right-0 top-12 w-[min(calc(100vw-2rem),22rem)] border border-neutral-700 bg-neutral-950 shadow-2xl shadow-black/70";
 
   const markRecentNotificationRead = async (notification: NotificationItem) => {
-    if (notification.readAt) return;
+    if (notification.readAt || pendingReadIdsRef.current.has(notification.id)) return;
+
+    pendingReadIdsRef.current.add(notification.id);
 
     const readAt = new Date().toISOString();
     void mutate((current) => current
@@ -88,12 +71,12 @@ export default function DashboardNotificationBell({
     try {
       await patchNotificationReadState({
         ids: [notification.id],
-        keepalive: true,
         read: true,
       });
-      await revalidateNotificationCaches();
     } catch {
       await mutate();
+    } finally {
+      pendingReadIdsRef.current.delete(notification.id);
     }
   };
 
@@ -125,7 +108,11 @@ export default function DashboardNotificationBell({
         type="button"
         onClick={() => setIsOpen((current) => !current)}
         className={buttonClassName}
-        aria-label="Open notifications"
+        aria-label={isOpen
+          ? "Close notifications"
+          : unreadCount > 0
+            ? `Open notifications, ${unreadCount} unread`
+            : "Open notifications"}
         aria-expanded={isOpen}
         aria-controls={popoverId}
       >
@@ -159,15 +146,15 @@ export default function DashboardNotificationBell({
               <p className="px-4 py-4 text-[10px] leading-relaxed text-neutral-600">Loading recent updates</p>
             )}
 
-            {!isLoading && error && (
-              <p className="px-4 py-4 text-[10px] leading-relaxed text-red-400">Notifications unavailable</p>
+            {!isLoading && error && notifications.length === 0 && (
+              <p role="alert" className="px-4 py-4 text-[10px] leading-relaxed text-red-400">Notifications unavailable</p>
             )}
 
             {!isLoading && !error && notifications.length === 0 && (
               <p className="px-4 py-4 text-[10px] leading-relaxed text-neutral-600">No notifications yet</p>
             )}
 
-            {!isLoading && !error && notifications.length > 0 && (
+            {!isLoading && notifications.length > 0 && (
               <ul className="divide-y divide-neutral-800/80">
                 {notifications.map((notification) => (
                   <li key={notification.id}>
@@ -189,7 +176,7 @@ export default function DashboardNotificationBell({
                             {notification.title}
                           </p>
                           <p className="mt-2 truncate text-[9px] uppercase tracking-[0.18em] text-neutral-600">
-                            {categoryLabels[notification.category]}
+                            {getNotificationCategoryLabel(notification.category)}
                           </p>
                         </div>
                       </div>
@@ -197,6 +184,12 @@ export default function DashboardNotificationBell({
                   </li>
                 ))}
               </ul>
+            )}
+
+            {!isLoading && error && notifications.length > 0 && (
+              <p role="status" className="border-t border-neutral-800 px-4 py-2 text-[9px] text-amber-300">
+                Showing saved notifications while updates reconnect.
+              </p>
             )}
           </div>
 
