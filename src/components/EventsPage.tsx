@@ -171,7 +171,6 @@ function TimelineEvent({ event, featured, index, now }: { event: WebsiteEvent; f
         <div className="flex flex-wrap justify-end gap-2">
           <span className="border border-neutral-800 px-2 py-1 text-[9px] uppercase tracking-[0.2em] text-neutral-500">No. {String(index + 1).padStart(2, "0")}</span>
           {isLive && <span className="bg-amber-300 px-2 py-1 text-[9px] uppercase tracking-[0.2em] text-black">Now</span>}
-          {event.discordSynced && <span className="border border-neutral-700 px-2 py-1 text-[9px] uppercase tracking-[0.2em] text-neutral-400">Discord</span>}
         </div>
       </div>
       <div className="mt-auto">

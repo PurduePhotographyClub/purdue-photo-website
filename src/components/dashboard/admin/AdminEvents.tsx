@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useReducer, useRef } from "react";
 import useSWR from "swr";
-import { AlertTriangle, CalendarDays, Clock, MapPin, Pencil, Plus, Radio, RefreshCw, Save, Trash2, X } from "lucide-react";
+import { CalendarDays, Clock, MapPin, Pencil, RefreshCw, Save, Trash2, X } from "lucide-react";
+import ModalDialog from "../../ModalDialog";
 import { clubDateTimeInputToUtcIso, toClubDateTimeLocalValue } from "@/lib/club-time";
 import {
   formatEventDateTime,
   getEventDiscordActionLabel,
-  getEventDiscordState,
   getEventStatus,
   getEventStart,
   normalizeEvent,
@@ -44,7 +44,6 @@ const emptyForm: EventFormState = {
 };
 
 interface EventsUiState {
-  creating: boolean;
   deleteConfirmId: string | null;
   deletingId: string | null;
   editState: EventFormState;
@@ -63,13 +62,12 @@ type EventsUiAction =
   | { type: "patch"; value: Partial<EventsUiState> };
 
 const initialEventsUiState: EventsUiState = {
-  creating: false,
   deleteConfirmId: null,
   deletingId: null,
   editState: emptyForm,
   editingId: null,
   error: "",
-  formState: emptyForm,
+  formState: createInitialForm(),
   notice: "",
   submitting: false,
   syncingId: null,
@@ -80,7 +78,7 @@ function eventsUiReducer(state: EventsUiState, action: EventsUiAction): EventsUi
     case "clearMessages":
       return { ...state, error: "", notice: "" };
     case "eventCreated":
-      return { ...state, creating: false, formState: emptyForm };
+      return { ...state, formState: emptyForm };
     case "eventUpdated":
       return { ...state, editingId: null, editState: emptyForm };
     case "patch":
@@ -91,7 +89,6 @@ function eventsUiReducer(state: EventsUiState, action: EventsUiAction): EventsUi
 export default function AdminEvents({ canDelete }: { canDelete: boolean }) {
   const [uiState, dispatch] = useReducer(eventsUiReducer, initialEventsUiState);
   const {
-    creating,
     deleteConfirmId,
     deletingId,
     editState,
@@ -311,27 +308,16 @@ export default function AdminEvents({ canDelete }: { canDelete: boolean }) {
         <div>
           <p className="text-sm text-neutral-200">{events.length} {events.length === 1 ? "event" : "events"}</p>
           <p className="mt-1 max-w-2xl text-xs leading-relaxed text-neutral-500">
-            Times are entered and displayed in Purdue time (Eastern Time). Website changes sync to Discord automatically.
+            Create and update club events from one place. Changes sync to Discord automatically.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => void mutate()}
-            className="inline-flex min-h-11 items-center gap-2 border border-neutral-800 px-4 text-[10px] uppercase tracking-[0.15em] text-neutral-400 transition-colors hover:border-neutral-600 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
-          >
-            <RefreshCw size={13} /> Refresh
-          </button>
-          {!creating && (
-            <button
-              type="button"
-              onClick={() => dispatch({ type: "patch", value: { creating: true, formState: createInitialForm() } })}
-              className="inline-flex min-h-11 items-center gap-2 bg-white px-4 text-[10px] uppercase tracking-[0.15em] text-black transition-colors hover:bg-neutral-200 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
-            >
-              <Plus size={13} /> New Event
-            </button>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={() => void mutate()}
+          className="inline-flex min-h-11 items-center gap-2 border border-neutral-800 px-4 text-[10px] uppercase tracking-[0.15em] text-neutral-400 transition-colors hover:border-neutral-600 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
+        >
+          <RefreshCw size={13} /> Refresh
+        </button>
       </div>
 
       {(error || loadError) && (
@@ -346,16 +332,14 @@ export default function AdminEvents({ canDelete }: { canDelete: boolean }) {
       )}
       {notice && <p role="status" className="border border-neutral-800 bg-white/[0.02] p-4 text-xs text-neutral-300">{notice}</p>}
 
-      {creating ? (
-        <EventForm
-          formState={formState}
-          onCancel={() => dispatch({ type: "patch", value: { creating: false } })}
-          onChange={setFormState}
-          onSubmit={createEvent}
-          submitting={submitting}
-          title="New Event"
-        />
-      ) : null}
+      <EventForm
+        formState={formState}
+        onChange={setFormState}
+        onSubmit={createEvent}
+        submitting={submitting}
+        title="Create Event"
+        showCancel={false}
+      />
 
       <EventsList
         canDelete={canDelete}
@@ -432,7 +416,6 @@ function EventsList({
     <div className="space-y-2">
       {events.map((event) => {
         const actionLabel = getEventDiscordActionLabel(event, now);
-        const discordState = getEventDiscordState(event, now);
         return (
           <article key={event.id} className="border border-neutral-800 bg-white/[0.02] p-4 sm:p-5">
             {editingId === event.id ? (
@@ -449,7 +432,6 @@ function EventsList({
                 <div className="min-w-0">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
                     <EventStatus event={event} now={now} />
-                    <DiscordStatusBadge event={event} now={now} state={discordState} />
                   </div>
                   <p className="text-sm text-neutral-200">{event.title}</p>
                   <div className="mt-2 flex flex-col gap-1 text-[10px] tracking-wider text-neutral-500 sm:flex-row sm:items-center sm:gap-4">
@@ -513,72 +495,51 @@ function DeleteEventDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (typeof dialog.showModal === "function") {
-      if (!dialog.open) dialog.showModal();
-    } else {
-      dialog.setAttribute("open", "");
-    }
-    return () => {
-      if (typeof dialog.close === "function" && dialog.open) {
-        dialog.close();
-      } else {
-        dialog.removeAttribute("open");
-      }
-    };
-  }, []);
-
   return (
-    <dialog
-      ref={dialogRef}
-      aria-labelledby="delete-event-dialog-title"
-      aria-describedby="delete-event-dialog-description"
-      aria-label="Confirm event deletion"
-      onCancel={onCancel}
-      className="m-auto w-[calc(100%-2rem)] max-w-md border border-red-950/80 bg-neutral-950 p-0 text-neutral-100 shadow-2xl shadow-black/60 backdrop:bg-black/80"
-    >
-      <div className="border-b border-red-950/80 bg-red-950/20 px-5 py-4">
-        <p className="text-[9px] uppercase tracking-[0.24em] text-red-300">Destructive action</p>
-        <h2 id="delete-event-dialog-title" className="mt-2 text-lg text-neutral-100" style={{ fontFamily: "'Playfair Display', serif" }}>
-          Delete event?
-        </h2>
-      </div>
-      <div className="p-5">
-        <p id="delete-event-dialog-description" className="text-xs leading-relaxed text-neutral-300">
-          Delete “{event.title}” from the website and Discord? This cannot be undone.
+    <ModalDialog ariaLabel="Confirm event deletion" onClose={onCancel} preventClose={deleting} className="flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm">
+      <button type="button" tabIndex={-1} aria-label="Close delete event dialog" className="absolute inset-0 cursor-default" onMouseDown={() => !deleting && onCancel()} />
+      <div className="relative z-10 w-full max-w-sm border border-red-950/60 bg-neutral-950 p-5 text-neutral-100 shadow-2xl shadow-black/70">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[9px] uppercase tracking-[0.24em] text-red-500">Delete Event</p>
+            <h2 id="delete-event-dialog-title" className="mt-1 text-base text-neutral-100" style={{ fontFamily: "'Playfair Display', serif" }}>
+              {event.title}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => !deleting && onCancel()}
+            className="p-1 text-neutral-600 transition-colors hover:bg-white/[0.04] hover:text-neutral-300 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-neutral-300 disabled:opacity-50"
+            disabled={deleting}
+            aria-label="Close delete event dialog"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        <p id="delete-event-dialog-description" className="mt-4 text-xs leading-5 text-neutral-500">
+          This will permanently delete the event from the website and Discord. This action cannot be undone.
         </p>
         {error && <p role="alert" className="mt-4 border border-red-900/80 bg-red-950/30 p-3 text-xs leading-relaxed text-red-200">{error}</p>}
-        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <button type="button" onClick={onCancel} disabled={deleting} className="min-h-11 border border-neutral-700 px-4 text-[10px] uppercase tracking-[0.12em] text-neutral-300 transition-colors hover:border-neutral-500 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-neutral-300 disabled:opacity-50">
-            Keep event
+        <div className="mt-5 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={deleting}
+            className="border border-neutral-800 px-4 py-2 text-[10px] uppercase tracking-[0.18em] text-neutral-500 transition-colors hover:border-neutral-600 hover:text-neutral-200 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-neutral-300 disabled:opacity-50"
+          >
+            Cancel
           </button>
-          <button type="button" onClick={onConfirm} disabled={deleting} className="min-h-11 bg-red-200 px-4 text-[10px] uppercase tracking-[0.12em] text-red-950 transition-colors hover:bg-red-100 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-red-200 disabled:opacity-50">
-            {deleting ? "Deleting" : "Delete everywhere"}
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={deleting}
+            className="flex items-center gap-2 border border-red-900 bg-red-950/30 px-4 py-2 text-[10px] uppercase tracking-[0.18em] text-red-300 transition-colors hover:bg-red-900/30 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-red-300 disabled:opacity-50"
+          >
+            <Trash2 size={12} /> {deleting ? "Deleting" : "Delete"}
           </button>
         </div>
       </div>
-    </dialog>
-  );
-}
-
-function DiscordStatusBadge({ event, now, state }: { event: WebsiteEvent; now: Date; state: ReturnType<typeof getEventDiscordState> }) {
-  if (state === "needs_attention") {
-    return <span className="inline-flex items-center gap-1 border border-amber-900/70 bg-amber-950/20 px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-amber-300"><AlertTriangle size={10} /> Discord needs attention</span>;
-  }
-  if (state === "synced") {
-    return <span className="inline-flex items-center gap-1 border border-neutral-700 px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-neutral-400"><Radio size={10} /> Discord synced</span>;
-  }
-  if (state === "linked") {
-    return <span className="inline-flex items-center gap-1 border border-neutral-700 px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-neutral-400"><Radio size={10} /> Discord linked</span>;
-  }
-  return (
-    <span className="border border-neutral-800 px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-neutral-600">
-      {getEventStatus(event, now) === "past" ? "Website archive" : "Website only"}
-    </span>
+    </ModalDialog>
   );
 }
 
@@ -587,13 +548,15 @@ function EventForm({
   onCancel,
   onChange,
   onSubmit,
+  showCancel = true,
   submitting,
   title,
 }: {
   formState: EventFormState;
-  onCancel: () => void;
+  onCancel?: () => void;
   onChange: (value: EventFormState) => void;
   onSubmit: (e: React.FormEvent) => void;
+  showCancel?: boolean;
   submitting: boolean;
   title: string;
 }) {
@@ -603,9 +566,11 @@ function EventForm({
     <div className="border border-neutral-800 bg-white/[0.02] p-5">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-xs uppercase tracking-wider text-neutral-400">{title}</h3>
-        <button type="button" aria-label="Cancel editing event" onClick={onCancel} className="inline-flex size-11 items-center justify-center text-neutral-500 transition-colors hover:text-white" title="Cancel">
-          <X size={16} />
-        </button>
+        {showCancel && onCancel && (
+          <button type="button" aria-label="Cancel editing event" onClick={onCancel} className="inline-flex size-11 items-center justify-center text-neutral-500 transition-colors hover:text-white" title="Cancel">
+            <X size={16} />
+          </button>
+        )}
       </div>
       <form onSubmit={onSubmit} className="space-y-3">
         <label className="block space-y-1">
@@ -622,7 +587,7 @@ function EventForm({
         </label>
         <div className="grid gap-3 md:grid-cols-2">
           <label className="space-y-1">
-            <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-neutral-400"><Clock size={11} /> Starts · Purdue time</span>
+            <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-neutral-400"><Clock size={11} /> Starts</span>
             <input
               type="datetime-local"
               value={formState.startsAt}
@@ -632,7 +597,7 @@ function EventForm({
             />
           </label>
           <label className="space-y-1">
-            <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-neutral-400"><Clock size={11} /> Ends · Purdue time</span>
+            <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-neutral-400"><Clock size={11} /> Ends</span>
             <input
               type="datetime-local"
               value={formState.endsAt}
@@ -642,7 +607,6 @@ function EventForm({
             />
           </label>
         </div>
-        <p className="text-[10px] leading-relaxed text-neutral-500">Eastern Time is used for both the website and Discord, even if you are managing events while traveling.</p>
         <label className="block space-y-1">
           <span className="flex justify-between gap-4 text-[10px] uppercase tracking-[0.2em] text-neutral-400"><span>Description</span><span className="text-neutral-600">{formState.description.length}/1000</span></span>
           <textarea aria-label="Description"
@@ -695,12 +659,12 @@ function readEventWindow(form: EventFormState):
   | { error: string; ok: false } {
   const startsAt = clubDateTimeInputToUtcIso(form.startsAt);
   if (!startsAt) {
-    return { error: "Choose a valid event start in Purdue time.", ok: false };
+    return { error: "Choose a valid event start.", ok: false };
   }
 
   const endsAt = clubDateTimeInputToUtcIso(form.endsAt);
   if (!endsAt) {
-    return { error: "Choose a valid event end in Purdue time.", ok: false };
+    return { error: "Choose a valid event end.", ok: false };
   }
 
   if (new Date(endsAt) <= new Date(startsAt)) {

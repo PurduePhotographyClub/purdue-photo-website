@@ -173,9 +173,14 @@ test("event surfaces use fresh admin reads, reactive live state, recovery, and a
   assert.ok(syncSection.indexOf("await mutate(") < syncSection.indexOf("if (!res.ok"));
   assert.match(admin, /Confirm event deletion/);
   assert.match(admin, /min-h-11/);
+  assert.match(admin, /showCancel=\{false\}/);
+  assert.doesNotMatch(admin, /Purdue time|Eastern Time/);
+  assert.doesNotMatch(admin, /DiscordStatusBadge/);
   assert.match(eventsPage, /useEventClock/);
   assert.match(eventsPage, /Showing the last saved event list/);
   assert.match(eventsPage, />\s*Retry/);
+  assert.doesNotMatch(eventsPage, /event\.discordSynced\s*&&/);
   assert.match(home, /LiveEventWidget/);
+  assert.match(home, /top-28/);
   assert.match(home, /view=home/);
 });
