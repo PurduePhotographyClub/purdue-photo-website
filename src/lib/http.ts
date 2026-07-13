@@ -22,6 +22,17 @@ export const PUBLIC_API_SWR_OPTIONS = {
   revalidateOnReconnect: false,
 } satisfies SWRConfiguration;
 
+export const SCHEDULE_SWR_OPTIONS = {
+  ...PUBLIC_API_SWR_OPTIONS,
+  revalidateOnFocus: true,
+  revalidateOnReconnect: true,
+} satisfies SWRConfiguration;
+
+export const LIVE_SCHEDULE_SWR_OPTIONS = {
+  ...SCHEDULE_SWR_OPTIONS,
+  refreshInterval: 60_000,
+} satisfies SWRConfiguration;
+
 export async function readJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
 }
@@ -34,12 +45,18 @@ export async function readJsonOrNull<T>(response: Response): Promise<T | null> {
   }
 }
 
-export async function readErrorMessage(response: Response, fallback: string): Promise<string> {
+export async function readErrorMessage(
+  response: Response,
+  fallback: string,
+): Promise<string> {
   const data = await readJsonOrNull<ApiErrorResponse>(response);
   return data?.error || data?.message || fallback;
 }
 
-export async function fetchJson<T>(url: string, init: RequestInit = {}): Promise<T> {
+export async function fetchJson<T>(
+  url: string,
+  init: RequestInit = {},
+): Promise<T> {
   const headers = new Headers(init.headers);
   if (!headers.has("Accept")) {
     headers.set("Accept", "application/json");
@@ -56,7 +73,10 @@ export async function fetchJson<T>(url: string, init: RequestInit = {}): Promise
   return readJson<T>(response);
 }
 
-export function fetchPublicJson<T>(url: string, init: RequestInit = {}): Promise<T> {
+export function fetchPublicJson<T>(
+  url: string,
+  init: RequestInit = {},
+): Promise<T> {
   return fetchJson<T>(url, {
     ...init,
     credentials: "omit",

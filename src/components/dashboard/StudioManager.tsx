@@ -1,4 +1,4 @@
-import { useMemo, useReducer } from "react";
+import { useEffect, useMemo, useReducer, useRef } from "react";
 import useSWR from "swr";
 import {
   CalendarDays,
@@ -12,9 +12,10 @@ import AccessUpsellPanel from "@/components/dashboard/AccessUpsellPanel";
 import {
   fetchApi,
   fetchJson,
-  PUBLIC_API_SWR_OPTIONS,
+  LIVE_SCHEDULE_SWR_OPTIONS,
   readErrorMessage,
-  readJson
+  readJson,
+  SCHEDULE_SWR_OPTIONS,
 } from "@/lib/http";
 
 interface StudioStats {
@@ -69,7 +70,9 @@ interface StudioScheduleResponse {
 }
 
 interface StudioRequestMutationResponse {
+  discordSyncWarning?: string | null;
   request?: StudioMemberRequest | null;
+  reviewSyncWarning?: string | null;
 }
 
 interface StudioManagerProps {
@@ -100,6 +103,7 @@ interface StudioManagerState {
   busyAction: string | null;
   error: string;
   success: string;
+  syncWarning: string;
   todayDayKey: string;
   todayWeekStartKey: string;
   weekStartKey: string;
@@ -126,11 +130,17 @@ const STUDIO_TABS: Array<{ label: string; value: StudioManagerTab }> = [
   { label: "Schedule", value: "schedule" },
   { label: "Requests", value: "requests" },
 ];
-const buttonClass = "inline-flex min-h-10 items-center justify-center gap-2 border px-3 py-2 text-[10px] uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-50";
-const inputClass = "w-full bg-transparent border border-neutral-800 px-3 py-2.5 text-sm text-neutral-200 placeholder:text-neutral-700 focus:border-neutral-600 focus:outline-none transition-colors";
+const buttonClass =
+  "inline-flex min-h-10 items-center justify-center gap-2 border px-3 py-2 text-[10px] uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-50";
+const inputClass =
+  "w-full bg-transparent border border-neutral-800 px-3 py-2.5 text-sm text-neutral-200 placeholder:text-neutral-700 focus:border-neutral-600 focus:outline-none transition-colors";
 
-export default function StudioManager({ userRole, userTier }: StudioManagerProps) {
-  const canSchedule = userRole === "admin" || userRole === "officer" || userTier === "facilities";
+export default function StudioManager({
+  userRole,
+  userTier,
+}: StudioManagerProps) {
+  const canSchedule =
+    userRole === "admin" || userRole === "officer" || userTier === "facilities";
   const [state, setState] = useReducer(
     studioManagerReducer,
     undefined,
@@ -143,35 +153,83 @@ export default function StudioManager({ userRole, userTier }: StudioManagerProps
     busyAction,
     error,
     success,
+    syncWarning,
     todayDayKey,
     todayWeekStartKey,
     weekStartKey,
   } = state;
-  const weekStartParts = useMemo(() => keyToDateParts(weekStartKey), [weekStartKey]);
+  const weekStartParts = useMemo(
+    () => keyToDateParts(weekStartKey),
+    [weekStartKey],
+  );
   const todayParts = useMemo(() => keyToDateParts(todayDayKey), [todayDayKey]);
-  const todayWeekStartParts = useMemo(() => keyToDateParts(todayWeekStartKey), [todayWeekStartKey]);
-  const weekEndParts = useMemo(() => addCalendarDays(weekStartParts, 8), [weekStartParts]);
-  const previousWeekStartParts = useMemo(() => addCalendarDays(weekStartParts, -7), [weekStartParts]);
-  const isPreviousDisabled = compareDateParts(weekStartParts, todayWeekStartParts) <= 0;
+  const todayWeekStartParts = useMemo(
+    () => keyToDateParts(todayWeekStartKey),
+    [todayWeekStartKey],
+  );
+  const weekEndParts = useMemo(
+    () => addCalendarDays(weekStartParts, 7),
+    [weekStartParts],
+  );
+  const previousWeekStartParts = useMemo(
+    () => addCalendarDays(weekStartParts, -7),
+    [weekStartParts],
+  );
+  const isPreviousDisabled =
+    compareDateParts(weekStartParts, todayWeekStartParts) <= 0;
   const scheduleUrl = `/api/studio/schedule?start=${encodeURIComponent(zonedTimeToUtcIso(weekStartParts, 0))}&end=${encodeURIComponent(zonedTimeToUtcIso(weekEndParts, 0))}`;
   const {
     data: dashboard,
     error: dashboardError,
     isLoading: dashboardLoading,
     mutate: mutateDashboard,
-  } = useSWR<StudioDashboardResponse>(canSchedule ? "/api/studio" : null, fetchJson, PUBLIC_API_SWR_OPTIONS);
+  } = useSWR<StudioDashboardResponse>(
+    canSchedule ? "/api/studio" : null,
+    fetchJson,
+    SCHEDULE_SWR_OPTIONS,
+  );
   const {
     data: schedule,
     error: scheduleError,
     isLoading: scheduleLoading,
     mutate: mutateSchedule,
-  } = useSWR<StudioScheduleResponse>(canSchedule ? scheduleUrl : null, fetchJson, PUBLIC_API_SWR_OPTIONS);
+  } = useSWR<StudioScheduleResponse>(
+    canSchedule ? scheduleUrl : null,
+    fetchJson,
+    LIVE_SCHEDULE_SWR_OPTIONS,
+  );
   const requests = schedule?.requests ?? EMPTY_REQUESTS;
   const requestsByDay = useMemo(() => groupRequestsByDay(requests), [requests]);
   const days = useMemo(
-    () => Array.from({ length: 8 }, (_, index) => addCalendarDays(weekStartParts, index)),
+    () =>
+      Array.from({ length: 7 }, (_, index) =>
+        addCalendarDays(weekStartParts, index),
+      ),
     [weekStartParts],
   );
+
+  useEffect(() => {
+    const refreshClubDate = () => {
+      const now = new Date();
+      const nextTodayDayKey = datePartsToKey(getClubDateParts(now));
+      if (nextTodayDayKey === todayDayKey) return;
+
+      const nextTodayWeekStartKey = datePartsToKey(startOfClubSunday(now));
+      setState({
+        todayDayKey: nextTodayDayKey,
+        todayWeekStartKey: nextTodayWeekStartKey,
+        ...(weekStartKey === todayWeekStartKey
+          ? { weekStartKey: nextTodayWeekStartKey }
+          : {}),
+      });
+    };
+    const timer = window.setInterval(refreshClubDate, 60_000);
+    window.addEventListener("focus", refreshClubDate);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshClubDate);
+    };
+  }, [todayDayKey, todayWeekStartKey, weekStartKey]);
 
   if (!canSchedule) {
     return (
@@ -195,6 +253,22 @@ export default function StudioManager({ userRole, userTier }: StudioManagerProps
         bookingDay: null,
         error: "Studio requests cannot be scheduled for past dates.",
         success: "",
+        syncWarning: "",
+      });
+      return;
+    }
+
+    const startsAt = zonedTimeInputToUtcIso(
+      bookingDay,
+      bookingForm.startsAtLocal,
+    );
+    const endsAt = zonedTimeInputToUtcIso(bookingDay, bookingForm.endsAtLocal);
+    if (Date.parse(endsAt) - Date.parse(startsAt) < 15 * 60 * 1_000) {
+      setState({
+        error:
+          "Studio requests must end after they start and last at least 15 minutes.",
+        success: "",
+        syncWarning: "",
       });
       return;
     }
@@ -203,30 +277,38 @@ export default function StudioManager({ userRole, userTier }: StudioManagerProps
       busyAction: "request",
       error: "",
       success: "",
+      syncWarning: "",
     });
 
     try {
       const response = await fetchApi("/api/studio/requests", {
         body: JSON.stringify({
-          endsAt: zonedTimeInputToUtcIso(bookingDay, bookingForm.endsAtLocal),
+          endsAt,
           memberNote: bookingForm.memberNote || null,
           needsStudioManager: bookingForm.needsStudioManager,
-          startsAt: zonedTimeInputToUtcIso(bookingDay, bookingForm.startsAtLocal),
+          startsAt,
         }),
         headers: { "Content-Type": "application/json" },
         method: "POST",
       });
 
       if (!response.ok) {
-        setState({ error: await readErrorMessage(response, "Failed to submit studio request.") });
+        setState({
+          error: await readErrorMessage(
+            response,
+            "Failed to submit studio request.",
+          ),
+        });
         return;
       }
 
-      await readJson<StudioRequestMutationResponse>(response);
+      const result = await readJson<StudioRequestMutationResponse>(response);
       setState({
         bookingDay: null,
         bookingForm: createDefaultBookingForm(),
         success: "Studio request submitted for studio manager approval.",
+        syncWarning:
+          result.reviewSyncWarning ?? result.discordSyncWarning ?? "",
       });
       await refreshAll();
     } catch {
@@ -241,6 +323,7 @@ export default function StudioManager({ userRole, userTier }: StudioManagerProps
       busyAction: `cancel:${requestId}`,
       error: "",
       success: "",
+      syncWarning: "",
     });
 
     try {
@@ -249,11 +332,21 @@ export default function StudioManager({ userRole, userTier }: StudioManagerProps
       });
 
       if (!response.ok) {
-        setState({ error: await readErrorMessage(response, "Failed to cancel studio request.") });
+        setState({
+          error: await readErrorMessage(
+            response,
+            "Failed to cancel studio request.",
+          ),
+        });
         return;
       }
 
-      setState({ success: "Studio request cancelled." });
+      const result = await readJson<StudioRequestMutationResponse>(response);
+      setState({
+        success: "Studio request cancelled.",
+        syncWarning:
+          result.discordSyncWarning ?? result.reviewSyncWarning ?? "",
+      });
       await refreshAll();
     } catch {
       setState({ error: "Failed to cancel studio request." });
@@ -262,20 +355,30 @@ export default function StudioManager({ userRole, userTier }: StudioManagerProps
     }
   };
 
-  if (dashboardLoading) {
-    return <StudioSkeleton />;
-  }
-
   return (
     <div className="space-y-6">
-      {(error || dashboardError || scheduleError) && (
-        <p className="border border-red-900/30 bg-red-900/10 px-4 py-3 text-xs text-red-400">
-          {error || "Failed to load studio data."}
+      {((!bookingDay && error) || dashboardError || scheduleError) && (
+        <p
+          role="alert"
+          className="border border-red-900/30 bg-red-900/10 px-4 py-3 text-xs text-red-400"
+        >
+          {(!bookingDay && error) || "Failed to load studio data."}
         </p>
       )}
       {success && (
-        <p className="border border-green-900/30 bg-green-900/10 px-4 py-3 text-xs text-green-400">
+        <p
+          role="status"
+          className="border border-green-900/30 bg-green-900/10 px-4 py-3 text-xs text-green-400"
+        >
           {success}
+        </p>
+      )}
+      {syncWarning && (
+        <p
+          role="status"
+          className="border border-amber-900/40 bg-amber-950/15 px-4 py-3 text-xs text-amber-300"
+        >
+          {syncWarning}
         </p>
       )}
 
@@ -284,21 +387,37 @@ export default function StudioManager({ userRole, userTier }: StudioManagerProps
         onChange={(nextTab) => setState({ activeTab: nextTab })}
       />
 
-      {activeTab === "stats" && <StudioStatsGrid stats={dashboard?.stats} />}
+      {activeTab === "stats" &&
+        (dashboardLoading ? (
+          <StudioSkeleton />
+        ) : (
+          <StudioStatsGrid stats={dashboard?.stats} />
+        ))}
 
       {activeTab === "schedule" && (
         <>
           <StudioToolbar
             previousDisabled={isPreviousDisabled}
-            rangeLabel={`${formatClubMonthDay(weekStartParts)} - ${formatClubMonthDay(addCalendarDays(weekStartParts, 7))}`}
-            onNext={() => setState({ weekStartKey: datePartsToKey(addCalendarDays(weekStartParts, 7)) })}
-            onPrevious={() => setState({
-              weekStartKey: datePartsToKey(
-                compareDateParts(previousWeekStartParts, todayWeekStartParts) < 0
-                  ? todayWeekStartParts
-                  : previousWeekStartParts,
-              ),
-            })}
+            rangeLabel={`${formatClubMonthDay(weekStartParts)} - ${formatClubMonthDay(addCalendarDays(weekStartParts, 6))}`}
+            onNext={() =>
+              setState({
+                weekStartKey: datePartsToKey(
+                  addCalendarDays(weekStartParts, 7),
+                ),
+              })
+            }
+            onPrevious={() =>
+              setState({
+                weekStartKey: datePartsToKey(
+                  compareDateParts(
+                    previousWeekStartParts,
+                    todayWeekStartParts,
+                  ) < 0
+                    ? todayWeekStartParts
+                    : previousWeekStartParts,
+                ),
+              })
+            }
             onToday={() => setState({ weekStartKey: todayWeekStartKey })}
           />
 
@@ -315,7 +434,15 @@ export default function StudioManager({ userRole, userTier }: StudioManagerProps
                   requests={requestsByDay.get(datePartsToKey(day)) ?? []}
                   todayDayKey={todayDayKey}
                   onCancel={handleCancelRequest}
-                  onRequest={(requestDay) => setState({ bookingDay: requestDay, bookingForm: createDefaultBookingForm() })}
+                  onRequest={(requestDay) =>
+                    setState({
+                      bookingDay: requestDay,
+                      bookingForm: createDefaultBookingForm(),
+                      error: "",
+                      success: "",
+                      syncWarning: "",
+                    })
+                  }
                 />
               ))}
             </div>
@@ -323,21 +450,27 @@ export default function StudioManager({ userRole, userTier }: StudioManagerProps
         </>
       )}
 
-      {activeTab === "requests" && (
-        <StudioRequestHistory
-          busyAction={busyAction}
-          requests={dashboard?.requests ?? []}
-          onCancel={handleCancelRequest}
-        />
-      )}
+      {activeTab === "requests" &&
+        (dashboardLoading ? (
+          <StudioSkeleton />
+        ) : (
+          <StudioRequestHistory
+            busyAction={busyAction}
+            requests={dashboard?.requests ?? []}
+            onCancel={handleCancelRequest}
+          />
+        ))}
 
       {bookingDay && (
         <StudioBookingModal
           busy={busyAction === "request"}
           day={bookingDay}
+          error={error}
           form={bookingForm}
-          onChange={(patch) => setState({ bookingForm: { ...bookingForm, ...patch } })}
-          onClose={() => setState({ bookingDay: null })}
+          onChange={(patch) =>
+            setState({ bookingForm: { ...bookingForm, ...patch } })
+          }
+          onClose={() => setState({ bookingDay: null, error: "" })}
           onSubmit={handleSubmitRequest}
         />
       )}
@@ -367,6 +500,7 @@ function createInitialStudioManagerState(): StudioManagerState {
     busyAction: null,
     error: "",
     success: "",
+    syncWarning: "",
     todayDayKey,
     todayWeekStartKey,
     weekStartKey: todayWeekStartKey,
@@ -376,19 +510,41 @@ function createInitialStudioManagerState(): StudioManagerState {
 function StudioStatsGrid({ stats }: { stats: StudioStats | undefined }) {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
-      <StudioStatCard label="People Used Studio" value={stats?.uniqueUsedUsers ?? 0} helper="Approved completed sessions" />
+      <StudioStatCard
+        label="People Used Studio"
+        value={stats?.uniqueUsedUsers ?? 0}
+        helper="Approved completed sessions"
+      />
       <StudioStatCard label="Studio Uses" value={stats?.usedSessions ?? 0} />
-      <StudioStatCard label="Upcoming" value={stats?.upcomingApprovedSessions ?? 0} />
+      <StudioStatCard
+        label="Upcoming"
+        value={stats?.upcomingApprovedSessions ?? 0}
+      />
       <StudioStatCard label="Pending" value={stats?.pendingRequests ?? 0} />
     </div>
   );
 }
 
-function StudioStatCard({ helper, label, value }: { helper?: string; label: string; value: number }) {
+function StudioStatCard({
+  helper,
+  label,
+  value,
+}: {
+  helper?: string;
+  label: string;
+  value: number;
+}) {
   return (
     <div className="border border-neutral-800 bg-white/[0.02] p-5">
-      <p className="mb-1 text-[9px] uppercase tracking-[0.3em] text-neutral-600">{label}</p>
-      <p className="text-3xl font-light text-neutral-100" style={{ fontFamily: "'Playfair Display', serif" }}>{value}</p>
+      <p className="mb-1 text-[9px] uppercase tracking-[0.3em] text-neutral-600">
+        {label}
+      </p>
+      <p
+        className="text-3xl font-light text-neutral-100"
+        style={{ fontFamily: "'Playfair Display', serif" }}
+      >
+        {value}
+      </p>
       {helper && <p className="mt-1 text-[9px] text-neutral-700">{helper}</p>}
     </div>
   );
@@ -402,7 +558,13 @@ interface StudioToolbarProps {
   rangeLabel: string;
 }
 
-function StudioToolbar({ onNext, onPrevious, onToday, previousDisabled, rangeLabel }: StudioToolbarProps) {
+function StudioToolbar({
+  onNext,
+  onPrevious,
+  onToday,
+  previousDisabled,
+  rangeLabel,
+}: StudioToolbarProps) {
   return (
     <div className="flex flex-col gap-3 border border-neutral-800 bg-white/[0.02] p-4 md:flex-row md:items-center md:justify-between">
       <div className="flex items-center gap-3">
@@ -410,18 +572,35 @@ function StudioToolbar({ onNext, onPrevious, onToday, previousDisabled, rangeLab
           <CalendarDays className="size-4" aria-hidden="true" />
         </span>
         <div>
-          <p className="text-[9px] uppercase tracking-[0.3em] text-neutral-600">Studio Schedule</p>
+          <p className="text-[9px] uppercase tracking-[0.3em] text-neutral-600">
+            Studio Schedule
+          </p>
           <p className="text-sm text-neutral-200">{rangeLabel}</p>
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <button type="button" disabled={previousDisabled} onClick={onPrevious} className="flex size-10 items-center justify-center border border-neutral-800 text-neutral-500 transition-colors hover:border-neutral-600 hover:text-neutral-200 disabled:cursor-not-allowed disabled:opacity-40" aria-label="Previous week">
+        <button
+          type="button"
+          disabled={previousDisabled}
+          onClick={onPrevious}
+          className="flex size-10 items-center justify-center border border-neutral-800 text-neutral-500 transition-colors hover:border-neutral-600 hover:text-neutral-200 disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label="Previous week"
+        >
           <ChevronLeft className="size-4" aria-hidden="true" />
         </button>
-        <button type="button" onClick={onToday} className="min-h-10 border border-neutral-800 px-4 text-[10px] uppercase tracking-[0.14em] text-neutral-500 transition-colors hover:border-neutral-600 hover:text-neutral-200">
+        <button
+          type="button"
+          onClick={onToday}
+          className="min-h-10 border border-neutral-800 px-4 text-[10px] uppercase tracking-[0.14em] text-neutral-500 transition-colors hover:border-neutral-600 hover:text-neutral-200"
+        >
           Today
         </button>
-        <button type="button" onClick={onNext} className="flex size-10 items-center justify-center border border-neutral-800 text-neutral-500 transition-colors hover:border-neutral-600 hover:text-neutral-200" aria-label="Next week">
+        <button
+          type="button"
+          onClick={onNext}
+          className="flex size-10 items-center justify-center border border-neutral-800 text-neutral-500 transition-colors hover:border-neutral-600 hover:text-neutral-200"
+          aria-label="Next week"
+        >
           <ChevronRight className="size-4" aria-hidden="true" />
         </button>
       </div>
@@ -436,10 +615,15 @@ interface StudioTabsProps {
 
 function StudioTabs({ activeTab, onChange }: StudioTabsProps) {
   return (
-    <div className="flex flex-wrap gap-1 border-b border-neutral-800">
+    <div
+      aria-label="Studio manager views"
+      className="flex flex-wrap gap-1 border-b border-neutral-800"
+      role="group"
+    >
       {STUDIO_TABS.map((tab) => (
         <button
           key={tab.value}
+          aria-pressed={activeTab === tab.value}
           type="button"
           onClick={() => onChange(tab.value)}
           className={`-mb-px border-b-2 px-5 py-2.5 text-[10px] uppercase tracking-[0.15em] transition-colors ${
@@ -465,24 +649,43 @@ interface StudioDayColumnProps {
   todayDayKey: string;
 }
 
-function StudioDayColumn({ busyAction, day, isPast, onCancel, onRequest, requests, todayDayKey }: StudioDayColumnProps) {
+function StudioDayColumn({
+  busyAction,
+  day,
+  isPast,
+  onCancel,
+  onRequest,
+  requests,
+  todayDayKey,
+}: StudioDayColumnProps) {
   const isToday = datePartsToKey(day) === todayDayKey;
-  const sortedRequests = requests.toSorted((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
+  const sortedRequests = requests.toSorted(
+    (a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt),
+  );
   const addLabel = isPast ? "Past date" : "Add request";
 
   return (
-    <section className={`min-h-72 border bg-neutral-950/60 transition-colors ${isToday ? "border-blue-900/70" : "border-neutral-800"} ${isPast ? "opacity-70" : ""}`}>
+    <section
+      className={`min-h-72 border bg-neutral-950/60 transition-colors ${isToday ? "border-blue-900/70" : "border-neutral-800"} ${isPast ? "opacity-70" : ""}`}
+    >
       <button
         type="button"
         disabled={isPast}
         onClick={() => onRequest(day)}
         className={`block w-full border-b border-neutral-800 px-4 py-3 text-left transition-colors disabled:cursor-not-allowed ${isToday ? "bg-blue-950/20" : "bg-white/[0.02]"} ${isPast ? "" : "hover:bg-white/[0.04]"}`}
       >
-        <p className="text-[9px] uppercase tracking-[0.24em] text-neutral-600">{formatClubWeekday(day)}</p>
-        <p className={`text-lg ${isToday ? "text-blue-200" : "text-neutral-200"}`} style={{ fontFamily: "'Playfair Display', serif" }}>
+        <p className="text-[9px] uppercase tracking-[0.24em] text-neutral-600">
+          {formatClubWeekday(day)}
+        </p>
+        <p
+          className={`text-lg ${isToday ? "text-blue-200" : "text-neutral-200"}`}
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
           {formatClubMonthDay(day)}
         </p>
-        <span className="mt-2 inline-flex text-[10px] uppercase tracking-[0.14em] text-neutral-500">{addLabel}</span>
+        <span className="mt-2 inline-flex text-[10px] uppercase tracking-[0.14em] text-neutral-500">
+          {addLabel}
+        </span>
       </button>
       {sortedRequests.length === 0 ? (
         <button
@@ -524,10 +727,16 @@ interface StudioScheduleRequestItemProps {
   request: StudioCalendarRequest;
 }
 
-function StudioScheduleRequestItem({ busy, onCancel, request }: StudioScheduleRequestItemProps) {
+function StudioScheduleRequestItem({
+  busy,
+  onCancel,
+  request,
+}: StudioScheduleRequestItemProps) {
   if (canCancelStudioRequest(request)) {
     return (
-      <div className={`border p-3 ${request.status === "pending" ? "border-amber-900/60 bg-amber-950/10" : "border-green-800 bg-green-950/15"}`}>
+      <div
+        className={`border p-3 ${request.status === "pending" ? "border-amber-900/60 bg-amber-950/10" : "border-green-800 bg-green-950/15"}`}
+      >
         <StudioScheduleRequestHeader request={request} />
         {request.status === "approved" && request.discordChannelId && (
           <span className="mt-2 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] text-green-300">
@@ -535,33 +744,62 @@ function StudioScheduleRequestItem({ busy, onCancel, request }: StudioScheduleRe
             Discord ready
           </span>
         )}
-        {request.needsStudioManager && <p className="mt-2 text-[10px] text-blue-300">Studio manager help requested</p>}
-        <button type="button" disabled={busy} onClick={() => onCancel(request.id)} className={`${buttonClass} mt-3 w-full border-red-900/60 text-red-300 hover:border-red-700 hover:bg-red-950/30`}>
-          {busy ? "Cancelling" : request.status === "approved" ? "Cancel Reservation" : "Cancel Request"}
+        {request.needsStudioManager && (
+          <p className="mt-2 text-[10px] text-blue-300">
+            Studio manager help requested
+          </p>
+        )}
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => onCancel(request.id)}
+          className={`${buttonClass} mt-3 w-full border-red-900/60 text-red-300 hover:border-red-700 hover:bg-red-950/30`}
+        >
+          {busy
+            ? "Cancelling"
+            : request.status === "approved"
+              ? "Cancel Reservation"
+              : "Cancel Request"}
         </button>
       </div>
     );
   }
 
   return (
-    <div className={`border p-3 ${request.isMine ? "border-green-800 bg-green-950/15" : "border-neutral-800 bg-neutral-900/60"}`}>
+    <div
+      className={`border p-3 ${request.isMine ? "border-green-800 bg-green-950/15" : "border-neutral-800 bg-neutral-900/60"}`}
+    >
       <StudioScheduleRequestHeader request={request} />
-      {request?.isMine && request.status === "approved" && request.discordChannelId && (
-        <span className="mt-2 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] text-green-300">
-          <Clock className="size-3" aria-hidden="true" />
-          Discord ready
-        </span>
+      {request?.isMine &&
+        request.status === "approved" &&
+        request.discordChannelId && (
+          <span className="mt-2 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] text-green-300">
+            <Clock className="size-3" aria-hidden="true" />
+            Discord ready
+          </span>
+        )}
+      {request.needsStudioManager && (
+        <p className="mt-2 text-[10px] text-blue-300">
+          Studio manager help requested
+        </p>
       )}
-      {request.needsStudioManager && <p className="mt-2 text-[10px] text-blue-300">Studio manager help requested</p>}
     </div>
   );
 }
 
-function StudioScheduleRequestHeader({ request }: { request: StudioCalendarRequest }) {
+function StudioScheduleRequestHeader({
+  request,
+}: {
+  request: StudioCalendarRequest;
+}) {
   return (
     <span className="flex items-center justify-between gap-2">
-      <span className="text-xs text-neutral-200">{formatClubTime(request.startsAt)} - {formatClubTime(request.endsAt)}</span>
-      <span className="text-[9px] uppercase tracking-[0.14em] text-neutral-600">{getScheduleRequestStatusLabel(request)}</span>
+      <span className="text-xs text-neutral-200">
+        {formatClubTime(request.startsAt)} - {formatClubTime(request.endsAt)}
+      </span>
+      <span className="text-[9px] uppercase tracking-[0.14em] text-neutral-600">
+        {getScheduleRequestStatusLabel(request)}
+      </span>
     </span>
   );
 }
@@ -569,37 +807,99 @@ function StudioScheduleRequestHeader({ request }: { request: StudioCalendarReque
 interface StudioBookingModalProps {
   busy: boolean;
   day: DateParts;
+  error: string;
   form: StudioBookingForm;
   onChange: (patch: Partial<StudioBookingForm>) => void;
   onClose: () => void;
   onSubmit: () => void;
 }
 
-function StudioBookingModal({ busy, day, form, onChange, onClose, onSubmit }: StudioBookingModalProps) {
+function StudioBookingModal({
+  busy,
+  day,
+  error,
+  form,
+  onChange,
+  onClose,
+  onSubmit,
+}: StudioBookingModalProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog || typeof dialog.showModal !== "function") return;
+    if (!dialog.open) dialog.showModal();
+
+    return () => {
+      if (dialog.open) dialog.close();
+    };
+  }, []);
+
   return (
-    <div className="fixed inset-0 z-[120] flex h-dvh w-dvw items-center justify-center bg-black/80 p-4">
-      <button type="button" aria-label="Close studio booking dialog" className="absolute inset-0 cursor-default" onMouseDown={onClose} />
-      <div className="relative z-10 w-full max-w-lg border border-neutral-800 bg-neutral-950 p-6">
+    <dialog
+      aria-labelledby="studio-booking-dialog-title"
+      className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto border border-neutral-800 bg-neutral-950 p-0 text-neutral-200 backdrop:bg-black/80"
+      onCancel={(event) => {
+        if (busy) event.preventDefault();
+        else onClose();
+      }}
+      onClick={(event) => {
+        if (!busy && event.target === event.currentTarget) onClose();
+      }}
+      ref={dialogRef}
+    >
+      <form
+        className="p-6"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSubmit();
+        }}
+      >
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>
-            <p className="text-[9px] uppercase tracking-[0.3em] text-blue-300">Request Studio Time</p>
-            <h3 className="mt-1 text-xl text-neutral-100" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <p className="text-[9px] uppercase tracking-[0.3em] text-blue-300">
+              Request Studio Time
+            </p>
+            <h3
+              id="studio-booking-dialog-title"
+              className="mt-1 text-xl text-neutral-100"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+            >
               {formatClubWeekday(day)}, {formatClubMonthDay(day)}
             </h3>
           </div>
-          <button type="button" onClick={onClose} className="text-[10px] uppercase tracking-[0.14em] text-neutral-500 transition-colors hover:text-neutral-200">
+          <button
+            type="button"
+            disabled={busy}
+            aria-label="Close studio booking dialog"
+            onClick={onClose}
+            className="text-[10px] uppercase tracking-[0.14em] text-neutral-500 transition-colors hover:text-neutral-200 disabled:opacity-50"
+          >
             Close
           </button>
         </div>
 
+        {error && (
+          <p
+            role="alert"
+            className="mb-4 border border-red-900/30 bg-red-900/10 px-3 py-2 text-xs text-red-400"
+          >
+            {error}
+          </p>
+        )}
+
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="block [color-scheme:dark]">
-            <span className="mb-1.5 block text-[10px] uppercase tracking-wider text-neutral-600">Start</span>
+            <span className="mb-1.5 block text-[10px] uppercase tracking-wider text-neutral-600">
+              Start
+            </span>
             <input
               className={inputClass}
               max="23:45"
               min="06:00"
-              onChange={(event) => onChange({ startsAtLocal: event.target.value })}
+              onChange={(event) =>
+                onChange({ startsAtLocal: event.target.value })
+              }
               required
               step={900}
               type="time"
@@ -607,12 +907,16 @@ function StudioBookingModal({ busy, day, form, onChange, onClose, onSubmit }: St
             />
           </label>
           <label className="block [color-scheme:dark]">
-            <span className="mb-1.5 block text-[10px] uppercase tracking-wider text-neutral-600">End</span>
+            <span className="mb-1.5 block text-[10px] uppercase tracking-wider text-neutral-600">
+              End
+            </span>
             <input
               className={inputClass}
               max="23:59"
               min="00:00"
-              onChange={(event) => onChange({ endsAtLocal: event.target.value })}
+              onChange={(event) =>
+                onChange({ endsAtLocal: event.target.value })
+              }
               required
               step={900}
               type="time"
@@ -625,17 +929,26 @@ function StudioBookingModal({ busy, day, form, onChange, onClose, onSubmit }: St
           <input
             checked={form.needsStudioManager}
             className="mt-0.5 size-4 accent-white"
-            onChange={(event) => onChange({ needsStudioManager: event.target.checked })}
+            onChange={(event) =>
+              onChange({ needsStudioManager: event.target.checked })
+            }
             type="checkbox"
           />
           <span>
-            <span className="block text-xs text-neutral-200">Studio manager help?</span>
-            <span className="mt-1 block text-[10px] text-neutral-600">Check this if you want a studio manager to help with access, setup, or handoff.</span>
+            <span className="block text-xs text-neutral-200">
+              Studio manager help?
+            </span>
+            <span className="mt-1 block text-[10px] text-neutral-600">
+              Check this if you want a studio manager to help with access,
+              setup, or handoff.
+            </span>
           </span>
         </label>
 
         <label className="mt-4 block">
-          <span className="mb-1.5 block text-[10px] uppercase tracking-wider text-neutral-600">Note for admin (optional)</span>
+          <span className="mb-1.5 block text-[10px] uppercase tracking-wider text-neutral-600">
+            Note for admin (optional)
+          </span>
           <textarea
             className={`${inputClass} min-h-24 resize-y`}
             maxLength={500}
@@ -646,16 +959,25 @@ function StudioBookingModal({ busy, day, form, onChange, onClose, onSubmit }: St
         </label>
 
         <div className="mt-5 flex flex-wrap gap-3">
-          <button type="button" disabled={busy} onClick={onSubmit} className={`${buttonClass} border-neutral-700 bg-white text-black hover:bg-neutral-200`}>
+          <button
+            type="submit"
+            disabled={busy}
+            className={`${buttonClass} border-neutral-700 bg-white text-black hover:bg-neutral-200`}
+          >
             <Send className="size-3" aria-hidden="true" />
             {busy ? "Submitting" : "Submit Request"}
           </button>
-          <button type="button" disabled={busy} onClick={onClose} className={`${buttonClass} border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-200`}>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onClose}
+            className={`${buttonClass} border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-200`}
+          >
             Cancel
           </button>
         </div>
-      </div>
-    </div>
+      </form>
+    </dialog>
   );
 }
 
@@ -665,14 +987,22 @@ interface StudioRequestHistoryProps {
   requests: StudioMemberRequest[];
 }
 
-function StudioRequestHistory({ busyAction, onCancel, requests }: StudioRequestHistoryProps) {
-  const sortedRequests = requests.toSorted((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+function StudioRequestHistory({
+  busyAction,
+  onCancel,
+  requests,
+}: StudioRequestHistoryProps) {
+  const sortedRequests = requests.toSorted(
+    (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt),
+  );
 
   return (
     <section>
       <div className="mb-4 flex items-center gap-2">
         <Users className="size-4 text-neutral-600" aria-hidden="true" />
-        <p className="text-[9px] uppercase tracking-[0.3em] text-neutral-600">Your Studio Requests</p>
+        <p className="text-[9px] uppercase tracking-[0.3em] text-neutral-600">
+          Your Studio Requests
+        </p>
       </div>
       {sortedRequests.length === 0 ? (
         <p className="text-xs text-neutral-700">No studio requests yet.</p>
@@ -698,23 +1028,45 @@ interface StudioRequestCardProps {
   request: StudioMemberRequest;
 }
 
-function StudioRequestCard({ busy, onCancel, request }: StudioRequestCardProps) {
+function StudioRequestCard({
+  busy,
+  onCancel,
+  request,
+}: StudioRequestCardProps) {
   return (
     <article className="border border-neutral-800 bg-white/[0.02] p-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <div className="mb-1 flex flex-wrap items-center gap-2">
-            <span className="text-sm text-neutral-200">{formatClubDateTime(request.startsAt)} - {formatClubTime(request.endsAt)}</span>
+            <span className="text-sm text-neutral-200">
+              {formatClubDateTime(request.startsAt)} -{" "}
+              {formatClubTime(request.endsAt)}
+            </span>
             <StudioStatusBadge status={request.status} />
           </div>
-          {request.memberNote && <p className="text-[10px] text-neutral-500">Note: {request.memberNote}</p>}
-          {request.adminNote && <p className="text-[10px] text-neutral-400">Admin note: {request.adminNote}</p>}
+          {request.memberNote && (
+            <p className="text-[10px] text-neutral-500">
+              Note: {request.memberNote}
+            </p>
+          )}
+          {request.adminNote && (
+            <p className="text-[10px] text-neutral-400">
+              Admin note: {request.adminNote}
+            </p>
+          )}
           {request.discordSyncStatus === "failed" && (
-            <p className="mt-1 text-[10px] text-amber-400">Discord sync needs admin retry.</p>
+            <p className="mt-1 text-[10px] text-amber-400">
+              Discord sync needs admin retry.
+            </p>
           )}
         </div>
         {canCancelStudioRequest(request) && (
-          <button type="button" disabled={busy} onClick={() => onCancel(request.id)} className={`${buttonClass} border-red-900/60 text-red-300 hover:border-red-700 hover:bg-red-950/30`}>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onCancel(request.id)}
+            className={`${buttonClass} border-red-900/60 text-red-300 hover:border-red-700 hover:bg-red-950/30`}
+          >
             {busy ? "Cancelling" : "Cancel"}
           </button>
         )}
@@ -732,7 +1084,9 @@ function StudioStatusBadge({ status }: { status: StudioRequestStatus }) {
   }[status];
 
   return (
-    <span className={`border px-2 py-1 text-[9px] uppercase tracking-[0.14em] ${tone}`}>
+    <span
+      className={`border px-2 py-1 text-[9px] uppercase tracking-[0.14em] ${tone}`}
+    >
       {status}
     </span>
   );
@@ -742,7 +1096,10 @@ function StudioSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
       {Array.from({ length: 4 }).map((_, index) => (
-        <div key={index} className="h-32 animate-pulse border border-neutral-800 bg-white/[0.02] p-4">
+        <div
+          key={index}
+          className="h-32 animate-pulse border border-neutral-800 bg-white/[0.02] p-4"
+        >
           <div className="mb-4 h-4 w-1/2 bg-neutral-800" />
           <div className="h-14 bg-neutral-900" />
         </div>
@@ -777,12 +1134,23 @@ function getScheduleRequestStatusLabel(request: StudioCalendarRequest) {
   return request.status === "approved" ? "Booked" : "Pending";
 }
 
-function canCancelStudioRequest(request: { endsAt: string; isMine?: boolean; status: StudioRequestStatus }) {
-  return request.isMine !== false && (request.status === "pending" || (request.status === "approved" && Date.parse(request.endsAt) > Date.now()));
+function canCancelStudioRequest(request: {
+  endsAt: string;
+  isMine?: boolean;
+  status: StudioRequestStatus;
+}) {
+  return (
+    request.isMine !== false &&
+    (request.status === "pending" ||
+      (request.status === "approved" &&
+        Date.parse(request.endsAt) > Date.now()))
+  );
 }
 
 function zonedTimeInputToUtcIso(parts: DateParts, time: string) {
-  const [hour = 0, minute = 0] = time.split(":").map((value) => Number.parseInt(value, 10));
+  const [hour = 0, minute = 0] = time
+    .split(":")
+    .map((value) => Number.parseInt(value, 10));
   const targetDay = hour === 0 ? addCalendarDays(parts, 1) : parts;
   return zonedTimeToUtcIso(targetDay, hour, minute);
 }
@@ -793,7 +1161,9 @@ function startOfClubSunday(date: Date): DateParts {
 }
 
 function addCalendarDays(parts: DateParts, days: number): DateParts {
-  const date = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + days));
+  const date = new Date(
+    Date.UTC(parts.year, parts.month - 1, parts.day + days),
+  );
   return {
     day: date.getUTCDate(),
     month: date.getUTCMonth() + 1,
@@ -802,7 +1172,9 @@ function addCalendarDays(parts: DateParts, days: number): DateParts {
 }
 
 function keyToDateParts(key: string): DateParts {
-  const [year, month, day] = key.split("-").map((value) => Number.parseInt(value, 10));
+  const [year, month, day] = key
+    .split("-")
+    .map((value) => Number.parseInt(value, 10));
   return { day: day || 1, month: month || 1, year: year || 1970 };
 }
 
@@ -811,7 +1183,10 @@ function datePartsToKey(parts: DateParts) {
 }
 
 function compareDateParts(left: DateParts, right: DateParts) {
-  return Date.UTC(left.year, left.month - 1, left.day) - Date.UTC(right.year, right.month - 1, right.day);
+  return (
+    Date.UTC(left.year, left.month - 1, left.day) -
+    Date.UTC(right.year, right.month - 1, right.day)
+  );
 }
 
 function isDatePartsBefore(left: DateParts, right: DateParts) {
@@ -819,7 +1194,15 @@ function isDatePartsBefore(left: DateParts, right: DateParts) {
 }
 
 function zonedTimeToUtcIso(parts: DateParts, hour: number, minute = 0) {
-  const targetAsUtc = Date.UTC(parts.year, parts.month - 1, parts.day, hour, minute, 0, 0);
+  const targetAsUtc = Date.UTC(
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    hour,
+    minute,
+    0,
+    0,
+  );
   let utcMs = targetAsUtc;
 
   for (let index = 0; index < 3; index += 1) {
