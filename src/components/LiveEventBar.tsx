@@ -24,7 +24,7 @@ export default function LiveEventBar() {
     <div
       role="status"
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 top-28 z-30 border-y border-white/20 bg-black text-white"
+      className="pointer-events-none fixed inset-x-0 top-24 z-30 border-y border-white/20 bg-black text-white"
     >
       <a
         href="/events#upcoming-events"

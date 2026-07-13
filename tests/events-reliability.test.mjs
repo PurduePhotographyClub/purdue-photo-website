@@ -185,6 +185,6 @@ test("event surfaces use fresh admin reads, reactive live state, recovery, and a
   assert.doesNotMatch(home, /LiveEventWidget/);
   assert.match(layout, /LiveEventBar client:load/);
   assert.match(liveEventBar, /\/api\/events\?view=home/);
-  assert.match(liveEventBar, /top-28/);
+  assert.match(liveEventBar, /top-24/);
   assert.match(home, /view=home/);
 });
