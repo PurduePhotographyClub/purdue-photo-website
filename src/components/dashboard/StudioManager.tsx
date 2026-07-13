@@ -80,6 +80,34 @@ interface StudioManagerProps {
   userTier: string | null;
 }
 
+interface StudioSchedulePanelProps {
+  busyAction: string | null;
+  days: DateParts[];
+  isPreviousDisabled: boolean;
+  previousWeekStartParts: DateParts;
+  requestsByDay: Map<string, StudioCalendarRequest[]>;
+  scheduleLoading: boolean;
+  todayDayKey: string;
+  todayParts: DateParts;
+  todayWeekStartParts: DateParts;
+  weekStartParts: DateParts;
+  onCancel: (requestId: string) => void;
+  onNext: () => void;
+  onPrevious: () => void;
+  onRequest: (day: DateParts) => void;
+  onToday: () => void;
+}
+
+function StudioFeedback({ error, success, syncWarning }: { error: string; success: string; syncWarning: string }) {
+  return (
+    <>
+      {error && <p role="alert" className="border border-red-900/30 bg-red-900/10 px-4 py-3 text-xs text-red-400">{error}</p>}
+      {success && <p role="status" className="border border-green-900/30 bg-green-900/10 px-4 py-3 text-xs text-green-400">{success}</p>}
+      {syncWarning && <p role="status" className="border border-amber-900/40 bg-amber-950/15 px-4 py-3 text-xs text-amber-300">{syncWarning}</p>}
+    </>
+  );
+}
+
 type StudioRequestStatus = "approved" | "cancelled" | "pending" | "rejected";
 type StudioManagerTab = "requests" | "schedule" | "stats";
 
@@ -357,30 +385,11 @@ export default function StudioManager({
 
   return (
     <div className="space-y-6">
-      {((!bookingDay && error) || dashboardError || scheduleError) && (
-        <p
-          role="alert"
-          className="border border-red-900/30 bg-red-900/10 px-4 py-3 text-xs text-red-400"
-        >
-          {(!bookingDay && error) || "Failed to load studio data."}
-        </p>
-      )}
-      {success && (
-        <p
-          role="status"
-          className="border border-green-900/30 bg-green-900/10 px-4 py-3 text-xs text-green-400"
-        >
-          {success}
-        </p>
-      )}
-      {syncWarning && (
-        <p
-          role="status"
-          className="border border-amber-900/40 bg-amber-950/15 px-4 py-3 text-xs text-amber-300"
-        >
-          {syncWarning}
-        </p>
-      )}
+      <StudioFeedback
+        error={((!bookingDay && error) || dashboardError || scheduleError) ? ((!bookingDay && error) || "Failed to load studio data.") : ""}
+        success={success}
+        syncWarning={syncWarning}
+      />
 
       <StudioTabs
         activeTab={activeTab}
@@ -395,59 +404,35 @@ export default function StudioManager({
         ))}
 
       {activeTab === "schedule" && (
-        <>
-          <StudioToolbar
-            previousDisabled={isPreviousDisabled}
-            rangeLabel={`${formatClubMonthDay(weekStartParts)} - ${formatClubMonthDay(addCalendarDays(weekStartParts, 6))}`}
-            onNext={() =>
-              setState({
-                weekStartKey: datePartsToKey(
-                  addCalendarDays(weekStartParts, 7),
-                ),
-              })
-            }
-            onPrevious={() =>
-              setState({
-                weekStartKey: datePartsToKey(
-                  compareDateParts(
-                    previousWeekStartParts,
-                    todayWeekStartParts,
-                  ) < 0
-                    ? todayWeekStartParts
-                    : previousWeekStartParts,
-                ),
-              })
-            }
-            onToday={() => setState({ weekStartKey: todayWeekStartKey })}
-          />
-
-          {scheduleLoading ? (
-            <StudioSkeleton />
-          ) : (
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-4">
-              {days.map((day) => (
-                <StudioDayColumn
-                  busyAction={busyAction}
-                  day={day}
-                  isPast={isDatePartsBefore(day, todayParts)}
-                  key={datePartsToKey(day)}
-                  requests={requestsByDay.get(datePartsToKey(day)) ?? []}
-                  todayDayKey={todayDayKey}
-                  onCancel={handleCancelRequest}
-                  onRequest={(requestDay) =>
-                    setState({
-                      bookingDay: requestDay,
-                      bookingForm: createDefaultBookingForm(),
-                      error: "",
-                      success: "",
-                      syncWarning: "",
-                    })
-                  }
-                />
-              ))}
-            </div>
-          )}
-        </>
+        <StudioSchedulePanel
+          busyAction={busyAction}
+          days={days}
+          isPreviousDisabled={isPreviousDisabled}
+          previousWeekStartParts={previousWeekStartParts}
+          requestsByDay={requestsByDay}
+          scheduleLoading={scheduleLoading}
+          todayDayKey={todayDayKey}
+          todayParts={todayParts}
+          todayWeekStartParts={todayWeekStartParts}
+          weekStartParts={weekStartParts}
+          onCancel={handleCancelRequest}
+          onNext={() => setState({ weekStartKey: datePartsToKey(addCalendarDays(weekStartParts, 7)) })}
+          onPrevious={() => setState({
+            weekStartKey: datePartsToKey(
+              compareDateParts(previousWeekStartParts, todayWeekStartParts) < 0
+                ? todayWeekStartParts
+                : previousWeekStartParts,
+            ),
+          })}
+          onRequest={(requestDay) => setState({
+            bookingDay: requestDay,
+            bookingForm: createDefaultBookingForm(),
+            error: "",
+            success: "",
+            syncWarning: "",
+          })}
+          onToday={() => setState({ weekStartKey: todayWeekStartKey })}
+        />
       )}
 
       {activeTab === "requests" &&
@@ -475,6 +460,54 @@ export default function StudioManager({
         />
       )}
     </div>
+  );
+}
+
+function StudioSchedulePanel({
+  busyAction,
+  days,
+  isPreviousDisabled,
+  previousWeekStartParts,
+  requestsByDay,
+  scheduleLoading,
+  todayDayKey,
+  todayParts,
+  todayWeekStartParts,
+  weekStartParts,
+  onCancel,
+  onNext,
+  onPrevious,
+  onRequest,
+  onToday,
+}: StudioSchedulePanelProps) {
+  return (
+    <>
+      <StudioToolbar
+        previousDisabled={isPreviousDisabled}
+        rangeLabel={`${formatClubMonthDay(weekStartParts)} - ${formatClubMonthDay(addCalendarDays(weekStartParts, 6))}`}
+        onNext={onNext}
+        onPrevious={onPrevious}
+        onToday={onToday}
+      />
+      {scheduleLoading ? (
+        <StudioSkeleton />
+      ) : (
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-4">
+          {days.map((day) => (
+            <StudioDayColumn
+              busyAction={busyAction}
+              day={day}
+              isPast={isDatePartsBefore(day, todayParts)}
+              key={datePartsToKey(day)}
+              requests={requestsByDay.get(datePartsToKey(day)) ?? []}
+              todayDayKey={todayDayKey}
+              onCancel={onCancel}
+              onRequest={onRequest}
+            />
+          ))}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -842,9 +875,6 @@ function StudioBookingModal({
       onCancel={(event) => {
         if (busy) event.preventDefault();
         else onClose();
-      }}
-      onClick={(event) => {
-        if (!busy && event.target === event.currentTarget) onClose();
       }}
       ref={dialogRef}
     >

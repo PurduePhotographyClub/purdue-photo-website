@@ -4,20 +4,22 @@ import { ArrowRight, CalendarDays, Clock, MapPin, Radio } from "lucide-react";
 import {
   formatEventDateTime,
   formatEventDay,
-  getEventEnd,
-  getEventStart,
+  getEventLoadStatus,
+  getEventStatus,
   normalizeEvent,
   splitEvents,
   type WebsiteEvent,
 } from "@/lib/events";
-import { fetchPublicJson, PUBLIC_API_SWR_OPTIONS } from "@/lib/http";
+import { useEventClock } from "@/hooks/useEventClock";
+import { fetchPublicJson, PUBLIC_EVENTS_SWR_OPTIONS } from "@/lib/http";
 
 export default function EventsPage() {
-  const { data: eventRows, error } = useSWR<Record<string, unknown>[]>("/api/events", fetchPublicJson, PUBLIC_API_SWR_OPTIONS);
+  const { data: eventRows, error, mutate } = useSWR<Record<string, unknown>[]>("/api/events?limit=100", fetchPublicJson, PUBLIC_EVENTS_SWR_OPTIONS);
   const events = useMemo(() => (eventRows ?? []).map(normalizeEvent), [eventRows]);
-  const status: "loading" | "loaded" | "error" = !eventRows && !error ? "loading" : error ? "error" : "loaded";
+  const status = getEventLoadStatus(eventRows, error);
+  const hasRefreshError = Boolean(eventRows && error);
 
-  const now = useMemo(() => new Date(), []);
+  const now = useEventClock();
   const { upcoming, past } = useMemo(() => splitEvents(events, now), [events, now]);
   const nextEvent = upcoming[0] ?? null;
 
@@ -33,8 +35,8 @@ export default function EventsPage() {
             backgroundSize: "72px 72px",
           }}
         />
-        <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-end">
-          <div>
+        <div className={`relative mx-auto grid max-w-7xl gap-10 ${nextEvent ? "lg:grid-cols-[0.95fr_1.05fr] lg:items-end" : "lg:max-w-4xl"}`}>
+          <div aria-live="polite">
             <p className="mb-4 text-xs uppercase tracking-[0.4em] text-neutral-500">Club Calendar</p>
             <h1 className="text-5xl tracking-wider text-neutral-100 md:text-7xl" style={{ fontFamily: "'Playfair Display', serif" }}>
               Events
@@ -56,10 +58,19 @@ export default function EventsPage() {
         <div className="mx-auto max-w-7xl">
           <SectionHeader eyebrow="Live Roll" title="Upcoming Events" count={upcoming.length} />
 
+          {hasRefreshError && (
+            <div role="status" className="mb-6 flex flex-col gap-3 border border-amber-900/60 bg-amber-950/10 p-4 text-xs text-amber-200 sm:flex-row sm:items-center sm:justify-between">
+              <span>Event refresh failed. Showing the last saved event list.</span>
+              <button type="button" onClick={() => void mutate()} className="min-h-11 border border-amber-900/70 px-4 text-[10px] uppercase tracking-[0.15em] hover:border-amber-700">
+                Retry refresh
+              </button>
+            </div>
+          )}
+
           {status === "loading" ? (
             <LoadingRows count={3} />
           ) : status === "error" ? (
-            <EmptyState title="Could not load events" message="Try refreshing the page in a moment." />
+            <EmptyState title="Could not load events" message="Try again in a moment." onRetry={() => void mutate()} />
           ) : upcoming.length === 0 ? (
             <EmptyState title="No upcoming events" message="The calendar is clear for now." />
           ) : (
@@ -80,7 +91,7 @@ export default function EventsPage() {
           {status === "loading" ? (
             <LoadingRows count={4} compact />
           ) : status === "error" ? (
-            <EmptyState title="Archive unavailable" message="Event history could not be loaded." />
+            <EmptyState title="Archive unavailable" message="Event history could not be loaded." onRetry={() => void mutate()} />
           ) : past.length === 0 ? (
             <EmptyState title="No past events yet" message="Past events will appear here after they end." />
           ) : (
@@ -97,16 +108,20 @@ export default function EventsPage() {
 }
 
 function NextEvent({ event, now }: { event: WebsiteEvent; now: Date }) {
-  const isLive = getEventStart(event) <= now && getEventEnd(event) >= now;
+  const isLive = getEventStatus(event, now) === "live";
   const parts = formatEventDay(event.date);
 
   return (
     <a href="#upcoming-events" className="group grid gap-5 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400 md:grid-cols-[120px_1fr]">
       <div className="relative flex min-h-40 flex-col items-center justify-center border border-neutral-700 bg-neutral-950">
-        <span className="absolute right-3 top-3 flex size-3">
-          <span className="absolute h-full w-full animate-ping rounded-full bg-amber-300 opacity-60" />
-          <span className="relative size-3 rounded-full bg-amber-300" />
-        </span>
+        {isLive ? (
+          <span className="absolute right-3 top-3 flex size-3" aria-hidden="true">
+            <span className="absolute h-full w-full animate-ping rounded-full bg-amber-300 opacity-60 motion-reduce:animate-none" />
+            <span className="relative size-3 rounded-full bg-amber-300" />
+          </span>
+        ) : (
+          <CalendarDays className="absolute right-3 top-3 text-neutral-600" size={15} aria-hidden="true" />
+        )}
         <span className="text-5xl tracking-wider text-neutral-100" style={{ fontFamily: "'Playfair Display', serif" }}>{parts.day}</span>
         <span className="mt-1 text-[10px] uppercase tracking-[0.3em] text-neutral-500">{parts.month}</span>
       </div>
@@ -138,7 +153,7 @@ function SectionHeader({ count, eyebrow, title }: { count: number; eyebrow: stri
 
 function TimelineEvent({ event, featured, index, now }: { event: WebsiteEvent; featured?: boolean; index: number; now: Date }) {
   const parts = formatEventDay(event.date);
-  const isLive = getEventStart(event) <= now && getEventEnd(event) >= now;
+  const isLive = getEventStatus(event, now) === "live";
 
   return (
     <article className={`group relative flex min-h-72 flex-col overflow-hidden border border-neutral-800 bg-white/[0.02] p-5 transition-colors hover:border-neutral-600 ${featured ? "md:col-span-2 xl:col-span-2 md:min-h-80 md:p-7" : ""}`}>
@@ -156,7 +171,7 @@ function TimelineEvent({ event, featured, index, now }: { event: WebsiteEvent; f
         <div className="flex flex-wrap justify-end gap-2">
           <span className="border border-neutral-800 px-2 py-1 text-[9px] uppercase tracking-[0.2em] text-neutral-500">No. {String(index + 1).padStart(2, "0")}</span>
           {isLive && <span className="bg-amber-300 px-2 py-1 text-[9px] uppercase tracking-[0.2em] text-black">Now</span>}
-          {event.discordEventId && <span className="border border-neutral-700 px-2 py-1 text-[9px] uppercase tracking-[0.2em] text-neutral-400">Discord</span>}
+          {event.discordSynced && <span className="border border-neutral-700 px-2 py-1 text-[9px] uppercase tracking-[0.2em] text-neutral-400">Discord</span>}
         </div>
       </div>
       <div className="mt-auto">
@@ -225,11 +240,20 @@ function LoadingRows({ compact = false, count }: { compact?: boolean; count: num
   );
 }
 
-function EmptyState({ message, title }: { message: string; title: string }) {
+function EmptyState({ message, onRetry, title }: { message: string; onRetry?: () => void; title: string }) {
   return (
     <div className="border border-neutral-800 bg-white/[0.02] p-8 text-center">
       <p className="mb-2 text-sm tracking-wider text-neutral-300">{title}</p>
       <p className="text-xs tracking-wider text-neutral-600">{message}</p>
+      {onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-5 inline-flex min-h-11 items-center border border-neutral-700 px-4 text-[10px] uppercase tracking-[0.2em] text-neutral-300 transition-colors hover:border-neutral-500 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
+        >
+          Retry
+        </button>
+      )}
     </div>
   );
 }

@@ -33,6 +33,27 @@ export const LIVE_SCHEDULE_SWR_OPTIONS = {
   refreshInterval: 60_000,
 } satisfies SWRConfiguration;
 
+export const PUBLIC_EVENTS_SWR_OPTIONS = {
+  ...SCHEDULE_SWR_OPTIONS,
+  dedupingInterval: 60_000,
+  focusThrottleInterval: 60_000,
+  refreshInterval: 60_000,
+} satisfies SWRConfiguration;
+
+export const HOME_EVENTS_SWR_OPTIONS = {
+  ...SCHEDULE_SWR_OPTIONS,
+  dedupingInterval: 30_000,
+  focusThrottleInterval: 30_000,
+  refreshInterval: 60_000,
+} satisfies SWRConfiguration;
+
+export const ADMIN_EVENTS_SWR_OPTIONS = {
+  ...SCHEDULE_SWR_OPTIONS,
+  dedupingInterval: 10_000,
+  focusThrottleInterval: 10_000,
+  refreshInterval: 60_000,
+} satisfies SWRConfiguration;
+
 export async function readJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
 }
@@ -80,6 +101,16 @@ export function fetchPublicJson<T>(
   return fetchJson<T>(url, {
     ...init,
     credentials: "omit",
+  });
+}
+
+export function fetchFreshJson<T>(
+  url: string,
+  init: RequestInit = {},
+): Promise<T> {
+  return fetchJson<T>(url, {
+    ...init,
+    cache: "no-store",
   });
 }
 
