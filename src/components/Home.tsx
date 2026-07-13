@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import useSWR from "swr";
-import { Users, ArrowRight, Clock, Film, Trophy, Image, Instagram, Mail, MapPin, Radio, ShoppingBag } from "lucide-react";
+import { Users, ArrowRight, Film, Trophy, Image, Instagram, Mail, ShoppingBag } from "lucide-react";
 import { ImageWithFallback } from "./ImageWithFallback";
 import {
   findCurrentEvents,
@@ -181,12 +181,8 @@ const updateLinks = [
 ];
 
 function HomeHero({
-  currentEvent,
-  currentEventCount,
   theme,
 }: {
-  currentEvent: WebsiteEvent | null;
-  currentEventCount: number;
   theme: HomeTheme;
 }) {
   const { heading } = theme;
@@ -228,47 +224,29 @@ function HomeHero({
           backgroundSize: "32px 100%",
         }}
       />
-      {currentEvent && (
-        <LiveEventWidget event={currentEvent} additionalEvents={Math.max(0, currentEventCount - 1)} />
-      )}
     </section>
   );
 }
 
 function LiveEventWidget({ event, additionalEvents }: { event: WebsiteEvent; additionalEvents: number }) {
   return (
-    <aside
-      aria-label="Club event happening now"
+    <div
+      role="status"
       aria-live="polite"
-      className="relative z-20 mb-6 mt-8 w-[calc(100%-2rem)] max-w-xl border border-amber-300/30 bg-neutral-950/95 p-4 shadow-lg shadow-black/40 lg:mr-6 lg:w-96 lg:self-end min-[1800px]:absolute min-[1800px]:bottom-12 min-[1800px]:right-6 min-[1800px]:mb-0 min-[1800px]:mt-0"
+      className="pointer-events-none fixed inset-x-0 top-24 z-30 border-y border-white/20 bg-black text-white"
     >
-      <div className="flex items-start gap-3">
-        <span className="relative mt-1 flex size-3 shrink-0" aria-hidden="true">
-          <span className="absolute size-full animate-ping rounded-full bg-amber-300 opacity-60 motion-reduce:animate-none" />
-          <span className="relative size-3 rounded-full bg-amber-300" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-amber-300">
-            <Radio size={11} /> Happening now
-          </p>
-          <h2 className="mt-2 text-balance text-lg tracking-wide text-neutral-100" style={{ fontFamily: "'Playfair Display', serif" }}>
-            {event.title}
-          </h2>
-          <div className="mt-2 space-y-1 text-[10px] leading-relaxed text-neutral-400">
-            <p className="flex items-start gap-2"><Clock className="mt-0.5 shrink-0" size={11} />{formatEventDateTime(event)}</p>
-            {event.location && <p className="flex items-start gap-2"><MapPin className="mt-0.5 shrink-0" size={11} />{event.location}</p>}
-          </div>
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-            {additionalEvents > 0 ? (
-              <span className="text-[9px] uppercase tracking-[0.16em] text-neutral-500">+{additionalEvents} more live</span>
-            ) : <span />}
-            <a href="/events#upcoming-events" className="inline-flex min-h-11 items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-neutral-200 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400">
-              Event details <ArrowRight size={12} />
-            </a>
-          </div>
-        </div>
-      </div>
-    </aside>
+      <a
+        href="/events#upcoming-events"
+        className="pointer-events-auto flex min-h-8 w-full items-center justify-center gap-2 px-3 py-1.5 text-[9px] uppercase tracking-[0.16em] focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-2px] focus-visible:outline-white sm:gap-3"
+      >
+        <span className="inline-flex size-1.5 shrink-0 bg-white" aria-hidden="true" />
+        <span className="shrink-0 font-bold">Live now</span>
+        <span className="min-w-0 flex-1 truncate normal-case tracking-[0.04em] text-neutral-200">{event.title}</span>
+        <span className="hidden shrink-0 text-neutral-400 sm:inline">{formatEventDateTime(event)}</span>
+        {additionalEvents > 0 && <span className="hidden shrink-0 text-neutral-400 md:inline">+{additionalEvents} more</span>}
+        <ArrowRight size={11} className="shrink-0" aria-hidden="true" />
+      </a>
+    </div>
   );
 }
 
@@ -696,7 +674,8 @@ export default function Home() {
 
   return (
     <div className="overflow-x-hidden">
-      <HomeHero currentEvent={currentEvents[0] ?? null} currentEventCount={currentEvents.length} theme={homeTheme} />
+      {currentEvents[0] && <LiveEventWidget event={currentEvents[0]} additionalEvents={Math.max(0, currentEvents.length - 1)} />}
+      <HomeHero theme={homeTheme} />
       <VisitorPathsSection theme={homeTheme} />
       <FeaturedPhotosSection galleryPhotos={galleryPhotos} galleryStatus={galleryStatus} theme={homeTheme} />
       <ClubStatsSection clubStats={clubStats} theme={homeTheme} />
