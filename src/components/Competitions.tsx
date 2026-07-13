@@ -160,7 +160,7 @@ export default function Competitions() {
   const [activePeriod, setActivePeriod] = useState(0);
   const [lightbox, setLightbox] = useState<Winner | null>(null);
   const archiveRef = useRef<HTMLDivElement | null>(null);
-  const shouldFocusArchiveRef = useRef(false);
+  const previousArchivePageRef = useRef(1);
   const competitionUrl = `/api/competitions?page=${page}&per_page=${COMPETITIONS_PAGE_SIZE}&format=page&include=results`;
   const {
     data: competitionPage,
@@ -195,15 +195,14 @@ export default function Competitions() {
   const activeGroup = periodGroups[activePeriod] || periodGroups[0];
 
   useEffect(() => {
-    if (!competitionPage || !shouldFocusArchiveRef.current) return;
-    shouldFocusArchiveRef.current = false;
+    if (!competitionPage || previousArchivePageRef.current === competitionPage.meta.page) return;
+    previousArchivePageRef.current = competitionPage.meta.page;
     archiveRef.current?.focus({ preventScroll: true });
     archiveRef.current?.scrollIntoView({ block: "start" });
   }, [competitionPage]);
 
   const handlePageChange = (nextPage: number) => {
     if (!meta || nextPage < 1 || nextPage > meta.totalPages || nextPage === meta.page) return;
-    shouldFocusArchiveRef.current = true;
     setActivePeriod(0);
     setLightbox(null);
     setPage(nextPage);

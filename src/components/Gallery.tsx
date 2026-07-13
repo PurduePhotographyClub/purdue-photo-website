@@ -85,7 +85,7 @@ export default function Gallery() {
   const [selected, setSelected] = useState<number | null>(null);
   const galleryResultsRef = useRef<HTMLDivElement | null>(null);
   const lightboxDialogRef = useRef<HTMLDialogElement | null>(null);
-  const shouldFocusResultsRef = useRef(false);
+  const previousGalleryPageRef = useRef(1);
   const meta = galleryPage?.meta;
   const visiblePageNumbers = meta ? getVisiblePageNumbers(meta.page, meta.totalPages) : [];
   const galleryLayout = getGalleryLayoutClassNames(visibleImages.length);
@@ -107,14 +107,13 @@ export default function Gallery() {
   }, [selected]);
 
   useEffect(() => {
-    if (!galleryPage || !shouldFocusResultsRef.current) return;
-    shouldFocusResultsRef.current = false;
+    if (!galleryPage || previousGalleryPageRef.current === galleryPage.meta.page) return;
+    previousGalleryPageRef.current = galleryPage.meta.page;
     galleryResultsRef.current?.focus({ preventScroll: true });
     galleryResultsRef.current?.scrollIntoView({ block: "start" });
   }, [galleryPage]);
 
   const handleFilterChange = (category: string) => {
-    shouldFocusResultsRef.current = true;
     setFilter(category);
     setPage(1);
     setSelected(null);
@@ -122,7 +121,6 @@ export default function Gallery() {
 
   const handlePageChange = (nextPage: number) => {
     if (!meta || nextPage < 1 || nextPage > meta.totalPages || nextPage === meta.page) return;
-    shouldFocusResultsRef.current = true;
     setSelected(null);
     setPage(nextPage);
   };

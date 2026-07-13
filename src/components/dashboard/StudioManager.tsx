@@ -843,9 +843,6 @@ function StudioBookingModal({
         if (busy) event.preventDefault();
         else onClose();
       }}
-      onClick={(event) => {
-        if (!busy && event.target === event.currentTarget) onClose();
-      }}
       ref={dialogRef}
     >
       <form
