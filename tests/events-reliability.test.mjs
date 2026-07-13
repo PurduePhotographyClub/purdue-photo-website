@@ -222,6 +222,7 @@ test("event surfaces use fresh admin reads, reactive live state, recovery, and a
   assert.match(header, /showLiveEventBar && <div aria-hidden="true" className="h-11"/);
   assert.doesNotMatch(layout, /LiveEventBar/);
   assert.match(liveEventBar, /HOME_EVENTS_API_KEY/);
+  assert.match(liveEventBar, /const liveEvents = currentEvents \?\? \[\]/);
   assert.match(liveEventBar, /useEventClock\(eventRows\.length > 0\)/);
   assert.doesNotMatch(liveEventBar, /\/api\/events\?view=home/);
   assert.doesNotMatch(liveEventBar, /\bfixed\b|top-28/);

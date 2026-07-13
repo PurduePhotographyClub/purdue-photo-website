@@ -27,8 +27,14 @@ jobs:
       - name: Install
         run: npm ci --ignore-scripts
 
+      - name: Test
+        run: npm test
+
       - name: Build
         run: npm run build
+
+      - name: Validate deploy artifact
+        run: npm run verify:deploy-artifact
 
       - name: Typecheck
         run: npm run typecheck
