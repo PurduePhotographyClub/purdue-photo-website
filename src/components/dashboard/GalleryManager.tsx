@@ -11,19 +11,29 @@ import {
 import useSWR from "swr";
 import AccessUpsellPanel from "@/components/dashboard/AccessUpsellPanel";
 import ModalDialog from "@/components/ModalDialog";
+import GalleryPhotoEditModal from "@/components/dashboard/gallery/GalleryPhotoEditModal";
+import GalleryPhotoPreviewModal from "@/components/dashboard/gallery/GalleryPhotoPreviewModal";
+import type {
+  GalleryPhoto,
+  GalleryPhotoUpdates,
+} from "@/components/dashboard/gallery/types";
 import {
   fetchApi,
   fetchJson,
-  readErrorMessage
+  readErrorMessage,
+  readJson,
 } from "@/lib/http";
+import { GALLERY_TAGS, serializeGalleryTags } from "@/lib/gallery-tags";
 
 function changeGalleryManagerPage(
   setExpanded: Dispatch<SetStateAction<string | null>>,
+  setEditTarget: Dispatch<SetStateAction<string | null>>,
   setDeleteTarget: Dispatch<SetStateAction<string | null>>,
   setPage: Dispatch<SetStateAction<number>>,
   nextPage: number,
 ) {
   setExpanded(null);
+  setEditTarget(null);
   setDeleteTarget(null);
   setPage(nextPage);
 }
@@ -36,22 +46,10 @@ import {
 } from "@/lib/gallery-images";
 import { createKeyedStateSetter, keyedStateReducer } from "@/lib/reducer-state";
 
-const GALLERY_TAGS = [
-  "Film",
-  "Digital",
-] as const;
 const GALLERY_MANAGER_PAGE_SIZE = 60;
-
-interface Photo {
-  id: string;
-  title: string | null;
-  description: string | null;
-  tags: string | null;
-  imageUrl: string;
-  thumbnailUrl: string;
-  createdAt: string;
-}
-const EMPTY_GALLERY_PHOTOS: Photo[] = [];
+const EMPTY_GALLERY_PHOTOS: GalleryPhoto[] = [];
+const GALLERY_INPUT_CLASS =
+  "w-full px-4 py-3 bg-white/[0.02] border border-neutral-800 text-sm text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-neutral-600 transition-colors";
 
 interface Props {
   userRole: string;
@@ -60,13 +58,60 @@ interface Props {
 
 async function fetchGalleryPhotos(url: string) {
   const data = await fetchJson<unknown>(url);
-  return normalizeGalleryPageForUrl<Photo>(data, url, GALLERY_MANAGER_PAGE_SIZE);
+  return normalizeGalleryPageForUrl<GalleryPhoto>(data, url, GALLERY_MANAGER_PAGE_SIZE);
 }
 
 function getVisiblePageNumbers(page: number, totalPages: number) {
   return Array.from(new Set([1, page - 1, page, page + 1, totalPages]))
     .filter((pageNumber) => pageNumber >= 1 && pageNumber <= totalPages)
     .sort((first, second) => first - second);
+}
+
+interface GalleryManagerPaginationProps {
+  meta: GalleryPage<GalleryPhoto>["meta"];
+  onPageChange: (page: number) => void;
+  pageNumbers: number[];
+}
+
+function GalleryManagerPagination({
+  meta,
+  onPageChange,
+  pageNumbers,
+}: GalleryManagerPaginationProps) {
+  if (meta.totalPages <= 1) return null;
+
+  return (
+    <nav aria-label="Member gallery pagination" className="flex flex-wrap items-center justify-center gap-2">
+      <button
+        type="button"
+        disabled={!meta.hasPreviousPage}
+        onClick={() => onPageChange(meta.page - 1)}
+        className="min-h-11 border border-neutral-800 px-4 text-[10px] uppercase tracking-wider text-neutral-400 disabled:opacity-30"
+      >
+        Previous
+      </button>
+      {pageNumbers.map((pageNumber) => (
+        <button
+          type="button"
+          key={pageNumber}
+          aria-label={`Go to member gallery page ${pageNumber}`}
+          aria-current={pageNumber === meta.page ? "page" : undefined}
+          onClick={() => onPageChange(pageNumber)}
+          className={`min-h-11 min-w-11 border px-3 text-xs ${pageNumber === meta.page ? "border-white text-white" : "border-neutral-800 text-neutral-500"}`}
+        >
+          {pageNumber}
+        </button>
+      ))}
+      <button
+        type="button"
+        disabled={!meta.hasNextPage}
+        onClick={() => onPageChange(meta.page + 1)}
+        className="min-h-11 border border-neutral-800 px-4 text-[10px] uppercase tracking-wider text-neutral-400 disabled:opacity-30"
+      >
+        Next
+      </button>
+    </nav>
+  );
 }
 
 interface GalleryManagerState {
@@ -78,9 +123,12 @@ interface GalleryManagerState {
   lens: string;
   showName: boolean;
   error: string;
+  editError: string;
   success: string;
   preview: string | null;
   expanded: string | null;
+  editTarget: string | null;
+  savingEdit: boolean;
   deleteTarget: string | null;
   deleting: boolean;
 }
@@ -94,9 +142,12 @@ const initialGalleryManagerState: GalleryManagerState = {
   lens: "",
   showName: true,
   error: "",
+  editError: "",
   success: "",
   preview: null,
   expanded: null,
+  editTarget: null,
+  savingEdit: false,
   deleteTarget: null,
   deleting: false,
 };
@@ -181,8 +232,8 @@ function GalleryUploadPanel({
           type="text"
           value={description}
           onChange={(e) => onDescriptionChange(e.target.value)}
-          placeholder="Description"
-          required
+          placeholder="Description (optional)"
+          maxLength={1000}
           className={inputClass}
         />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -254,12 +305,13 @@ interface GalleryPhotoGridProps {
   canUpload: boolean;
   loading: boolean;
   onDelete: (photoId: string) => void;
+  onEdit: (photoId: string) => void;
   onExpand: (photoId: string) => void;
-  photos: Photo[];
+  photos: GalleryPhoto[];
   total: number;
 }
 
-function GalleryPhotoGrid({ canUpload, loading, onDelete, onExpand, photos, total }: GalleryPhotoGridProps) {
+function GalleryPhotoGrid({ canUpload, loading, onDelete, onEdit, onExpand, photos, total }: GalleryPhotoGridProps) {
   return (
     <div>
       <div className="flex items-baseline justify-between mb-4">
@@ -295,7 +347,7 @@ function GalleryPhotoGrid({ canUpload, loading, onDelete, onExpand, photos, tota
                   (e.target as HTMLImageElement).parentElement!.classList.add("min-h-[120px]");
                 }}
               />
-              <div className="absolute inset-0 flex items-end bg-black/60 p-3 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+              <div className="absolute inset-0 flex items-end bg-black/60 p-3 pb-14 opacity-100 transition-opacity sm:pb-3 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                 <div className="flex-1 min-w-0">
                   {photo.title && (
                     <p className="text-xs text-white truncate">{photo.title}</p>
@@ -307,16 +359,22 @@ function GalleryPhotoGrid({ canUpload, loading, onDelete, onExpand, photos, tota
                     {new Date(photo.createdAt).toLocaleDateString()}
                   </p>
                 </div>
-                <div className="flex flex-col gap-1.5 shrink-0 ml-2">
+                <div className="absolute inset-x-0 bottom-0 grid grid-cols-3 bg-black/90 sm:static sm:ml-2 sm:flex sm:w-auto sm:shrink-0 sm:flex-col sm:gap-1.5 sm:bg-transparent">
                   <button type="button"
                     onClick={() => onExpand(photo.id)}
-                    className="text-[10px] text-neutral-300 hover:text-white transition-colors"
+                    className="min-h-11 w-full px-1 text-[10px] text-neutral-300 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-white sm:min-w-11"
                   >
                     View
                   </button>
                   <button type="button"
+                    onClick={() => onEdit(photo.id)}
+                    className="min-h-11 w-full px-1 text-[10px] text-neutral-300 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-white sm:min-w-11"
+                  >
+                    Edit
+                  </button>
+                  <button type="button"
                     onClick={() => onDelete(photo.id)}
-                    className="text-[10px] text-red-400 hover:text-red-300 transition-colors"
+                    className="min-h-11 w-full px-1 text-[10px] text-red-400 transition-colors hover:text-red-300 focus-visible:outline focus-visible:outline-1 focus-visible:outline-red-400 sm:min-w-11"
                   >
                     Delete
                   </button>
@@ -327,53 +385,6 @@ function GalleryPhotoGrid({ canUpload, loading, onDelete, onExpand, photos, tota
         </div>
       )}
     </div>
-  );
-}
-
-interface ExpandedPhotoModalProps {
-  onClose: () => void;
-  onDelete: (photoId: string) => void;
-  photo: Photo;
-}
-
-function ExpandedPhotoModal({ onClose, onDelete, photo }: ExpandedPhotoModalProps) {
-  return (
-    <ModalDialog ariaLabel="Gallery photo preview" onClose={onClose} className="flex items-center justify-center bg-black/95 p-6">
-      <button type="button" tabIndex={-1} aria-label="Close expanded photo" className="absolute inset-0 cursor-default" onMouseDown={onClose} />
-      <button type="button"
-        className="absolute top-6 right-6 z-10 text-neutral-400 hover:text-white text-sm"
-        onClick={onClose}
-      >
-        ✕
-      </button>
-      <div className="relative z-10 max-w-4xl w-full flex flex-col items-center">
-        <img
-          src={photo.imageUrl}
-          alt={photo.title || "Photo"}
-          className="max-w-full max-h-[75vh] object-contain"
-        />
-        <div className="mt-4 text-center">
-          {photo.title && (
-            <p className="text-sm text-neutral-200 tracking-wider">{photo.title}</p>
-          )}
-          {photo.description && (
-            <p className="text-xs text-neutral-500 mt-1">{photo.description}</p>
-          )}
-          {photo.tags && (
-            <p className="text-[10px] text-neutral-600 mt-2 tracking-wider">{photo.tags}</p>
-          )}
-          <p className="text-[10px] text-neutral-700 mt-2">
-            {new Date(photo.createdAt).toLocaleDateString()}
-          </p>
-          <button type="button"
-            onClick={() => onDelete(photo.id)}
-            className="mt-4 px-4 py-2 border border-red-900 text-[10px] tracking-[0.15em] uppercase text-red-400 hover:bg-red-900/20 transition-colors"
-          >
-            Delete Photo
-          </button>
-        </div>
-      </div>
-    </ModalDialog>
   );
 }
 
@@ -412,6 +423,67 @@ function DeletePhotoModal({ deleting, onClose, onConfirm }: DeletePhotoModalProp
   );
 }
 
+interface GalleryManagerDialogsProps {
+  deleteTarget: string | null;
+  deleting: boolean;
+  editError: string;
+  editPhoto: GalleryPhoto | undefined;
+  expandedPhoto: GalleryPhoto | undefined;
+  onCloseDelete: () => void;
+  onCloseEdit: () => void;
+  onClosePreview: () => void;
+  onConfirmDelete: () => void;
+  onDelete: (photoId: string) => void;
+  onEdit: (photoId: string) => void;
+  onSaveEdit: (photoId: string, updates: GalleryPhotoUpdates) => void;
+  savingEdit: boolean;
+}
+
+function GalleryManagerDialogs({
+  deleteTarget,
+  deleting,
+  editError,
+  editPhoto,
+  expandedPhoto,
+  onCloseDelete,
+  onCloseEdit,
+  onClosePreview,
+  onConfirmDelete,
+  onDelete,
+  onEdit,
+  onSaveEdit,
+  savingEdit,
+}: GalleryManagerDialogsProps) {
+  return (
+    <>
+      {expandedPhoto && (
+        <GalleryPhotoPreviewModal
+          onClose={onClosePreview}
+          onDelete={onDelete}
+          onEdit={onEdit}
+          photo={expandedPhoto}
+        />
+      )}
+      {editPhoto && (
+        <GalleryPhotoEditModal
+          errorMessage={editError}
+          onClose={onCloseEdit}
+          onSave={onSaveEdit}
+          photo={editPhoto}
+          saving={savingEdit}
+        />
+      )}
+      {deleteTarget && (
+        <DeletePhotoModal
+          deleting={deleting}
+          onClose={onCloseDelete}
+          onConfirm={onConfirmDelete}
+        />
+      )}
+    </>
+  );
+}
+
 export default function GalleryManager({ userRole, userTier }: Props) {
   const [page, setPage] = useState(1);
   const [state, dispatchState] = useReducer(
@@ -427,9 +499,12 @@ export default function GalleryManager({ userRole, userTier }: Props) {
     lens,
     showName,
     error,
+    editError,
     success,
     preview,
     expanded,
+    editTarget,
+    savingEdit,
     deleteTarget,
     deleting,
   } = state;
@@ -441,9 +516,12 @@ export default function GalleryManager({ userRole, userTier }: Props) {
   const setLens = createKeyedStateSetter(dispatchState, "lens");
   const setShowName = createKeyedStateSetter(dispatchState, "showName");
   const setError = createKeyedStateSetter(dispatchState, "error");
+  const setEditError = createKeyedStateSetter(dispatchState, "editError");
   const setSuccess = createKeyedStateSetter(dispatchState, "success");
   const setPreview = createKeyedStateSetter(dispatchState, "preview");
   const setExpanded = createKeyedStateSetter(dispatchState, "expanded");
+  const setEditTarget = createKeyedStateSetter(dispatchState, "editTarget");
+  const setSavingEdit = createKeyedStateSetter(dispatchState, "savingEdit");
   const setDeleteTarget = createKeyedStateSetter(dispatchState, "deleteTarget");
   const setDeleting = createKeyedStateSetter(dispatchState, "deleting");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -454,7 +532,7 @@ export default function GalleryManager({ userRole, userTier }: Props) {
     error: loadError,
     isLoading: loading,
     mutate: mutatePhotos,
-  } = useSWR<GalleryPage<Photo>>(
+  } = useSWR<GalleryPage<GalleryPhoto>>(
     `/api/gallery?mine=true&page=${page}&per_page=${GALLERY_MANAGER_PAGE_SIZE}&format=page`,
     fetchGalleryPhotos,
   );
@@ -462,13 +540,11 @@ export default function GalleryManager({ userRole, userTier }: Props) {
   const pageNumbers = galleryPage
     ? getVisiblePageNumbers(galleryPage.meta.page, galleryPage.meta.totalPages)
     : [];
-
   const replacePreview = (nextPreview: string | null) => {
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
     previewUrlRef.current = nextPreview;
     setPreview(nextPreview);
   };
-
   useEffect(() => () => {
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
   }, []);
@@ -521,7 +597,7 @@ export default function GalleryManager({ userRole, userTier }: Props) {
     formData.append("thumbnail", preparedImages.thumbnail, preparedImages.thumbnail.name);
     formData.append("title", title);
     formData.append("description", description);
-    formData.append("tags", selectedTags.join(", "));
+    formData.append("tags", serializeGalleryTags(selectedTags) ?? "");
     if (camera.trim()) formData.append("camera", camera.trim());
     if (lens.trim()) formData.append("lens", lens.trim());
     formData.append("showName", showName ? "true" : "false");
@@ -581,9 +657,49 @@ export default function GalleryManager({ userRole, userTier }: Props) {
     setDeleteTarget(null);
   };
 
-  const inputClass =
-    "w-full px-4 py-3 bg-white/[0.02] border border-neutral-800 text-sm text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-neutral-600 transition-colors";
+  const saveEdit = async (photoId: string, updates: GalleryPhotoUpdates) => {
+    setSavingEdit(true);
+    setEditError("");
+    try {
+      const res = await fetchApi(`/api/gallery/${photoId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (!res.ok) {
+        setEditError(await readErrorMessage(res, "Failed to update photo."));
+        return;
+      }
+
+      const updated = await readJson<GalleryPhoto>(res);
+      void mutatePhotos((current) => current
+        ? {
+          ...current,
+          photos: current.photos.map((photo) => photo.id === updated.id
+            ? { ...photo, ...updated }
+            : photo),
+        }
+        : current, { revalidate: false });
+      setEditTarget(null);
+      setSuccess("Photo updated.");
+      setTimeout(() => setSuccess(""), 4000);
+    } catch {
+      setEditError("Unable to update photo. Please try again.");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const expandedPhoto = photos.find((photo) => photo.id === expanded);
+  const editPhoto = photos.find((photo) => photo.id === editTarget);
+  const openEdit = (photoId: string) => {
+    setEditError("");
+    setEditTarget(photoId);
+  };
+  const closeEdit = () => {
+    setEditError("");
+    setEditTarget(null);
+  };
   const handleTagToggle = (tag: string) => {
     setSelectedTags((prev) =>
       prev.includes(tag) ? prev.filter((selectedTag) => selectedTag !== tag) : [...prev, tag]
@@ -591,7 +707,7 @@ export default function GalleryManager({ userRole, userTier }: Props) {
   };
   const handlePageChange = (nextPage: number) => {
     if (!galleryPage || nextPage < 1 || nextPage > galleryPage.meta.totalPages) return;
-    changeGalleryManagerPage(setExpanded, setDeleteTarget, setPage, nextPage);
+    changeGalleryManagerPage(setExpanded, setEditTarget, setDeleteTarget, setPage, nextPage);
   };
 
   return (
@@ -602,7 +718,7 @@ export default function GalleryManager({ userRole, userTier }: Props) {
           description={description}
           errorMessage={error || loadError ? error || "Unable to load photos. Please refresh the page." : ""}
           fileRef={fileRef}
-          inputClass={inputClass}
+          inputClass={GALLERY_INPUT_CLASS}
           lens={lens}
           onCameraChange={setCamera}
           onDescriptionChange={setDescription}
@@ -632,59 +748,38 @@ export default function GalleryManager({ userRole, userTier }: Props) {
         canUpload={canUpload}
         loading={loading}
         onDelete={setDeleteTarget}
+        onEdit={openEdit}
         onExpand={setExpanded}
         photos={photos}
         total={galleryPage?.meta.total ?? photos.length}
       />
 
-      {galleryPage && galleryPage.meta.totalPages > 1 && (
-        <nav aria-label="Member gallery pagination" className="flex flex-wrap items-center justify-center gap-2">
-          <button
-            type="button"
-            disabled={!galleryPage.meta.hasPreviousPage}
-            onClick={() => handlePageChange(galleryPage.meta.page - 1)}
-            className="min-h-11 border border-neutral-800 px-4 text-[10px] uppercase tracking-wider text-neutral-400 disabled:opacity-30"
-          >
-            Previous
-          </button>
-          {pageNumbers.map((pageNumber) => (
-            <button
-              type="button"
-              key={pageNumber}
-              aria-label={`Go to member gallery page ${pageNumber}`}
-              aria-current={pageNumber === galleryPage.meta.page ? "page" : undefined}
-              onClick={() => handlePageChange(pageNumber)}
-              className={`min-h-11 min-w-11 border px-3 text-xs ${pageNumber === galleryPage.meta.page ? "border-white text-white" : "border-neutral-800 text-neutral-500"}`}
-            >
-              {pageNumber}
-            </button>
-          ))}
-          <button
-            type="button"
-            disabled={!galleryPage.meta.hasNextPage}
-            onClick={() => handlePageChange(galleryPage.meta.page + 1)}
-            className="min-h-11 border border-neutral-800 px-4 text-[10px] uppercase tracking-wider text-neutral-400 disabled:opacity-30"
-          >
-            Next
-          </button>
-        </nav>
-      )}
-
-      {expandedPhoto && (
-        <ExpandedPhotoModal
-          onClose={() => setExpanded(null)}
-          onDelete={setDeleteTarget}
-          photo={expandedPhoto}
+      {galleryPage && (
+        <GalleryManagerPagination
+          meta={galleryPage.meta}
+          onPageChange={handlePageChange}
+          pageNumbers={pageNumbers}
         />
       )}
 
-      {deleteTarget && (
-        <DeletePhotoModal
-          deleting={deleting}
-          onClose={() => setDeleteTarget(null)}
-          onConfirm={confirmDelete}
-        />
-      )}
+      <GalleryManagerDialogs
+        deleteTarget={deleteTarget}
+        deleting={deleting}
+        editError={editError}
+        editPhoto={editPhoto}
+        expandedPhoto={expandedPhoto}
+        onCloseDelete={() => setDeleteTarget(null)}
+        onCloseEdit={closeEdit}
+        onClosePreview={() => setExpanded(null)}
+        onConfirmDelete={confirmDelete}
+        onDelete={setDeleteTarget}
+        onEdit={(photoId) => {
+          setExpanded(null);
+          openEdit(photoId);
+        }}
+        onSaveEdit={saveEdit}
+        savingEdit={savingEdit}
+      />
     </div>
   );
 }

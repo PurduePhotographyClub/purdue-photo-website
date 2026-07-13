@@ -17,7 +17,9 @@ interface GalleryImage {
   author: string;
   medium: string;
   camera: string | null;
+  description: string | null;
   lens: string | null;
+  tags: string | null;
   width: number | null;
 }
 
@@ -94,7 +96,9 @@ export default function Gallery() {
       author: source.author,
       medium: source.medium,
       camera: source.camera,
+      description: source.description,
       lens: source.lens,
+      tags: source.tags,
       width: source.width,
     }];
   });
@@ -282,18 +286,28 @@ export default function Gallery() {
           ref={lightboxDialogRef}
           onClose={() => setSelected(null)}
           className="fixed inset-0 z-[120] h-dvh max-h-none w-dvw max-w-none border-0 bg-black/95 p-6 pt-16 text-inherit backdrop:bg-transparent">
-          <div className="flex h-full w-full flex-col items-center justify-center gap-4">
+          <div className="flex h-full min-h-0 w-full flex-col items-center justify-center gap-3">
           <button type="button" tabIndex={-1} aria-label="Close gallery lightbox" className="absolute inset-0 cursor-default" onMouseDown={() => setSelected(null)} />
           <button type="button" aria-label="Close gallery lightbox" className="absolute top-6 right-6 z-10 flex min-h-11 min-w-11 items-center justify-center text-neutral-400 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400" onClick={() => setSelected(null)}><X size={24} /></button>
           <img
-            src={visibleImages[selected]?.fullSrc} alt={visibleImages[selected]?.cat ?? "Selected gallery photo"} className="relative z-10 max-w-full max-h-[75vh] object-contain shrink min-h-0" loading="eager" decoding="async" />
-          <div className="relative z-10 text-center shrink-0">
+            src={visibleImages[selected]?.fullSrc} alt={visibleImages[selected]?.cat ?? "Selected gallery photo"} className="relative z-10 min-h-0 max-h-[62dvh] max-w-full shrink object-contain" loading="eager" decoding="async" />
+          <div aria-label="Gallery photo details" tabIndex={0} className="relative z-10 max-h-[30dvh] w-full max-w-3xl shrink-0 overflow-y-auto px-2 text-center focus-visible:outline focus-visible:outline-1 focus-visible:outline-neutral-500">
             <p className="text-xs tracking-[0.3em] uppercase text-neutral-400">
               {visibleImages[selected]?.cat} &middot; {visibleImages[selected]?.author} &middot; Shot on {visibleImages[selected]?.medium}
             </p>
             {(visibleImages[selected]?.camera || visibleImages[selected]?.lens) && (
               <p className="text-[10px] tracking-[0.25em] uppercase text-neutral-500 mt-1.5">
                 {[visibleImages[selected]?.camera, visibleImages[selected]?.lens].filter(Boolean).join(" · ")}
+              </p>
+            )}
+            {visibleImages[selected]?.description && (
+              <p className="mx-auto mt-3 max-w-2xl whitespace-pre-wrap break-words text-xs leading-5 text-neutral-400">
+                {visibleImages[selected].description}
+              </p>
+            )}
+            {visibleImages[selected]?.tags && (
+              <p className="mt-3 break-words text-[9px] uppercase tracking-[0.2em] text-neutral-600">
+                {visibleImages[selected].tags}
               </p>
             )}
           </div>
