@@ -3,18 +3,14 @@ import useSWR from "swr";
 import { Users, ArrowRight, Film, Trophy, Image, Instagram, Mail, ShoppingBag } from "lucide-react";
 import { ImageWithFallback } from "./ImageWithFallback";
 import {
-  findCurrentEvents,
-  formatEventDateTime,
   formatEventMonth,
   normalizeEvent,
-  type WebsiteEvent,
 } from "@/lib/events";
 import {
   getGalleryImageSources,
   normalizeGalleryPageForUrl,
   type GalleryPage,
 } from "@/lib/gallery-images";
-import { useEventClock } from "@/hooks/useEventClock";
 import { fetchPublicJson, HOME_EVENTS_SWR_OPTIONS, PUBLIC_API_SWR_OPTIONS } from "@/lib/http";
 
 const heroImg = "/hero/hero.webp";
@@ -225,32 +221,6 @@ function HomeHero({
         }}
       />
     </section>
-  );
-}
-
-function LiveEventWidget({ event, additionalEvents }: { event: WebsiteEvent; additionalEvents: number }) {
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 top-28 z-30 border-y border-white/20 bg-black text-white"
-    >
-      <a
-        href="/events#upcoming-events"
-        className="pointer-events-auto relative flex min-h-8 w-full items-center justify-center px-3 py-1.5 text-[9px] uppercase tracking-[0.16em] focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-2px] focus-visible:outline-white"
-      >
-        <span className="flex min-w-0 max-w-[75%] items-center justify-center gap-2 sm:gap-3">
-          <span className="inline-flex size-1.5 shrink-0 bg-white" aria-hidden="true" />
-          <span className="shrink-0 font-bold">Live now</span>
-          <span className="min-w-0 truncate normal-case tracking-[0.04em] text-neutral-200">{event.title}</span>
-        </span>
-        <span className="absolute right-3 hidden items-center gap-2 text-neutral-400 sm:flex">
-          <span>{formatEventDateTime(event)}</span>
-          {additionalEvents > 0 && <span>+{additionalEvents} more</span>}
-          <ArrowRight size={11} aria-hidden="true" />
-        </span>
-      </a>
-    </div>
   );
 }
 
@@ -659,15 +629,6 @@ export default function Home() {
   const { data: clubStats } = useSWR<ClubStats>("/api/stats", fetchPublicJson, PUBLIC_API_SWR_OPTIONS);
   const galleryRows = galleryPage?.photos;
   const galleryPhotos = useMemo(() => mapGalleryRows(galleryRows ?? []), [galleryRows]);
-  const normalizedCurrentEvents = useMemo(
-    () => (homeEvents?.current ?? []).map(normalizeEvent),
-    [homeEvents],
-  );
-  const now = useEventClock();
-  const currentEvents = useMemo(
-    () => findCurrentEvents(normalizedCurrentEvents, now),
-    [normalizedCurrentEvents, now],
-  );
   const events = useMemo(
     () => mapPastEventRows(homeEvents?.recentPast ?? []),
     [homeEvents],
@@ -678,7 +639,6 @@ export default function Home() {
 
   return (
     <div className="overflow-x-hidden">
-      {currentEvents[0] && <LiveEventWidget event={currentEvents[0]} additionalEvents={Math.max(0, currentEvents.length - 1)} />}
       <HomeHero theme={homeTheme} />
       <VisitorPathsSection theme={homeTheme} />
       <FeaturedPhotosSection galleryPhotos={galleryPhotos} galleryStatus={galleryStatus} theme={homeTheme} />

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef } from "react";
+import { useMemo, useReducer } from "react";
 import useSWR from "swr";
 import { CalendarDays, Clock, MapPin, Pencil, RefreshCw, Save, Trash2, X } from "lucide-react";
 import ModalDialog from "../../ModalDialog";
