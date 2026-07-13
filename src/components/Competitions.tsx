@@ -16,6 +16,17 @@ const COMPETITIONS_SWR_OPTIONS = {
   keepPreviousData: false,
 };
 
+function changeCompetitionPage(
+  setActivePeriod: (value: number) => void,
+  setLightbox: (value: Winner | null) => void,
+  setPage: (value: number) => void,
+  nextPage: number,
+) {
+  setActivePeriod(0);
+  setLightbox(null);
+  setPage(nextPage);
+}
+
 interface CompetitionResultRow {
   entryDescription?: string | null;
   entryId: string;
@@ -203,9 +214,7 @@ export default function Competitions() {
 
   const handlePageChange = (nextPage: number) => {
     if (!meta || nextPage < 1 || nextPage > meta.totalPages || nextPage === meta.page) return;
-    setActivePeriod(0);
-    setLightbox(null);
-    setPage(nextPage);
+    changeCompetitionPage(setActivePeriod, setLightbox, setPage, nextPage);
   };
 
   const heading = "text-neutral-100";

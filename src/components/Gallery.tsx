@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import useSWR from "swr";
 import { X, Film, Aperture } from "lucide-react";
 import { ImageWithFallback } from "./ImageWithFallback";
@@ -40,6 +40,26 @@ const GALLERY_SWR_OPTIONS = {
   ...PUBLIC_API_SWR_OPTIONS,
   keepPreviousData: false,
 };
+
+function changeGalleryFilter(
+  setFilter: Dispatch<SetStateAction<string>>,
+  setPage: Dispatch<SetStateAction<number>>,
+  setSelected: Dispatch<SetStateAction<number | null>>,
+  category: string,
+) {
+  setFilter(category);
+  setPage(1);
+  setSelected(null);
+}
+
+function changeGalleryPage(
+  setSelected: Dispatch<SetStateAction<number | null>>,
+  setPage: Dispatch<SetStateAction<number>>,
+  nextPage: number,
+) {
+  setSelected(null);
+  setPage(nextPage);
+}
 
 function getVisiblePageNumbers(page: number, totalPages: number) {
   return Array.from(new Set([1, page - 1, page, page + 1, totalPages]))
@@ -114,15 +134,12 @@ export default function Gallery() {
   }, [galleryPage]);
 
   const handleFilterChange = (category: string) => {
-    setFilter(category);
-    setPage(1);
-    setSelected(null);
+    changeGalleryFilter(setFilter, setPage, setSelected, category);
   };
 
   const handlePageChange = (nextPage: number) => {
     if (!meta || nextPage < 1 || nextPage > meta.totalPages || nextPage === meta.page) return;
-    setSelected(null);
-    setPage(nextPage);
+    changeGalleryPage(setSelected, setPage, nextPage);
   };
 
   const heading = "text-neutral-100";
