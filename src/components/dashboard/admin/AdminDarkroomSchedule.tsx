@@ -209,6 +209,21 @@ function startEditingSlot(
   });
 }
 
+function resetDarkroomForm(
+  setState: (patch: Partial<AdminDarkroomScheduleState>) => void,
+) {
+  const nextTimes = getDefaultFormTimes();
+  setState({
+    form: {
+      capacity: "4",
+      editingId: null,
+      endsAt: nextTimes.endsAt,
+      startsAt: nextTimes.startsAt,
+      title: "Open Darkroom",
+    },
+  });
+}
+
 export default function AdminDarkroomSchedule() {
   const [state, setState] = useReducer(
     adminDarkroomScheduleReducer,
@@ -284,7 +299,7 @@ export default function AdminDarkroomSchedule() {
         success: form.editingId ? "Timeslot updated." : "Timeslot created.",
         syncWarning: result.discordSyncWarning ?? "",
       });
-      resetForm();
+      resetDarkroomForm(setState);
       await mutate();
     } catch {
       setState({ error: "Failed to save timeslot." });
@@ -449,19 +464,6 @@ export default function AdminDarkroomSchedule() {
 
   const startEditing = (slot: AdminDarkroomScheduleSlot) => startEditingSlot(slot, setState);
 
-  const resetForm = () => {
-    const nextTimes = getDefaultFormTimes();
-    setState({
-      form: {
-        capacity: "4",
-        editingId: null,
-        endsAt: nextTimes.endsAt,
-        startsAt: nextTimes.startsAt,
-        title: "Open Darkroom",
-      },
-    });
-  };
-
   if (isLoading) {
     return <p className="text-xs text-neutral-500">Loading schedule</p>;
   }
@@ -477,7 +479,7 @@ export default function AdminDarkroomSchedule() {
       <ScheduleForm
         busy={busyAction === "save"}
         form={form}
-        onCancelEdit={resetForm}
+        onCancelEdit={() => resetDarkroomForm(setState)}
         onChange={(patch) => setState({ form: { ...form, ...patch } })}
         onSubmit={handleSubmit}
       />

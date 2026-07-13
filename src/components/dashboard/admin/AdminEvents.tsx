@@ -1,4 +1,4 @@
-import { useMemo, useReducer } from "react";
+import { useEffect, useMemo, useReducer, useRef } from "react";
 import useSWR from "swr";
 import { AlertTriangle, CalendarDays, Clock, MapPin, Pencil, Plus, Radio, RefreshCw, Save, Trash2, X } from "lucide-react";
 import { clubDateTimeInputToUtcIso, toClubDateTimeLocalValue } from "@/lib/club-time";
@@ -362,6 +362,7 @@ export default function AdminEvents({ canDelete }: { canDelete: boolean }) {
         deleteConfirmId={deleteConfirmId}
         deletingId={deletingId}
         editState={editState}
+        error={error}
         editingId={editingId}
         events={events}
         now={now}
@@ -385,6 +386,7 @@ function EventsList({
   deleteConfirmId,
   deletingId,
   editState,
+  error,
   editingId,
   events,
   now,
@@ -403,6 +405,7 @@ function EventsList({
   deleteConfirmId: string | null;
   deletingId: string | null;
   editState: EventFormState;
+  error: string;
   editingId: string | null;
   events: WebsiteEvent[];
   now: Date;
@@ -478,21 +481,87 @@ function EventsList({
                 </div>
               </div>
             )}
-            {deleteConfirmId === event.id && (
-              <dialog open aria-label="Confirm event deletion" className="relative mt-4 w-full max-w-none border border-red-950/80 bg-red-950/20 p-4 text-inherit">
-                <p className="text-xs leading-relaxed text-red-200">Delete “{event.title}” from the website and Discord? This cannot be undone.</p>
-                <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                  <button type="button" onClick={onCancelDelete} className="min-h-11 border border-neutral-700 px-4 text-[10px] uppercase tracking-[0.12em] text-neutral-300 hover:border-neutral-500">Keep event</button>
-                  <button type="button" onClick={() => void onDelete(event.id)} disabled={deletingId === event.id} className="min-h-11 bg-red-200 px-4 text-[10px] uppercase tracking-[0.12em] text-red-950 disabled:opacity-50">
-                    {deletingId === event.id ? "Deleting" : "Delete everywhere"}
-                  </button>
-                </div>
-              </dialog>
-            )}
           </article>
         );
       })}
+      {deleteConfirmId && (() => {
+        const event = events.find((candidate) => candidate.id === deleteConfirmId);
+        return event ? (
+          <DeleteEventDialog
+            deleting={deletingId === event.id}
+            error={error}
+            event={event}
+            onCancel={onCancelDelete}
+            onConfirm={() => void onDelete(event.id)}
+          />
+        ) : null;
+      })()}
     </div>
+  );
+}
+
+function DeleteEventDialog({
+  deleting,
+  error,
+  event,
+  onCancel,
+  onConfirm,
+}: {
+  deleting: boolean;
+  error: string;
+  event: WebsiteEvent;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (typeof dialog.showModal === "function") {
+      if (!dialog.open) dialog.showModal();
+    } else {
+      dialog.setAttribute("open", "");
+    }
+    return () => {
+      if (typeof dialog.close === "function" && dialog.open) {
+        dialog.close();
+      } else {
+        dialog.removeAttribute("open");
+      }
+    };
+  }, []);
+
+  return (
+    <dialog
+      ref={dialogRef}
+      aria-labelledby="delete-event-dialog-title"
+      aria-describedby="delete-event-dialog-description"
+      aria-label="Confirm event deletion"
+      onCancel={onCancel}
+      className="m-auto w-[calc(100%-2rem)] max-w-md border border-red-950/80 bg-neutral-950 p-0 text-neutral-100 shadow-2xl shadow-black/60 backdrop:bg-black/80"
+    >
+      <div className="border-b border-red-950/80 bg-red-950/20 px-5 py-4">
+        <p className="text-[9px] uppercase tracking-[0.24em] text-red-300">Destructive action</p>
+        <h2 id="delete-event-dialog-title" className="mt-2 text-lg text-neutral-100" style={{ fontFamily: "'Playfair Display', serif" }}>
+          Delete event?
+        </h2>
+      </div>
+      <div className="p-5">
+        <p id="delete-event-dialog-description" className="text-xs leading-relaxed text-neutral-300">
+          Delete “{event.title}” from the website and Discord? This cannot be undone.
+        </p>
+        {error && <p role="alert" className="mt-4 border border-red-900/80 bg-red-950/30 p-3 text-xs leading-relaxed text-red-200">{error}</p>}
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button type="button" onClick={onCancel} disabled={deleting} className="min-h-11 border border-neutral-700 px-4 text-[10px] uppercase tracking-[0.12em] text-neutral-300 transition-colors hover:border-neutral-500 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-neutral-300 disabled:opacity-50">
+            Keep event
+          </button>
+          <button type="button" onClick={onConfirm} disabled={deleting} className="min-h-11 bg-red-200 px-4 text-[10px] uppercase tracking-[0.12em] text-red-950 transition-colors hover:bg-red-100 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-red-200 disabled:opacity-50">
+            {deleting ? "Deleting" : "Delete everywhere"}
+          </button>
+        </div>
+      </div>
+    </dialog>
   );
 }
 
