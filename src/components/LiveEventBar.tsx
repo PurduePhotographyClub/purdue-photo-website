@@ -19,8 +19,9 @@ export function useCurrentLiveEvents() {
   );
 }
 
-export default function LiveEventBar({ currentEvents }: { currentEvents: WebsiteEvent[] }) {
-  const event = currentEvents[0] as WebsiteEvent | undefined;
+export default function LiveEventBar({ currentEvents }: { currentEvents?: WebsiteEvent[] }) {
+  const liveEvents = currentEvents ?? [];
+  const event = liveEvents[0] as WebsiteEvent | undefined;
 
   if (!event) return null;
 
@@ -42,7 +43,7 @@ export default function LiveEventBar({ currentEvents }: { currentEvents: Website
         </span>
         <span className="hidden shrink-0 items-center gap-2 text-[10px] text-neutral-400 md:flex">
           <span>{formatEventDateTime(event)}</span>
-          {currentEvents.length > 1 && <span>+{currentEvents.length - 1} more</span>}
+          {liveEvents.length > 1 && <span>+{liveEvents.length - 1} more</span>}
           <ArrowRight size={13} aria-hidden="true" />
         </span>
       </a>
