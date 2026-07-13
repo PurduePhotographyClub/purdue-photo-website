@@ -15,10 +15,20 @@ import {
 import {
   fetchApi,
   fetchJson,
-  PUBLIC_API_SWR_OPTIONS,
+  SCHEDULE_SWR_OPTIONS,
   readErrorMessage,
-  readJson
+  readJson,
 } from "@/lib/http";
+import {
+  addClubCalendarDays,
+  clubDateTimeInputToUtcIso,
+  clubDateTimeToUtcIso,
+  CLUB_TIME_ZONE,
+  getClubDateParts,
+  startOfClubSunday,
+  toClubDateTimeLocalValue,
+  type ClubDateParts,
+} from "@/lib/club-time";
 
 interface DarkroomScheduleRegistrant {
   discordId: string | null;
@@ -80,11 +90,13 @@ interface AdminDarkroomScheduleState {
   form: ScheduleFormState;
   postWeekStartIso: string;
   success: string;
+  syncWarning: string;
 }
 
-const DAY_MS = 24 * 60 * 60 * 1_000;
-const inputClass = "w-full bg-transparent border border-neutral-800 px-3 py-2.5 text-sm text-neutral-200 placeholder:text-neutral-700 focus:border-neutral-600 focus:outline-none transition-colors";
-const actionButtonClass = "inline-flex min-h-9 items-center justify-center gap-2 border px-3 py-2 text-[10px] uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-50";
+const inputClass =
+  "w-full bg-transparent border border-neutral-800 px-3 py-2.5 text-sm text-neutral-200 placeholder:text-neutral-700 focus:border-neutral-600 focus:outline-none transition-colors";
+const actionButtonClass =
+  "inline-flex min-h-9 items-center justify-center gap-2 border px-3 py-2 text-[10px] uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-50";
 
 function createInitialAdminDarkroomScheduleState(): AdminDarkroomScheduleState {
   const initialTimes = getDefaultFormTimes();
@@ -101,6 +113,7 @@ function createInitialAdminDarkroomScheduleState(): AdminDarkroomScheduleState {
     },
     postWeekStartIso: getDefaultPostWeekStartIso(),
     success: "",
+    syncWarning: "",
   };
 }
 
@@ -117,22 +130,32 @@ export default function AdminDarkroomSchedule() {
     undefined,
     createInitialAdminDarkroomScheduleState,
   );
-  const { busyAction, error, form, postWeekStartIso, success } = state;
+  const { busyAction, error, form, postWeekStartIso, success, syncWarning } =
+    state;
   const {
     data,
     error: loadError,
     isLoading,
     mutate,
-  } = useSWR<AdminDarkroomScheduleResponse>("/api/admin/darkroom/schedule", fetchJson, PUBLIC_API_SWR_OPTIONS);
+  } = useSWR<AdminDarkroomScheduleResponse>(
+    "/api/admin/darkroom/schedule",
+    fetchJson,
+    SCHEDULE_SWR_OPTIONS,
+  );
   const slots = data?.slots ?? [];
   const now = new Date();
-  const upcomingSlots = slots.filter((slot) => slot.status === "open" && new Date(slot.endsAt) > now);
-  const archivedSlots = slots.filter((slot) =>
-    slot.status === "cancelled" ||
-    slot.discordSyncStatus === "archived" ||
-    new Date(slot.endsAt) <= now
+  const upcomingSlots = slots.filter(
+    (slot) => slot.status === "open" && new Date(slot.endsAt) > now,
   );
-  const hasArchivedChannels = archivedSlots.some((slot) => !!slot.discordChannelId);
+  const archivedSlots = slots.filter(
+    (slot) =>
+      slot.status === "cancelled" ||
+      slot.discordSyncStatus === "archived" ||
+      new Date(slot.endsAt) <= now,
+  );
+  const hasArchivedChannels = archivedSlots.some(
+    (slot) => !!slot.discordChannelId,
+  );
   const weeklyPostOptions = useMemo(
     () => buildWeeklyPostOptions(upcomingSlots, postWeekStartIso),
     [postWeekStartIso, upcomingSlots],
@@ -140,17 +163,23 @@ export default function AdminDarkroomSchedule() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setState({ busyAction: "save", error: "", success: "" });
+    setState({ busyAction: "save", error: "", success: "", syncWarning: "" });
 
     try {
+      const startsAt = clubDateTimeInputToUtcIso(form.startsAt);
+      const endsAt = clubDateTimeInputToUtcIso(form.endsAt);
+      if (!startsAt || !endsAt) {
+        setState({ error: "Choose valid club-local start and end times." });
+        return;
+      }
       const endpoint = form.editingId
         ? `/api/admin/darkroom/schedule/${form.editingId}`
         : "/api/admin/darkroom/schedule";
       const response = await fetchApi(endpoint, {
         body: JSON.stringify({
           capacity: Number.parseInt(form.capacity, 10),
-          endsAt: new Date(form.endsAt).toISOString(),
-          startsAt: new Date(form.startsAt).toISOString(),
+          endsAt,
+          startsAt,
           title: form.title,
         }),
         headers: { "Content-Type": "application/json" },
@@ -158,12 +187,18 @@ export default function AdminDarkroomSchedule() {
       });
 
       if (!response.ok) {
-        setState({ error: await readErrorMessage(response, "Failed to save timeslot.") });
+        setState({
+          error: await readErrorMessage(response, "Failed to save timeslot."),
+        });
         return;
       }
 
-      const result = await readJson<AdminDarkroomScheduleMutationResponse>(response);
-      setState({ success: result.discordSyncWarning || (form.editingId ? "Timeslot updated." : "Timeslot created.") });
+      const result =
+        await readJson<AdminDarkroomScheduleMutationResponse>(response);
+      setState({
+        success: form.editingId ? "Timeslot updated." : "Timeslot created.",
+        syncWarning: result.discordSyncWarning ?? "",
+      });
       resetForm();
       await mutate();
     } catch {
@@ -174,20 +209,34 @@ export default function AdminDarkroomSchedule() {
   };
 
   const handleCancel = async (slotId: string) => {
-    setState({ busyAction: `cancel:${slotId}`, error: "", success: "" });
+    setState({
+      busyAction: `cancel:${slotId}`,
+      error: "",
+      success: "",
+      syncWarning: "",
+    });
 
     try {
-      const response = await fetchApi(`/api/admin/darkroom/schedule/${slotId}`, {
-        method: "DELETE",
-      });
+      const response = await fetchApi(
+        `/api/admin/darkroom/schedule/${slotId}`,
+        {
+          method: "DELETE",
+        },
+      );
 
       if (!response.ok) {
-        setState({ error: await readErrorMessage(response, "Failed to cancel timeslot.") });
+        setState({
+          error: await readErrorMessage(response, "Failed to cancel timeslot."),
+        });
         return;
       }
 
-      const result = await readJson<AdminDarkroomScheduleMutationResponse>(response);
-      setState({ success: result.discordSyncWarning || "Timeslot cancelled." });
+      const result =
+        await readJson<AdminDarkroomScheduleMutationResponse>(response);
+      setState({
+        success: "Timeslot cancelled.",
+        syncWarning: result.discordSyncWarning ?? "",
+      });
       await mutate();
     } catch {
       setState({ error: "Failed to cancel timeslot." });
@@ -197,22 +246,36 @@ export default function AdminDarkroomSchedule() {
   };
 
   const handleEndSession = async (slotId: string) => {
-    setState({ busyAction: `end:${slotId}`, error: "", success: "" });
+    setState({
+      busyAction: `end:${slotId}`,
+      error: "",
+      success: "",
+      syncWarning: "",
+    });
 
     try {
-      const response = await fetchApi(`/api/admin/darkroom/schedule/${slotId}`, {
-        body: JSON.stringify({ action: "end" }),
-        headers: { "Content-Type": "application/json" },
-        method: "PATCH",
-      });
+      const response = await fetchApi(
+        `/api/admin/darkroom/schedule/${slotId}`,
+        {
+          body: JSON.stringify({ action: "end" }),
+          headers: { "Content-Type": "application/json" },
+          method: "PATCH",
+        },
+      );
 
       if (!response.ok) {
-        setState({ error: await readErrorMessage(response, "Failed to end session.") });
+        setState({
+          error: await readErrorMessage(response, "Failed to end session."),
+        });
         return;
       }
 
-      const result = await readJson<AdminDarkroomScheduleMutationResponse>(response);
-      setState({ success: result.discordSyncWarning || "Session ended." });
+      const result =
+        await readJson<AdminDarkroomScheduleMutationResponse>(response);
+      setState({
+        success: "Session ended.",
+        syncWarning: result.discordSyncWarning ?? "",
+      });
       await mutate();
     } catch {
       setState({ error: "Failed to end session." });
@@ -222,15 +285,28 @@ export default function AdminDarkroomSchedule() {
   };
 
   const handleRetrySync = async (slotId: string) => {
-    setState({ busyAction: `sync:${slotId}`, error: "", success: "" });
+    setState({
+      busyAction: `sync:${slotId}`,
+      error: "",
+      success: "",
+      syncWarning: "",
+    });
 
     try {
-      const response = await fetchApi(`/api/admin/darkroom/schedule/${slotId}/sync`, {
-        method: "POST",
-      });
+      const response = await fetchApi(
+        `/api/admin/darkroom/schedule/${slotId}/sync`,
+        {
+          method: "POST",
+        },
+      );
 
       if (!response.ok) {
-        setState({ error: await readErrorMessage(response, "Failed to sync timeslot with Discord.") });
+        setState({
+          error: await readErrorMessage(
+            response,
+            "Failed to sync timeslot with Discord.",
+          ),
+        });
         return;
       }
 
@@ -244,21 +320,38 @@ export default function AdminDarkroomSchedule() {
   };
 
   const handleCleanupArchived = async () => {
-    setState({ busyAction: "cleanup-archived", error: "", success: "" });
+    setState({
+      busyAction: "cleanup-archived",
+      error: "",
+      success: "",
+      syncWarning: "",
+    });
 
     try {
-      const response = await fetchApi("/api/admin/darkroom/schedule/cleanup-archived", {
-        method: "POST",
-      });
+      const response = await fetchApi(
+        "/api/admin/darkroom/schedule/cleanup-archived",
+        {
+          method: "POST",
+        },
+      );
 
       if (!response.ok) {
-        setState({ error: await readErrorMessage(response, "Failed to clean up archived channels.") });
+        setState({
+          error: await readErrorMessage(
+            response,
+            "Failed to clean up archived channels.",
+          ),
+        });
         return;
       }
 
-      const result = await readJson<AdminDarkroomScheduleMutationResponse>(response);
-      const failedCopy = result.failed && result.failed > 0 ? ` ${result.failed} failed.` : "";
-      setState({ success: `Cleaned ${result.cleaned ?? 0} archived channel${result.cleaned === 1 ? "" : "s"}.${failedCopy}` });
+      const result =
+        await readJson<AdminDarkroomScheduleMutationResponse>(response);
+      const failedCopy =
+        result.failed && result.failed > 0 ? ` ${result.failed} failed.` : "";
+      setState({
+        success: `Cleaned ${result.cleaned ?? 0} archived channel${result.cleaned === 1 ? "" : "s"}.${failedCopy}`,
+      });
       await mutate();
     } catch {
       setState({ error: "Failed to clean up archived channels." });
@@ -268,31 +361,52 @@ export default function AdminDarkroomSchedule() {
   };
 
   const handlePostWeeklyJoinMessage = async () => {
-    setState({ busyAction: "weekly-message", error: "", success: "" });
+    setState({
+      busyAction: "weekly-message",
+      error: "",
+      success: "",
+      syncWarning: "",
+    });
 
     try {
-      const weekStart = new Date(postWeekStartIso);
-      const displayWeekEnd = addDays(weekStart, 7);
-      const queryWeekEnd = new Date(addDays(weekStart, 8).getTime() - 1);
-      const response = await fetchApi("/api/admin/darkroom/schedule/weekly-message", {
-        body: JSON.stringify({
-          displayEnd: displayWeekEnd.toISOString(),
-          end: queryWeekEnd.toISOString(),
-          start: weekStart.toISOString(),
-        }),
-        headers: { "Content-Type": "application/json" },
-        method: "POST",
-      });
+      const weekStart = getClubDateParts(new Date(postWeekStartIso));
+      const displayWeekEnd = addClubCalendarDays(weekStart, 6);
+      const queryWeekEnd = clubDateTimeToUtcIso(
+        addClubCalendarDays(weekStart, 7),
+        0,
+      );
+      const response = await fetchApi(
+        "/api/admin/darkroom/schedule/weekly-message",
+        {
+          body: JSON.stringify({
+            displayEnd: clubDateTimeToUtcIso(displayWeekEnd, 0),
+            end: queryWeekEnd,
+            start: clubDateTimeToUtcIso(weekStart, 0),
+          }),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        },
+      );
 
       if (!response.ok) {
-        setState({ error: await readErrorMessage(response, "Failed to post weekly join message.") });
+        setState({
+          error: await readErrorMessage(
+            response,
+            "Failed to post weekly join message.",
+          ),
+        });
         return;
       }
 
-      const result = await readJson<AdminDarkroomScheduleMutationResponse>(response);
+      const result =
+        await readJson<AdminDarkroomScheduleMutationResponse>(response);
       const slotCopy = `${result.slotCount ?? 0} slot${result.slotCount === 1 ? "" : "s"}`;
-      const truncatedCopy = result.truncated ? " Discord shows the first 25 slots; the website calendar has the full week." : "";
-      setState({ success: `Weekly join message posted for ${formatWeekRange(weekStart)} with ${slotCopy}.${truncatedCopy}` });
+      const truncatedCopy = result.truncated
+        ? " Discord shows the first 25 slots; the website calendar has the full week."
+        : "";
+      setState({
+        success: `Weekly join message posted for ${formatWeekRange(weekStart)} with ${slotCopy}.${truncatedCopy}`,
+      });
     } catch {
       setState({ error: "Failed to post weekly join message." });
     } finally {
@@ -306,11 +420,12 @@ export default function AdminDarkroomSchedule() {
       form: {
         capacity: String(slot.capacity),
         editingId: slot.id,
-        endsAt: toDateTimeLocalValue(new Date(slot.endsAt)),
-        startsAt: toDateTimeLocalValue(new Date(slot.startsAt)),
+        endsAt: toClubDateTimeLocalValue(new Date(slot.endsAt)),
+        startsAt: toClubDateTimeLocalValue(new Date(slot.startsAt)),
         title: slot.title,
       },
       success: "",
+      syncWarning: "",
     });
   };
 
@@ -339,8 +454,19 @@ export default function AdminDarkroomSchedule() {
         </p>
       )}
       {success && (
-        <p className="border border-green-900/30 bg-green-900/10 px-4 py-3 text-xs text-green-400">
+        <p
+          role="status"
+          className="border border-green-900/30 bg-green-900/10 px-4 py-3 text-xs text-green-400"
+        >
           {success}
+        </p>
+      )}
+      {syncWarning && (
+        <p
+          role="status"
+          className="border border-amber-900/40 bg-amber-950/15 px-4 py-3 text-xs text-amber-300"
+        >
+          {syncWarning}
         </p>
       )}
 
@@ -357,15 +483,17 @@ export default function AdminDarkroomSchedule() {
         emptyLabel="No upcoming timeslots."
         label={`Upcoming Timeslots (${upcomingSlots.length})`}
         slots={upcomingSlots}
-        action={(
+        action={
           <WeeklyJoinPostControl
             busy={busyAction === "weekly-message"}
             onPost={handlePostWeeklyJoinMessage}
-            onWeekChange={(weekStartIso) => setState({ postWeekStartIso: weekStartIso })}
+            onWeekChange={(weekStartIso) =>
+              setState({ postWeekStartIso: weekStartIso })
+            }
             options={weeklyPostOptions}
             selectedWeekStartIso={postWeekStartIso}
           />
-        )}
+        }
         onCancel={handleCancel}
         onEnd={handleEndSession}
         onEdit={startEditing}
@@ -378,17 +506,21 @@ export default function AdminDarkroomSchedule() {
           emptyLabel="No archived timeslots."
           label={`Archived (${archivedSlots.length})`}
           slots={archivedSlots}
-          action={hasArchivedChannels ? (
-            <button
-              type="button"
-              disabled={busyAction === "cleanup-archived"}
-              onClick={handleCleanupArchived}
-              className={`${actionButtonClass} border-red-900/60 text-red-300 hover:border-red-700 hover:bg-red-950/30`}
-            >
-              <Trash2 className="size-3" aria-hidden="true" />
-              {busyAction === "cleanup-archived" ? "Cleaning" : "Clean Archived"}
-            </button>
-          ) : undefined}
+          action={
+            hasArchivedChannels ? (
+              <button
+                type="button"
+                disabled={busyAction === "cleanup-archived"}
+                onClick={handleCleanupArchived}
+                className={`${actionButtonClass} border-red-900/60 text-red-300 hover:border-red-700 hover:bg-red-950/30`}
+              >
+                <Trash2 className="size-3" aria-hidden="true" />
+                {busyAction === "cleanup-archived"
+                  ? "Cleaning"
+                  : "Clean Archived"}
+              </button>
+            ) : undefined
+          }
           onCancel={handleCancel}
           onEnd={handleEndSession}
           onEdit={startEditing}
@@ -417,7 +549,10 @@ function WeeklyJoinPostControl({
   return (
     <div className="flex w-full flex-col gap-2 border border-blue-950/60 bg-blue-950/10 p-3 [color-scheme:dark] sm:w-auto sm:flex-row sm:items-center">
       <label className="flex min-w-0 flex-1 items-center gap-2 sm:min-w-64">
-        <CalendarRange className="size-3 shrink-0 text-blue-300" aria-hidden="true" />
+        <CalendarRange
+          className="size-3 shrink-0 text-blue-300"
+          aria-hidden="true"
+        />
         <span className="sr-only">Weekly join message week</span>
         <select
           className="min-h-9 min-w-0 flex-1 bg-transparent px-2 text-xs text-neutral-200 outline-none"
@@ -453,9 +588,18 @@ interface ScheduleFormProps {
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }
 
-function ScheduleForm({ busy, form, onCancelEdit, onChange, onSubmit }: ScheduleFormProps) {
+function ScheduleForm({
+  busy,
+  form,
+  onCancelEdit,
+  onChange,
+  onSubmit,
+}: ScheduleFormProps) {
   return (
-    <form onSubmit={onSubmit} className="border border-neutral-800 bg-white/[0.02] p-6">
+    <form
+      onSubmit={onSubmit}
+      className="border border-neutral-800 bg-white/[0.02] p-6"
+    >
       <div className="mb-5 flex items-center justify-between gap-3 [color-scheme:dark]">
         <p className="text-[9px] uppercase tracking-[0.3em] text-neutral-600">
           {form.editingId ? "Edit Timeslot" : "Create Timeslot"}
@@ -465,7 +609,9 @@ function ScheduleForm({ busy, form, onCancelEdit, onChange, onSubmit }: Schedule
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <label className="block">
-          <span className="mb-1.5 block text-[10px] uppercase tracking-wider text-neutral-600">Title</span>
+          <span className="mb-1.5 block text-[10px] uppercase tracking-wider text-neutral-600">
+            Title
+          </span>
           <input
             className={inputClass}
             maxLength={80}
@@ -476,7 +622,9 @@ function ScheduleForm({ busy, form, onCancelEdit, onChange, onSubmit }: Schedule
           />
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-[10px] uppercase tracking-wider text-neutral-600">Capacity</span>
+          <span className="mb-1.5 block text-[10px] uppercase tracking-wider text-neutral-600">
+            Capacity
+          </span>
           <input
             className={inputClass}
             max={24}
@@ -488,7 +636,9 @@ function ScheduleForm({ busy, form, onCancelEdit, onChange, onSubmit }: Schedule
           />
         </label>
         <label className="block [color-scheme:dark]">
-          <span className="mb-1.5 block text-[10px] uppercase tracking-wider text-neutral-600 [color-scheme:dark]">Starts</span>
+          <span className="mb-1.5 block text-[10px] uppercase tracking-wider text-neutral-600 [color-scheme:dark]">
+            Starts
+          </span>
           <input
             className={inputClass}
             onChange={(event) => onChange({ startsAt: event.target.value })}
@@ -498,7 +648,9 @@ function ScheduleForm({ busy, form, onCancelEdit, onChange, onSubmit }: Schedule
           />
         </label>
         <label className="block [color-scheme:dark]">
-          <span className="mb-1.5 block text-[10px] uppercase tracking-wider text-neutral-600 [color-scheme:dark]">Ends</span>
+          <span className="mb-1.5 block text-[10px] uppercase tracking-wider text-neutral-600 [color-scheme:dark]">
+            Ends
+          </span>
           <input
             className={inputClass}
             onChange={(event) => onChange({ endsAt: event.target.value })}
@@ -515,7 +667,11 @@ function ScheduleForm({ busy, form, onCancelEdit, onChange, onSubmit }: Schedule
           disabled={busy}
           type="submit"
         >
-          {busy ? "Saving" : form.editingId ? "Update Timeslot" : "Create Timeslot"}
+          {busy
+            ? "Saving"
+            : form.editingId
+              ? "Update Timeslot"
+              : "Create Timeslot"}
         </button>
         {form.editingId && (
           <button
@@ -558,7 +714,9 @@ function ScheduleSlotSection({
   return (
     <section>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-[9px] uppercase tracking-[0.3em] text-neutral-600">{label}</p>
+        <p className="text-[9px] uppercase tracking-[0.3em] text-neutral-600">
+          {label}
+        </p>
         {action}
       </div>
       {slots.length === 0 ? (
@@ -591,7 +749,14 @@ interface ScheduleSlotRowProps {
   slot: AdminDarkroomScheduleSlot;
 }
 
-function ScheduleSlotRow({ busyAction, onCancel, onEnd, onEdit, onRetrySync, slot }: ScheduleSlotRowProps) {
+function ScheduleSlotRow({
+  busyAction,
+  onCancel,
+  onEnd,
+  onEdit,
+  onRetrySync,
+  slot,
+}: ScheduleSlotRowProps) {
   const syncTone = getSyncTone(slot.discordSyncStatus);
   const now = new Date();
   const isPastDeadline = new Date(slot.endsAt) <= now;
@@ -603,7 +768,9 @@ function ScheduleSlotRow({ busyAction, onCancel, onEnd, onEdit, onRetrySync, slo
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-sm text-neutral-100">{slot.title}</h3>
-            <span className={`border px-2 py-1 text-[9px] uppercase tracking-[0.14em] ${syncTone}`}>
+            <span
+              className={`border px-2 py-1 text-[9px] uppercase tracking-[0.14em] ${syncTone}`}
+            >
               {slot.discordSyncStatus}
             </span>
             {slot.status === "cancelled" && (
@@ -626,16 +793,23 @@ function ScheduleSlotRow({ busyAction, onCancel, onEnd, onEdit, onRetrySync, slo
               {slot.registeredCount}/{slot.capacity}
             </span>
             {slot.discordChannelId && (
-              <span className="border border-neutral-800 px-2 py-1">Channel {slot.discordChannelId}</span>
+              <span className="border border-neutral-800 px-2 py-1">
+                Channel {slot.discordChannelId}
+              </span>
             )}
           </div>
           {slot.discordSyncError && (
-            <p className="mt-2 max-w-3xl text-[10px] text-amber-400">{slot.discordSyncError}</p>
+            <p className="mt-2 max-w-3xl text-[10px] text-amber-400">
+              {slot.discordSyncError}
+            </p>
           )}
           {(slot.registrants ?? []).length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {(slot.registrants ?? []).map((registrant) => (
-                <span key={registrant.userId} className="border border-neutral-800 bg-neutral-950 px-2 py-1 text-[10px] text-neutral-400">
+                <span
+                  key={registrant.userId}
+                  className="border border-neutral-800 bg-neutral-950 px-2 py-1 text-[10px] text-neutral-400"
+                >
                   {registrant.name}
                 </span>
               ))}
@@ -644,7 +818,11 @@ function ScheduleSlotRow({ busyAction, onCancel, onEnd, onEdit, onRetrySync, slo
         </div>
 
         <div className="flex flex-wrap gap-2 lg:justify-end">
-          <button type="button" onClick={() => onEdit(slot)} className={`${actionButtonClass} border-neutral-800 text-neutral-400 hover:border-neutral-600 hover:text-neutral-100`}>
+          <button
+            type="button"
+            onClick={() => onEdit(slot)}
+            className={`${actionButtonClass} border-neutral-800 text-neutral-400 hover:border-neutral-600 hover:text-neutral-100`}
+          >
             <Pencil className="size-3" aria-hidden="true" />
             Edit
           </button>
@@ -698,24 +876,29 @@ function getSyncTone(status: AdminDarkroomScheduleSlot["discordSyncStatus"]) {
   }
 }
 
-function buildWeeklyPostOptions(slots: AdminDarkroomScheduleSlot[], selectedWeekStartIso: string): WeeklyPostOption[] {
-  const currentWeekStart = startOfUtcSunday(new Date());
+function buildWeeklyPostOptions(
+  slots: AdminDarkroomScheduleSlot[],
+  selectedWeekStartIso: string,
+): WeeklyPostOption[] {
+  const currentWeekStart = startOfClubSunday(new Date());
   const weekStarts = new Set<string>([
     selectedWeekStartIso,
-    currentWeekStart.toISOString(),
-    addDays(currentWeekStart, 7).toISOString(),
-    addDays(currentWeekStart, 14).toISOString(),
-    addDays(currentWeekStart, 21).toISOString(),
+    clubDateTimeToUtcIso(currentWeekStart, 0),
+    clubDateTimeToUtcIso(addClubCalendarDays(currentWeekStart, 7), 0),
+    clubDateTimeToUtcIso(addClubCalendarDays(currentWeekStart, 14), 0),
+    clubDateTimeToUtcIso(addClubCalendarDays(currentWeekStart, 21), 0),
   ]);
 
   slots.forEach((slot) => {
-    weekStarts.add(startOfUtcSunday(new Date(slot.startsAt)).toISOString());
+    weekStarts.add(
+      clubDateTimeToUtcIso(startOfClubSunday(new Date(slot.startsAt)), 0),
+    );
   });
 
   return Array.from(weekStarts)
     .toSorted()
     .map((weekStartIso) => {
-      const weekStart = new Date(weekStartIso);
+      const weekStart = getClubDateParts(new Date(weekStartIso));
       const slotCount = countSlotsForWeek(slots, weekStart);
 
       return {
@@ -726,53 +909,49 @@ function buildWeeklyPostOptions(slots: AdminDarkroomScheduleSlot[], selectedWeek
     });
 }
 
-function countSlotsForWeek(slots: AdminDarkroomScheduleSlot[], weekStart: Date) {
-  const startMs = weekStart.getTime();
-  const endMs = addDays(weekStart, 8).getTime();
+function countSlotsForWeek(
+  slots: AdminDarkroomScheduleSlot[],
+  weekStart: ClubDateParts,
+) {
+  const startMs = Date.parse(clubDateTimeToUtcIso(weekStart, 0));
+  const endMs = Date.parse(
+    clubDateTimeToUtcIso(addClubCalendarDays(weekStart, 7), 0),
+  );
 
   return slots.filter((slot) => {
     const slotStartMs = Date.parse(slot.startsAt);
-    return slot.status === "open" && slotStartMs >= startMs && slotStartMs < endMs;
+    return (
+      slot.status === "open" && slotStartMs >= startMs && slotStartMs < endMs
+    );
   }).length;
 }
 
 function getDefaultPostWeekStartIso() {
-  return startOfUtcSunday(new Date()).toISOString();
-}
-
-function startOfUtcSunday(date: Date) {
-  const utcMidnight = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
-  const day = new Date(utcMidnight).getUTCDay();
-  return new Date(utcMidnight - (day * DAY_MS));
-}
-
-function startOfLocalSunday(date: Date) {
-  const localMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  return addDays(localMidnight, -localMidnight.getDay());
-}
-
-function addDays(date: Date, days: number) {
-  return new Date(date.getTime() + (days * DAY_MS));
+  return clubDateTimeToUtcIso(startOfClubSunday(new Date()), 0);
 }
 
 function getDefaultFormTimes() {
   const now = new Date();
-  const nextHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0);
+  const nextHour = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    now.getHours() + 1,
+    0,
+  );
   return {
-    endsAt: toDateTimeLocalValue(new Date(nextHour.getTime() + (2 * 60 * 60 * 1_000))),
-    startsAt: toDateTimeLocalValue(nextHour),
+    endsAt: toClubDateTimeLocalValue(
+      new Date(nextHour.getTime() + 2 * 60 * 60 * 1_000),
+    ),
+    startsAt: toClubDateTimeLocalValue(nextHour),
   };
-}
-
-function toDateTimeLocalValue(date: Date) {
-  const offsetMs = date.getTimezoneOffset() * 60 * 1_000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
 }
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: CLUB_TIME_ZONE,
   });
 }
 
@@ -780,17 +959,18 @@ function formatTime(value: string) {
   return new Date(value).toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
+    timeZone: CLUB_TIME_ZONE,
   });
 }
 
-function formatWeekRange(weekStart: Date) {
-  return `${formatMonthDay(weekStart)} - ${formatMonthDay(addDays(weekStart, 7))}`;
+function formatWeekRange(weekStart: ClubDateParts) {
+  return `${formatMonthDay(weekStart)} - ${formatMonthDay(addClubCalendarDays(weekStart, 6))}`;
 }
 
-function formatMonthDay(date: Date) {
-  return date.toLocaleDateString("en-US", {
+function formatMonthDay(parts: ClubDateParts) {
+  return new Date(clubDateTimeToUtcIso(parts, 12)).toLocaleDateString("en-US", {
     day: "numeric",
     month: "short",
-    timeZone: "UTC",
+    timeZone: CLUB_TIME_ZONE,
   });
 }

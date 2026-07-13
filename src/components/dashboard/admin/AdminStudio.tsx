@@ -1,23 +1,12 @@
-import {
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef
-} from "react";
+import { useEffect, useMemo, useReducer, useRef } from "react";
 import useSWR from "swr";
-import {
-  CalendarCheck,
-  Check,
-  RefreshCcw,
-  Trash2,
-  X,
-} from "lucide-react";
+import { CalendarCheck, Check, RefreshCcw, Trash2, X } from "lucide-react";
 import {
   fetchApi,
   fetchJson,
-  PUBLIC_API_SWR_OPTIONS,
+  SCHEDULE_SWR_OPTIONS,
   readErrorMessage,
-  readJson
+  readJson,
 } from "@/lib/http";
 
 interface StudioStats {
@@ -78,6 +67,7 @@ interface AdminStudioState {
   error: string;
   modal: { action: StudioAdminAction; requestId: string } | null;
   success: string;
+  syncWarning: string;
 }
 
 const initialAdminStudioState: AdminStudioState = {
@@ -87,15 +77,21 @@ const initialAdminStudioState: AdminStudioState = {
   error: "",
   modal: null,
   success: "",
+  syncWarning: "",
 };
 
 const CLUB_TIME_ZONE = "America/Indiana/Indianapolis";
 const EMPTY_STUDIO_REQUESTS: StudioRequest[] = [];
-const actionButtonClass = "inline-flex min-h-9 items-center justify-center gap-2 border px-3 py-2 text-[10px] uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-50";
-const inputClass = "w-full bg-transparent border border-neutral-800 px-3 py-2.5 text-sm text-neutral-200 placeholder:text-neutral-700 focus:border-neutral-600 focus:outline-none transition-colors";
+const actionButtonClass =
+  "inline-flex min-h-9 items-center justify-center gap-2 border px-3 py-2 text-[10px] uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-50";
+const inputClass =
+  "w-full bg-transparent border border-neutral-800 px-3 py-2.5 text-sm text-neutral-200 placeholder:text-neutral-700 focus:border-neutral-600 focus:outline-none transition-colors";
 
 export default function AdminStudio() {
-  const [state, setState] = useReducer(adminStudioReducer, initialAdminStudioState);
+  const [state, setState] = useReducer(
+    adminStudioReducer,
+    initialAdminStudioState,
+  );
   const {
     adminNote,
     busyAction,
@@ -103,32 +99,61 @@ export default function AdminStudio() {
     error,
     modal,
     success,
+    syncWarning,
   } = state;
   const {
     data,
     error: loadError,
     isLoading,
     mutate,
-  } = useSWR<AdminStudioResponse>("/api/admin/studio", fetchJson, PUBLIC_API_SWR_OPTIONS);
+  } = useSWR<AdminStudioResponse>(
+    "/api/admin/studio",
+    fetchJson,
+    SCHEDULE_SWR_OPTIONS,
+  );
   const requests = data?.requests ?? EMPTY_STUDIO_REQUESTS;
   const pendingRequests = useMemo(
-    () => requests.filter((request) => request.status === "pending").toSorted(sortByStartsAtAsc),
+    () =>
+      requests
+        .filter((request) => request.status === "pending")
+        .toSorted(sortByStartsAtAsc),
     [requests],
   );
   const upcomingApproved = useMemo(
-    () => requests
-      .filter((request) => request.status === "approved" && Date.parse(request.endsAt) > Date.now())
-      .toSorted(sortByStartsAtAsc),
+    () =>
+      requests
+        .filter(
+          (request) =>
+            request.status === "approved" &&
+            Date.parse(request.endsAt) > Date.now(),
+        )
+        .toSorted(sortByStartsAtAsc),
     [requests],
   );
   const resolvedRequests = useMemo(
-    () => requests
-      .filter((request) => request.status !== "pending" && !(request.status === "approved" && Date.parse(request.endsAt) > Date.now()))
-      .toSorted((a, b) => Date.parse(b.resolvedAt ?? b.createdAt) - Date.parse(a.resolvedAt ?? a.createdAt)),
+    () =>
+      requests
+        .filter(
+          (request) =>
+            request.status !== "pending" &&
+            !(
+              request.status === "approved" &&
+              Date.parse(request.endsAt) > Date.now()
+            ),
+        )
+        .toSorted(
+          (a, b) =>
+            Date.parse(b.resolvedAt ?? b.createdAt) -
+            Date.parse(a.resolvedAt ?? a.createdAt),
+        ),
     [requests],
   );
   const modalError = modal || clearResolvedConfirmOpen ? error : "";
-  const pageError = loadError ? "Failed to load studio data." : modalError ? "" : error;
+  const pageError = loadError
+    ? "Failed to load studio data."
+    : modalError
+      ? ""
+      : error;
 
   const openModal = (requestId: string, action: StudioAdminAction) => {
     setState({
@@ -136,6 +161,7 @@ export default function AdminStudio() {
       error: "",
       modal: { action, requestId },
       success: "",
+      syncWarning: "",
     });
   };
 
@@ -156,6 +182,7 @@ export default function AdminStudio() {
       clearResolvedConfirmOpen: true,
       error: "",
       success: "",
+      syncWarning: "",
     });
   };
 
@@ -172,6 +199,7 @@ export default function AdminStudio() {
       busyAction: `${modal.action}:${modal.requestId}`,
       error: "",
       success: "",
+      syncWarning: "",
     });
 
     try {
@@ -185,7 +213,12 @@ export default function AdminStudio() {
       });
 
       if (!response.ok) {
-        setState({ error: await readErrorMessage(response, "Failed to update studio request.") });
+        setState({
+          error: await readErrorMessage(
+            response,
+            "Failed to update studio request.",
+          ),
+        });
         return;
       }
 
@@ -193,7 +226,8 @@ export default function AdminStudio() {
       setState({
         adminNote: "",
         modal: null,
-        success: result.discordSyncWarning || getActionSuccessMessage(modal.action),
+        success: getActionSuccessMessage(modal.action),
+        syncWarning: result.discordSyncWarning ?? "",
       });
       await mutate();
     } catch {
@@ -208,6 +242,7 @@ export default function AdminStudio() {
       busyAction: `sync:${requestId}`,
       error: "",
       success: "",
+      syncWarning: "",
     });
 
     try {
@@ -216,7 +251,12 @@ export default function AdminStudio() {
       });
 
       if (!response.ok) {
-        setState({ error: await readErrorMessage(response, "Failed to sync studio request.") });
+        setState({
+          error: await readErrorMessage(
+            response,
+            "Failed to sync studio request.",
+          ),
+        });
         return;
       }
 
@@ -246,7 +286,12 @@ export default function AdminStudio() {
       });
 
       if (!response.ok) {
-        setState({ error: await readErrorMessage(response, "Failed to clear resolved studio requests.") });
+        setState({
+          error: await readErrorMessage(
+            response,
+            "Failed to clear resolved studio requests.",
+          ),
+        });
         return;
       }
 
@@ -264,7 +309,9 @@ export default function AdminStudio() {
     }
   };
 
-  const modalRequest = requests.find((request) => request.id === modal?.requestId);
+  const modalRequest = requests.find(
+    (request) => request.id === modal?.requestId,
+  );
 
   if (isLoading) {
     return <p className="text-xs text-neutral-500">Loading studio requests</p>;
@@ -278,8 +325,19 @@ export default function AdminStudio() {
         </p>
       )}
       {success && (
-        <p className="border border-green-900/30 bg-green-900/10 px-4 py-3 text-xs text-green-400">
+        <p
+          role="status"
+          className="border border-green-900/30 bg-green-900/10 px-4 py-3 text-xs text-green-400"
+        >
           {success}
+        </p>
+      )}
+      {syncWarning && (
+        <p
+          role="status"
+          className="border border-amber-900/40 bg-amber-950/15 px-4 py-3 text-xs text-amber-300"
+        >
+          {syncWarning}
         </p>
       )}
 
@@ -382,9 +440,18 @@ function useModalDialog() {
 function AdminStudioStats({ stats }: { stats: StudioStats | undefined }) {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
-      <AdminStudioStat label="People Used Studio" value={stats?.uniqueUsedUsers ?? 0} />
-      <AdminStudioStat label="Completed Uses" value={stats?.usedSessions ?? 0} />
-      <AdminStudioStat label="Upcoming" value={stats?.upcomingApprovedSessions ?? 0} />
+      <AdminStudioStat
+        label="People Used Studio"
+        value={stats?.uniqueUsedUsers ?? 0}
+      />
+      <AdminStudioStat
+        label="Completed Uses"
+        value={stats?.usedSessions ?? 0}
+      />
+      <AdminStudioStat
+        label="Upcoming"
+        value={stats?.upcomingApprovedSessions ?? 0}
+      />
       <AdminStudioStat label="Pending" value={stats?.pendingRequests ?? 0} />
     </div>
   );
@@ -393,8 +460,15 @@ function AdminStudioStats({ stats }: { stats: StudioStats | undefined }) {
 function AdminStudioStat({ label, value }: { label: string; value: number }) {
   return (
     <div className="border border-neutral-800 bg-white/[0.02] p-5">
-      <p className="mb-1 text-[9px] uppercase tracking-[0.3em] text-neutral-600">{label}</p>
-      <p className="text-3xl font-light text-neutral-100" style={{ fontFamily: "'Playfair Display', serif" }}>{value}</p>
+      <p className="mb-1 text-[9px] uppercase tracking-[0.3em] text-neutral-600">
+        {label}
+      </p>
+      <p
+        className="text-3xl font-light text-neutral-100"
+        style={{ fontFamily: "'Playfair Display', serif" }}
+      >
+        {value}
+      </p>
     </div>
   );
 }
@@ -427,7 +501,9 @@ function StudioRequestSection({
   return (
     <section>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-[9px] uppercase tracking-[0.3em] text-neutral-600">{label}</p>
+        <p className="text-[9px] uppercase tracking-[0.3em] text-neutral-600">
+          {label}
+        </p>
         {clearResolved && (
           <button
             type="button"
@@ -468,15 +544,25 @@ interface StudioRequestRowProps {
   request: StudioRequest;
 }
 
-function StudioRequestRow({ actionKind, busyAction, onAction, onRetrySync, request }: StudioRequestRowProps) {
+function StudioRequestRow({
+  actionKind,
+  busyAction,
+  onAction,
+  onRetrySync,
+  request,
+}: StudioRequestRowProps) {
   return (
     <article className="border border-neutral-800 bg-white/[0.02] p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="mb-1 flex flex-wrap items-center gap-2">
             <h3 className="text-sm text-neutral-100">{request.userName}</h3>
-            {actionKind !== "pending" && <StudioStatusBadge status={request.status} />}
-            <span className={`border px-2 py-1 text-[9px] uppercase tracking-[0.14em] ${getSyncTone(request.discordSyncStatus)}`}>
+            {actionKind !== "pending" && (
+              <StudioStatusBadge status={request.status} />
+            )}
+            <span
+              className={`border px-2 py-1 text-[9px] uppercase tracking-[0.14em] ${getSyncTone(request.discordSyncStatus)}`}
+            >
               {request.discordSyncStatus}
             </span>
           </div>
@@ -484,28 +570,52 @@ function StudioRequestRow({ actionKind, busyAction, onAction, onRetrySync, reque
           <p className="mt-2 text-xs text-neutral-300">
             {formatDateTime(request.startsAt)} - {formatTime(request.endsAt)}
           </p>
-          {request.memberNote && <p className="mt-2 text-[10px] text-neutral-500">Member note: {request.memberNote}</p>}
-          {request.needsStudioManager && <p className="mt-2 text-[10px] text-blue-300">Studio manager help requested</p>}
-          {request.adminNote && <p className="mt-1 text-[10px] text-neutral-400">Admin note: {request.adminNote}</p>}
+          {request.memberNote && (
+            <p className="mt-2 text-[10px] text-neutral-500">
+              Member note: {request.memberNote}
+            </p>
+          )}
+          {request.needsStudioManager && (
+            <p className="mt-2 text-[10px] text-blue-300">
+              Studio manager help requested
+            </p>
+          )}
+          {request.adminNote && (
+            <p className="mt-1 text-[10px] text-neutral-400">
+              Admin note: {request.adminNote}
+            </p>
+          )}
           {request.discordChannelId && (
             <div className="mt-2 text-[10px] text-neutral-600">
-              <p className="text-neutral-400">Discord channel: #{buildStudioChannelName(request)}</p>
+              <p className="text-neutral-400">
+                Discord channel: #{buildStudioChannelName(request)}
+              </p>
               <p>ID {request.discordChannelId}</p>
             </div>
           )}
           {request.discordSyncError && (
-            <p className="mt-2 max-w-3xl text-[10px] text-amber-400">{request.discordSyncError}</p>
+            <p className="mt-2 max-w-3xl text-[10px] text-amber-400">
+              {request.discordSyncError}
+            </p>
           )}
         </div>
 
         <div className="flex flex-wrap gap-2 lg:justify-end">
           {actionKind === "pending" && (
             <>
-              <button type="button" onClick={() => onAction(request.id, "approve")} className={`${actionButtonClass} border-green-900/60 text-green-300 hover:border-green-700 hover:bg-green-950/20`}>
+              <button
+                type="button"
+                onClick={() => onAction(request.id, "approve")}
+                className={`${actionButtonClass} border-green-900/60 text-green-300 hover:border-green-700 hover:bg-green-950/20`}
+              >
                 <Check className="size-3" aria-hidden="true" />
                 Approve
               </button>
-              <button type="button" onClick={() => onAction(request.id, "reject")} className={`${actionButtonClass} border-red-900/60 text-red-300 hover:border-red-700 hover:bg-red-950/30`}>
+              <button
+                type="button"
+                onClick={() => onAction(request.id, "reject")}
+                className={`${actionButtonClass} border-red-900/60 text-red-300 hover:border-red-700 hover:bg-red-950/30`}
+              >
                 <X className="size-3" aria-hidden="true" />
                 Reject
               </button>
@@ -522,7 +632,11 @@ function StudioRequestRow({ actionKind, busyAction, onAction, onRetrySync, reque
                 <RefreshCcw className="size-3" aria-hidden="true" />
                 {busyAction === `sync:${request.id}` ? "Syncing" : "Retry Sync"}
               </button>
-              <button type="button" onClick={() => onAction(request.id, "cancel")} className={`${actionButtonClass} border-red-900/60 text-red-300 hover:border-red-700 hover:bg-red-950/30`}>
+              <button
+                type="button"
+                onClick={() => onAction(request.id, "cancel")}
+                className={`${actionButtonClass} border-red-900/60 text-red-300 hover:border-red-700 hover:bg-red-950/30`}
+              >
                 <X className="size-3" aria-hidden="true" />
                 Cancel
               </button>
@@ -545,7 +659,16 @@ interface StudioActionModalProps {
   request: StudioRequest;
 }
 
-function StudioActionModal({ action, busy, error, note, onClose, onNoteChange, onSubmit, request }: StudioActionModalProps) {
+function StudioActionModal({
+  action,
+  busy,
+  error,
+  note,
+  onClose,
+  onNoteChange,
+  onSubmit,
+  request,
+}: StudioActionModalProps) {
   const dialogRef = useModalDialog();
 
   return (
@@ -562,35 +685,68 @@ function StudioActionModal({ action, busy, error, note, onClose, onNoteChange, o
       }}
       ref={dialogRef}
     >
-      <button type="button" aria-label="Close studio action dialog" className="absolute inset-0 cursor-default" disabled={busy} onClick={onClose} tabIndex={-1} />
+      <button
+        type="button"
+        aria-label="Close studio action dialog"
+        className="absolute inset-0 cursor-default"
+        disabled={busy}
+        onClick={onClose}
+        tabIndex={-1}
+      />
       <div className="relative z-10 w-full max-w-sm border border-neutral-800 bg-neutral-950 p-6">
         <div className="mb-4 flex items-center gap-3">
-          <CalendarCheck className="size-4 text-neutral-500" aria-hidden="true" />
-          <h3 className="text-sm tracking-wider text-neutral-100" id="studio-action-modal-title">{getActionTitle(action)} Studio Request</h3>
+          <CalendarCheck
+            className="size-4 text-neutral-500"
+            aria-hidden="true"
+          />
+          <h3
+            className="text-sm tracking-wider text-neutral-100"
+            id="studio-action-modal-title"
+          >
+            {getActionTitle(action)} Studio Request
+          </h3>
         </div>
         <p className="mb-1 text-xs text-neutral-300">{request.userName}</p>
-        <p className="mb-4 text-[10px] text-neutral-500">{formatDateTime(request.startsAt)} - {formatTime(request.endsAt)}</p>
+        <p className="mb-4 text-[10px] text-neutral-500">
+          {formatDateTime(request.startsAt)} - {formatTime(request.endsAt)}
+        </p>
         {error && (
           <p className="mb-4 border border-red-900/30 bg-red-900/10 px-3 py-2 text-[11px] text-red-300">
             {error}
           </p>
         )}
         <label className="mb-4 block">
-          <span className="mb-1.5 block text-[10px] uppercase tracking-wider text-neutral-600">Admin note (optional)</span>
+          <span className="mb-1.5 block text-[10px] uppercase tracking-wider text-neutral-600">
+            Admin note (optional)
+          </span>
           <input
             className={inputClass}
             maxLength={500}
             onChange={(event) => onNoteChange(event.target.value)}
-            placeholder={action === "approve" ? "Setup, cleanup, or access note" : "Reason or message"}
+            placeholder={
+              action === "approve"
+                ? "Setup, cleanup, or access note"
+                : "Reason or message"
+            }
             type="text"
             value={note}
           />
         </label>
         <div className="flex items-center gap-3">
-          <button type="button" disabled={busy} onClick={onSubmit} className={`${actionButtonClass} bg-white text-black hover:bg-neutral-200`}>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onSubmit}
+            className={`${actionButtonClass} bg-white text-black hover:bg-neutral-200`}
+          >
             {busy ? "Working" : getActionTitle(action)}
           </button>
-          <button type="button" disabled={busy} onClick={onClose} className={`${actionButtonClass} border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-200`}>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onClose}
+            className={`${actionButtonClass} border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-200`}
+          >
             Cancel
           </button>
         </div>
@@ -607,7 +763,13 @@ interface ClearResolvedModalProps {
   onSubmit: () => void;
 }
 
-function ClearResolvedModal({ busy, count, error, onClose, onSubmit }: ClearResolvedModalProps) {
+function ClearResolvedModal({
+  busy,
+  count,
+  error,
+  onClose,
+  onSubmit,
+}: ClearResolvedModalProps) {
   const requestLabel = `resolved studio request${count === 1 ? "" : "s"}`;
   const dialogRef = useModalDialog();
 
@@ -626,13 +788,28 @@ function ClearResolvedModal({ busy, count, error, onClose, onSubmit }: ClearReso
       }}
       ref={dialogRef}
     >
-      <button type="button" aria-label="Close clear resolved dialog" className="absolute inset-0 cursor-default" disabled={busy} onClick={onClose} tabIndex={-1} />
+      <button
+        type="button"
+        aria-label="Close clear resolved dialog"
+        className="absolute inset-0 cursor-default"
+        disabled={busy}
+        onClick={onClose}
+        tabIndex={-1}
+      />
       <div className="relative z-10 w-full max-w-sm border border-neutral-800 bg-neutral-950 p-6">
         <div className="mb-4 flex items-center gap-3">
           <Trash2 className="size-4 text-red-300" aria-hidden="true" />
-          <h3 className="text-sm tracking-wider text-neutral-100" id="clear-resolved-modal-title">Clear Resolved Requests</h3>
+          <h3
+            className="text-sm tracking-wider text-neutral-100"
+            id="clear-resolved-modal-title"
+          >
+            Clear Resolved Requests
+          </h3>
         </div>
-        <p className="mb-4 text-xs leading-relaxed text-neutral-300" id="clear-resolved-modal-description">
+        <p
+          className="mb-4 text-xs leading-relaxed text-neutral-300"
+          id="clear-resolved-modal-description"
+        >
           Clear {count} {requestLabel} from the admin list?
         </p>
         {error && (
@@ -641,10 +818,20 @@ function ClearResolvedModal({ busy, count, error, onClose, onSubmit }: ClearReso
           </p>
         )}
         <div className="flex items-center gap-3">
-          <button type="button" disabled={busy} onClick={onSubmit} className={`${actionButtonClass} bg-white text-black hover:bg-neutral-200`}>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onSubmit}
+            className={`${actionButtonClass} bg-white text-black hover:bg-neutral-200`}
+          >
             {busy ? "Clearing" : "Clear"}
           </button>
-          <button type="button" disabled={busy} onClick={onClose} className={`${actionButtonClass} border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-200`}>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onClose}
+            className={`${actionButtonClass} border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-200`}
+          >
             Cancel
           </button>
         </div>
@@ -662,7 +849,9 @@ function StudioStatusBadge({ status }: { status: StudioRequestStatus }) {
   }[status];
 
   return (
-    <span className={`border px-2 py-1 text-[9px] uppercase tracking-[0.14em] ${tone}`}>
+    <span
+      className={`border px-2 py-1 text-[9px] uppercase tracking-[0.14em] ${tone}`}
+    >
       {status}
     </span>
   );
@@ -682,7 +871,11 @@ function getSyncTone(status: StudioRequest["discordSyncStatus"]) {
 }
 
 function getActionTitle(action: StudioAdminAction) {
-  return action === "approve" ? "Approve" : action === "reject" ? "Reject" : "Cancel";
+  return action === "approve"
+    ? "Approve"
+    : action === "reject"
+      ? "Reject"
+      : "Cancel";
 }
 
 function getActionSuccessMessage(action: StudioAdminAction) {
@@ -715,33 +908,44 @@ function formatTime(value: string) {
 
 function buildStudioChannelName(request: StudioRequest) {
   const startsAt = new Date(request.startsAt);
-  const weekday = startsAt.toLocaleString("en-US", {
-    timeZone: CLUB_TIME_ZONE,
-    weekday: "short",
-  }).toLowerCase();
-  const month = startsAt.toLocaleString("en-US", {
-    month: "short",
-    timeZone: CLUB_TIME_ZONE,
-  }).toLowerCase();
+  const weekday = startsAt
+    .toLocaleString("en-US", {
+      timeZone: CLUB_TIME_ZONE,
+      weekday: "short",
+    })
+    .toLowerCase();
+  const month = startsAt
+    .toLocaleString("en-US", {
+      month: "short",
+      timeZone: CLUB_TIME_ZONE,
+    })
+    .toLowerCase();
   const day = startsAt.toLocaleString("en-US", {
     day: "2-digit",
     timeZone: CLUB_TIME_ZONE,
   });
-  const hour = startsAt.toLocaleString("en-US", {
-    hour: "numeric",
-    hour12: true,
-    timeZone: CLUB_TIME_ZONE,
-  }).toLowerCase().replace(/\s/g, "");
+  const hour = startsAt
+    .toLocaleString("en-US", {
+      hour: "numeric",
+      hour12: true,
+      timeZone: CLUB_TIME_ZONE,
+    })
+    .toLowerCase()
+    .replace(/\s/g, "");
   const prefix = request.status === "cancelled" ? "cancelled-studio" : "studio";
 
-  return sanitizeDiscordChannelName(`${prefix}-${weekday}-${month}-${day}-${hour}-${request.userName}`);
+  return sanitizeDiscordChannelName(
+    `${prefix}-${weekday}-${month}-${day}-${hour}-${request.userName}`,
+  );
 }
 
 function sanitizeDiscordChannelName(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9-_]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 90) || "studio-reservation";
+  return (
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9-_]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 90) || "studio-reservation"
+  );
 }

@@ -1,4 +1,4 @@
-import { useMemo, useReducer } from "react";
+import { useEffect, useMemo, useReducer } from "react";
 import useSWR from "swr";
 import {
   CalendarDays,
@@ -12,17 +12,26 @@ import AccessUpsellPanel from "@/components/dashboard/AccessUpsellPanel";
 import {
   fetchApi,
   fetchJson,
-  PUBLIC_API_SWR_OPTIONS,
+  LIVE_SCHEDULE_SWR_OPTIONS,
   readErrorMessage,
-  readJson
+  readJson,
 } from "@/lib/http";
+import {
+  addClubCalendarDays,
+  clubDateKeyToParts,
+  clubDatePartsToKey,
+  clubDateTimeToUtcIso,
+  CLUB_TIME_ZONE,
+  getClubDateParts,
+  startOfClubSunday,
+  type ClubDateParts,
+} from "@/lib/club-time";
 
 interface DarkroomScheduleSlot {
   availableCapacity: number;
   capacity: number;
-  discordChannelId: string | null;
-  discordSyncError: string | null;
-  discordSyncStatus: "archived" | "failed" | "pending" | "synced";
+  discordChannelId?: string | null;
+  discordSyncStatus?: "archived" | "failed" | "pending" | "synced";
   endsAt: string;
   id: string;
   isRegistered: boolean;
@@ -53,16 +62,19 @@ interface DarkroomScheduleCalendarState {
   busySlotId: string | null;
   error: string;
   notice: string;
+  syncWarning: string;
   todayKey: string;
-  todayWeekStartIso: string;
-  weekStartIso: string;
+  todayWeekStartKey: string;
+  weekStartKey: string;
 }
 
-const DAY_MS = 24 * 60 * 60 * 1_000;
 const EMPTY_SLOTS: DarkroomScheduleSlot[] = [];
-const scheduleButtonClass = "inline-flex min-h-10 items-center justify-center gap-2 border px-3 py-2 text-[10px] uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-50";
+const scheduleButtonClass =
+  "inline-flex min-h-10 items-center justify-center gap-2 border px-3 py-2 text-[10px] uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-50";
 
-export default function DarkroomScheduleCalendar({ canSchedule }: DarkroomScheduleCalendarProps) {
+export default function DarkroomScheduleCalendar({
+  canSchedule,
+}: DarkroomScheduleCalendarProps) {
   const [state, setState] = useReducer(
     darkroomScheduleCalendarReducer,
     undefined,
@@ -72,22 +84,59 @@ export default function DarkroomScheduleCalendar({ canSchedule }: DarkroomSchedu
     busySlotId,
     error,
     notice,
+    syncWarning,
     todayKey,
-    todayWeekStartIso,
-    weekStartIso,
+    todayWeekStartKey,
+    weekStartKey,
   } = state;
-  const weekStart = useMemo(() => new Date(weekStartIso), [weekStartIso]);
-  const weekEnd = useMemo(() => addDays(weekStart, 8), [weekStart]);
-  const days = useMemo(() => Array.from({ length: 8 }, (_, index) => addDays(weekStart, index)), [weekStart]);
-  const scheduleUrl = `/api/darkroom/schedule?start=${encodeURIComponent(weekStart.toISOString())}&end=${encodeURIComponent(weekEnd.toISOString())}`;
+  const weekStart = useMemo(
+    () => clubDateKeyToParts(weekStartKey),
+    [weekStartKey],
+  );
+  const weekEnd = useMemo(() => addClubCalendarDays(weekStart, 7), [weekStart]);
+  const days = useMemo(
+    () =>
+      Array.from({ length: 7 }, (_, index) =>
+        addClubCalendarDays(weekStart, index),
+      ),
+    [weekStart],
+  );
+  const scheduleUrl = `/api/darkroom/schedule?start=${encodeURIComponent(clubDateTimeToUtcIso(weekStart, 0))}&end=${encodeURIComponent(clubDateTimeToUtcIso(weekEnd, 0))}`;
   const {
     data,
     error: loadError,
     isLoading,
     mutate,
-  } = useSWR<DarkroomScheduleResponse>(canSchedule ? scheduleUrl : null, fetchJson, PUBLIC_API_SWR_OPTIONS);
+  } = useSWR<DarkroomScheduleResponse>(
+    canSchedule ? scheduleUrl : null,
+    fetchJson,
+    LIVE_SCHEDULE_SWR_OPTIONS,
+  );
   const slots = data?.slots ?? EMPTY_SLOTS;
   const slotsByDay = useMemo(() => groupSlotsByDay(slots), [slots]);
+
+  useEffect(() => {
+    const refreshClubDate = () => {
+      const now = new Date();
+      const nextTodayKey = clubDatePartsToKey(getClubDateParts(now));
+      if (nextTodayKey === todayKey) return;
+
+      const nextTodayWeekStartKey = clubDatePartsToKey(startOfClubSunday(now));
+      setState({
+        todayKey: nextTodayKey,
+        todayWeekStartKey: nextTodayWeekStartKey,
+        ...(weekStartKey === todayWeekStartKey
+          ? { weekStartKey: nextTodayWeekStartKey }
+          : {}),
+      });
+    };
+    const timer = window.setInterval(refreshClubDate, 60_000);
+    window.addEventListener("focus", refreshClubDate);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshClubDate);
+    };
+  }, [todayKey, todayWeekStartKey, weekStartKey]);
 
   if (!canSchedule) {
     return (
@@ -100,29 +149,47 @@ export default function DarkroomScheduleCalendar({ canSchedule }: DarkroomSchedu
     );
   }
 
-  const handleRegistration = async (slot: DarkroomScheduleSlot, method: "DELETE" | "POST") => {
-    setState({ busySlotId: slot.id, error: "", notice: "" });
+  const handleRegistration = async (
+    slot: DarkroomScheduleSlot,
+    method: "DELETE" | "POST",
+  ) => {
+    setState({ busySlotId: slot.id, error: "", notice: "", syncWarning: "" });
 
     try {
-      const response = await fetchApi(`/api/darkroom/schedule/${slot.id}/registration`, {
-        method,
-      });
+      const response = await fetchApi(
+        `/api/darkroom/schedule/${slot.id}/registration`,
+        {
+          method,
+        },
+      );
 
       if (!response.ok) {
         setState({
-          error: await readErrorMessage(response, method === "POST" ? "Failed to join this slot." : "Failed to drop this slot."),
+          error: await readErrorMessage(
+            response,
+            method === "POST"
+              ? "Failed to join this slot."
+              : "Failed to drop this slot.",
+          ),
         });
         return;
       }
 
       const result = await readJson<DarkroomScheduleMutationResponse>(response);
       setState({
-        notice: result.discordSyncWarning || (method === "POST" ? "Joined darkroom slot." : "Darkroom slot dropped."),
+        notice:
+          method === "POST"
+            ? "Joined darkroom slot."
+            : "Darkroom slot dropped.",
+        syncWarning: result.discordSyncWarning ?? "",
       });
       await mutate();
     } catch {
       setState({
-        error: method === "POST" ? "Failed to join this slot." : "Failed to drop this slot.",
+        error:
+          method === "POST"
+            ? "Failed to join this slot."
+            : "Failed to drop this slot.",
       });
     } finally {
       setState({ busySlotId: null });
@@ -132,20 +199,44 @@ export default function DarkroomScheduleCalendar({ canSchedule }: DarkroomSchedu
   return (
     <div className="space-y-5">
       <ScheduleToolbar
-        rangeLabel={`${formatMonthDay(weekStart)} - ${formatMonthDay(addDays(weekStart, 7))}`}
-        onNext={() => setState({ weekStartIso: addDays(weekStart, 7).toISOString() })}
-        onPrevious={() => setState({ weekStartIso: addDays(weekStart, -7).toISOString() })}
-        onToday={() => setState({ weekStartIso: todayWeekStartIso })}
+        rangeLabel={`${formatMonthDay(weekStart)} - ${formatMonthDay(addClubCalendarDays(weekStart, 6))}`}
+        onNext={() =>
+          setState({
+            weekStartKey: clubDatePartsToKey(addClubCalendarDays(weekStart, 7)),
+          })
+        }
+        onPrevious={() =>
+          setState({
+            weekStartKey: clubDatePartsToKey(
+              addClubCalendarDays(weekStart, -7),
+            ),
+          })
+        }
+        onToday={() => setState({ weekStartKey: todayWeekStartKey })}
       />
 
       {(error || loadError) && (
-        <p className="border border-red-900/30 bg-red-900/10 px-4 py-3 text-xs text-red-400">
+        <p
+          role="alert"
+          className="border border-red-900/30 bg-red-900/10 px-4 py-3 text-xs text-red-400"
+        >
           {error || "Failed to load the darkroom schedule."}
         </p>
       )}
       {notice && (
-        <p className="border border-green-900/30 bg-green-900/10 px-4 py-3 text-xs text-green-400">
+        <p
+          role="status"
+          className="border border-green-900/30 bg-green-900/10 px-4 py-3 text-xs text-green-400"
+        >
           {notice}
+        </p>
+      )}
+      {syncWarning && (
+        <p
+          role="status"
+          className="border border-amber-900/40 bg-amber-950/15 px-4 py-3 text-xs text-amber-300"
+        >
+          {syncWarning}
         </p>
       )}
 
@@ -157,8 +248,8 @@ export default function DarkroomScheduleCalendar({ canSchedule }: DarkroomSchedu
             <ScheduleDayColumn
               busySlotId={busySlotId}
               day={day}
-              key={day.toISOString()}
-              slots={slotsByDay[formatDayKey(day)] ?? []}
+              key={clubDatePartsToKey(day)}
+              slots={slotsByDay[clubDatePartsToKey(day)] ?? []}
               todayKey={todayKey}
               onDrop={(slot) => handleRegistration(slot, "DELETE")}
               onJoin={(slot) => handleRegistration(slot, "POST")}
@@ -177,7 +268,12 @@ interface ScheduleToolbarProps {
   rangeLabel: string;
 }
 
-function ScheduleToolbar({ onNext, onPrevious, onToday, rangeLabel }: ScheduleToolbarProps) {
+function ScheduleToolbar({
+  onNext,
+  onPrevious,
+  onToday,
+  rangeLabel,
+}: ScheduleToolbarProps) {
   return (
     <div className="flex flex-col gap-3 border border-neutral-800 bg-white/[0.02] p-4 md:flex-row md:items-center md:justify-between">
       <div className="flex items-center gap-3">
@@ -185,18 +281,34 @@ function ScheduleToolbar({ onNext, onPrevious, onToday, rangeLabel }: ScheduleTo
           <CalendarDays className="size-4" aria-hidden="true" />
         </span>
         <div>
-          <p className="text-[9px] uppercase tracking-[0.3em] text-neutral-600">Darkroom Schedule</p>
+          <p className="text-[9px] uppercase tracking-[0.3em] text-neutral-600">
+            Darkroom Schedule
+          </p>
           <p className="text-sm text-neutral-200">{rangeLabel}</p>
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <button type="button" onClick={onPrevious} className="flex size-10 items-center justify-center border border-neutral-800 text-neutral-500 transition-colors hover:border-neutral-600 hover:text-neutral-200" aria-label="Previous week">
+        <button
+          type="button"
+          onClick={onPrevious}
+          className="flex size-10 items-center justify-center border border-neutral-800 text-neutral-500 transition-colors hover:border-neutral-600 hover:text-neutral-200"
+          aria-label="Previous week"
+        >
           <ChevronLeft className="size-4" aria-hidden="true" />
         </button>
-        <button type="button" onClick={onToday} className="min-h-10 border border-neutral-800 px-4 text-[10px] uppercase tracking-[0.14em] text-neutral-500 transition-colors hover:border-neutral-600 hover:text-neutral-200">
+        <button
+          type="button"
+          onClick={onToday}
+          className="min-h-10 border border-neutral-800 px-4 text-[10px] uppercase tracking-[0.14em] text-neutral-500 transition-colors hover:border-neutral-600 hover:text-neutral-200"
+        >
           Today
         </button>
-        <button type="button" onClick={onNext} className="flex size-10 items-center justify-center border border-neutral-800 text-neutral-500 transition-colors hover:border-neutral-600 hover:text-neutral-200" aria-label="Next week">
+        <button
+          type="button"
+          onClick={onNext}
+          className="flex size-10 items-center justify-center border border-neutral-800 text-neutral-500 transition-colors hover:border-neutral-600 hover:text-neutral-200"
+          aria-label="Next week"
+        >
           <ChevronRight className="size-4" aria-hidden="true" />
         </button>
       </div>
@@ -206,21 +318,35 @@ function ScheduleToolbar({ onNext, onPrevious, onToday, rangeLabel }: ScheduleTo
 
 interface ScheduleDayColumnProps {
   busySlotId: string | null;
-  day: Date;
+  day: ClubDateParts;
   onDrop: (slot: DarkroomScheduleSlot) => void;
   onJoin: (slot: DarkroomScheduleSlot) => void;
   slots: DarkroomScheduleSlot[];
   todayKey: string;
 }
 
-function ScheduleDayColumn({ busySlotId, day, onDrop, onJoin, slots, todayKey }: ScheduleDayColumnProps) {
-  const isToday = formatDayKey(day) === todayKey;
+function ScheduleDayColumn({
+  busySlotId,
+  day,
+  onDrop,
+  onJoin,
+  slots,
+  todayKey,
+}: ScheduleDayColumnProps) {
+  const isToday = clubDatePartsToKey(day) === todayKey;
 
   return (
     <section className="min-h-48 border border-neutral-800 bg-neutral-950/60">
-      <div className={`border-b border-neutral-800 px-4 py-3 ${isToday ? "bg-blue-950/20" : "bg-white/[0.02]"}`}>
-        <p className="text-[9px] uppercase tracking-[0.24em] text-neutral-600">{formatWeekday(day)}</p>
-        <p className={`text-lg ${isToday ? "text-blue-200" : "text-neutral-200"}`} style={{ fontFamily: "'Playfair Display', serif" }}>
+      <div
+        className={`border-b border-neutral-800 px-4 py-3 ${isToday ? "bg-blue-950/20" : "bg-white/[0.02]"}`}
+      >
+        <p className="text-[9px] uppercase tracking-[0.24em] text-neutral-600">
+          {formatWeekday(day)}
+        </p>
+        <p
+          className={`text-lg ${isToday ? "text-blue-200" : "text-neutral-200"}`}
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
           {formatMonthDay(day)}
         </p>
       </div>
@@ -252,10 +378,18 @@ interface ScheduleSlotCardProps {
   slot: DarkroomScheduleSlot;
 }
 
-function ScheduleSlotCard({ busy, onDrop, onJoin, slot }: ScheduleSlotCardProps) {
+function ScheduleSlotCard({
+  busy,
+  onDrop,
+  onJoin,
+  slot,
+}: ScheduleSlotCardProps) {
   const isFull = slot.availableCapacity <= 0;
   const isPastDeadline = new Date(slot.endsAt) <= new Date();
-  const percentFull = Math.min(100, Math.round((slot.registeredCount / Math.max(1, slot.capacity)) * 100));
+  const percentFull = Math.min(
+    100,
+    Math.round((slot.registeredCount / Math.max(1, slot.capacity)) * 100),
+  );
   const cardClass = isPastDeadline
     ? "border-neutral-900/80 bg-neutral-950/25 opacity-55 saturate-50"
     : slot.isRegistered
@@ -289,7 +423,9 @@ function ScheduleSlotCard({ busy, onDrop, onJoin, slot }: ScheduleSlotCardProps)
           </p>
         </div>
         {slot.isRegistered && (
-          <span className={`border px-2 py-1 text-[9px] uppercase tracking-[0.14em] ${badgeClass}`}>
+          <span
+            className={`border px-2 py-1 text-[9px] uppercase tracking-[0.14em] ${badgeClass}`}
+          >
             Yours
           </span>
         )}
@@ -304,18 +440,37 @@ function ScheduleSlotCard({ busy, onDrop, onJoin, slot }: ScheduleSlotCardProps)
           <span>{slot.availableCapacity} open</span>
         </div>
         <div className="h-1.5 overflow-hidden bg-neutral-800">
-          <div className={`h-full ${progressClass}`} style={{ width: `${percentFull}%` }} />
+          <div
+            className={`h-full ${progressClass}`}
+            style={{ width: `${percentFull}%` }}
+          />
         </div>
       </div>
 
       <div className="flex flex-col gap-2">
         {slot.isRegistered ? (
-          <button type="button" disabled={busy || isPastDeadline} onClick={() => onDrop(slot)} className={`${scheduleButtonClass} ${actionClass}`}>
+          <button
+            type="button"
+            disabled={busy || isPastDeadline}
+            onClick={() => onDrop(slot)}
+            className={`${scheduleButtonClass} ${actionClass}`}
+          >
             {isPastDeadline ? "Ended" : busy ? "Dropping" : "Drop Slot"}
           </button>
         ) : (
-          <button type="button" disabled={busy || isFull || isPastDeadline} onClick={() => onJoin(slot)} className={`${scheduleButtonClass} ${actionClass}`}>
-            {isPastDeadline ? "Ended" : busy ? "Joining" : isFull ? "Full" : "Join"}
+          <button
+            type="button"
+            disabled={busy || isFull || isPastDeadline}
+            onClick={() => onJoin(slot)}
+            className={`${scheduleButtonClass} ${actionClass}`}
+          >
+            {isPastDeadline
+              ? "Ended"
+              : busy
+                ? "Joining"
+                : isFull
+                  ? "Full"
+                  : "Join"}
           </button>
         )}
         {slot.discordChannelId && slot.isRegistered && !isPastDeadline && (
@@ -325,7 +480,9 @@ function ScheduleSlotCard({ busy, onDrop, onJoin, slot }: ScheduleSlotCardProps)
           </span>
         )}
         {slot.discordSyncStatus === "failed" && (
-          <span className="text-[10px] text-amber-400">Discord sync needs manager retry.</span>
+          <span className="text-[10px] text-amber-400">
+            Discord sync needs manager retry.
+          </span>
         )}
       </div>
     </article>
@@ -335,8 +492,11 @@ function ScheduleSlotCard({ busy, onDrop, onJoin, slot }: ScheduleSlotCardProps)
 function ScheduleSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-3 xl:grid-cols-4">
-      {Array.from({ length: 8 }).map((_, index) => (
-        <div key={index} className="h-56 animate-pulse border border-neutral-800 bg-white/[0.02] p-4">
+      {Array.from({ length: 7 }).map((_, index) => (
+        <div
+          key={index}
+          className="h-56 animate-pulse border border-neutral-800 bg-white/[0.02] p-4"
+        >
           <div className="mb-4 h-4 w-1/3 bg-neutral-800" />
           <div className="h-24 bg-neutral-900" />
         </div>
@@ -346,13 +506,16 @@ function ScheduleSkeleton() {
 }
 
 function groupSlotsByDay(slots: DarkroomScheduleSlot[]) {
-  return slots.reduce<Record<string, DarkroomScheduleSlot[]>>((grouped, slot) => {
-    const key = formatDayKey(new Date(slot.startsAt));
-    return {
-      ...grouped,
-      [key]: [...(grouped[key] ?? []), slot],
-    };
-  }, {});
+  return slots.reduce<Record<string, DarkroomScheduleSlot[]>>(
+    (grouped, slot) => {
+      const key = clubDatePartsToKey(getClubDateParts(new Date(slot.startsAt)));
+      return {
+        ...grouped,
+        [key]: [...(grouped[key] ?? []), slot],
+      };
+    },
+    {},
+  );
 }
 
 function darkroomScheduleCalendarReducer(
@@ -367,42 +530,38 @@ function darkroomScheduleCalendarReducer(
 
 function createInitialCalendarState(): DarkroomScheduleCalendarState {
   const today = new Date();
-  const todayWeekStartIso = startOfLocalSunday(today).toISOString();
+  const todayWeekStartKey = clubDatePartsToKey(startOfClubSunday(today));
 
   return {
     busySlotId: null,
     error: "",
     notice: "",
-    todayKey: formatDayKey(today),
-    todayWeekStartIso,
-    weekStartIso: todayWeekStartIso,
+    syncWarning: "",
+    todayKey: clubDatePartsToKey(getClubDateParts(today)),
+    todayWeekStartKey,
+    weekStartKey: todayWeekStartKey,
   };
 }
 
-function startOfLocalSunday(date: Date) {
-  const localMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  return addDays(localMidnight, -localMidnight.getDay());
+function formatMonthDay(parts: ClubDateParts) {
+  return new Date(clubDateTimeToUtcIso(parts, 12)).toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "short",
+    timeZone: CLUB_TIME_ZONE,
+  });
 }
 
-function addDays(date: Date, days: number) {
-  return new Date(date.getTime() + (days * DAY_MS));
-}
-
-function formatDayKey(date: Date) {
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${date.getFullYear()}-${month}-${day}`;
-}
-
-function formatMonthDay(date: Date) {
-  return date.toLocaleDateString("en-US", { day: "numeric", month: "short" });
-}
-
-function formatWeekday(date: Date) {
-  return date.toLocaleDateString("en-US", { weekday: "long" });
+function formatWeekday(parts: ClubDateParts) {
+  return new Date(clubDateTimeToUtcIso(parts, 12)).toLocaleDateString("en-US", {
+    timeZone: CLUB_TIME_ZONE,
+    weekday: "long",
+  });
 }
 
 function formatTimeRange(startsAt: string, endsAt: string) {
-  const options = { hour: "numeric", minute: "2-digit" } satisfies Intl.DateTimeFormatOptions;
-  return `${new Date(startsAt).toLocaleTimeString("en-US", options)} - ${new Date(endsAt).toLocaleTimeString("en-US", options)}`;
+  const options = {
+    hour: "numeric",
+    minute: "2-digit",
+  } satisfies Intl.DateTimeFormatOptions;
+  return `${new Date(startsAt).toLocaleTimeString("en-US", { ...options, timeZone: CLUB_TIME_ZONE })} - ${new Date(endsAt).toLocaleTimeString("en-US", { ...options, timeZone: CLUB_TIME_ZONE })}`;
 }
