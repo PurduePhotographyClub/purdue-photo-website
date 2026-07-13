@@ -17,7 +17,11 @@ import {
   splitEvents,
   upsertEventRow,
 } from "../src/lib/events.ts";
-import { PUBLIC_EVENTS_SWR_OPTIONS } from "../src/lib/http.ts";
+import {
+  HOME_EVENTS_API_KEY,
+  HOME_EVENTS_SWR_OPTIONS,
+  PUBLIC_EVENTS_SWR_OPTIONS,
+} from "../src/lib/http.ts";
 
 const event = (overrides = {}) => ({
   id: "event-1",
@@ -156,35 +160,76 @@ test("public event refreshes preserve cached rows and still discover new events"
   assert.equal(getEventLoadStatus(undefined, new Error("initial load failed")), "error");
   assert.equal(getEventLoadStatus(undefined, undefined), "loading");
   assert.equal(PUBLIC_EVENTS_SWR_OPTIONS.refreshInterval, 60_000);
+  assert.equal(HOME_EVENTS_API_KEY, "/api/events?view=home");
+  assert.ok(HOME_EVENTS_SWR_OPTIONS.dedupingInterval < HOME_EVENTS_SWR_OPTIONS.refreshInterval);
+  assert.equal(HOME_EVENTS_SWR_OPTIONS.refreshWhenHidden, false);
 });
 
 test("event surfaces use fresh admin reads, reactive live state, recovery, and a global live event bar", async () => {
-  const [admin, eventsPage, home, layout, liveEventBar] = await Promise.all([
+  const [admin, adminLogic, eventClock, eventsPage, header, home, layout, liveEventBar] = await Promise.all([
     readFile(new URL("../src/components/dashboard/admin/AdminEvents.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/dashboard/admin/admin-events/useAdminEvents.ts", import.meta.url), "utf8"),
+    readFile(new URL("../src/hooks/useEventClock.ts", import.meta.url), "utf8"),
     readFile(new URL("../src/components/EventsPage.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/Header.tsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/Home.tsx", import.meta.url), "utf8"),
     readFile(new URL("../src/layouts/Layout.astro", import.meta.url), "utf8"),
     readFile(new URL("../src/components/LiveEventBar.tsx", import.meta.url), "utf8"),
   ]);
+  const adminSource = `${admin}\n${adminLogic}`;
 
-  assert.match(admin, /fetchFreshJson/);
-  assert.match(admin, /clubDateTimeInputToUtcIso/);
-  assert.match(admin, /toClubDateTimeLocalValue/);
-  assert.match(admin, /\/api\/events\/\$\{[^}]+\}\/sync/);
-  const syncSection = admin.slice(admin.indexOf("const syncEvent"), admin.indexOf("if (isLoading)"));
-  assert.ok(syncSection.indexOf("await mutate(") < syncSection.indexOf("if (!res.ok"));
+  assert.match(admin, /useAdminEvents/);
+  assert.match(adminSource, /fetchFreshJson/);
+  assert.match(adminSource, /clubDateTimeInputToUtcIso/);
+  assert.match(adminSource, /toClubDateTimeLocalValue/);
+  assert.match(adminSource, /\/api\/events\/\$\{[^}]+\}\/sync/);
+  const syncSection = adminLogic.slice(adminLogic.indexOf("const syncEvent"), adminLogic.indexOf("const requestDelete"));
+  assert.ok(syncSection.indexOf("await mutate(") < syncSection.indexOf("if (!response.ok"));
   assert.match(admin, /Confirm event deletion/);
   assert.match(admin, /min-h-11/);
-  assert.match(admin, /showCancel=\{false\}/);
+  assert.match(admin, /New Event/);
+  assert.match(admin, /function EventEditorDialog/);
+  assert.match(admin, /error=\{editorError\}/);
+  assert.match(admin, /disabled=\{syncBusy\}/);
+  assert.match(adminLogic, /editorError/);
+  assert.match(adminLogic, /useReducer\(eventsUiReducer, undefined, createInitialEventsUiState\)/);
+  assert.match(adminLogic, /formState: action\.nextForm/);
+  assert.match(adminLogic, /type: "eventCreated", nextForm: createInitialForm\(\)/);
+  assert.doesNotMatch(adminLogic, /case "eventCreated":[\s\S]{0,120}formState: emptyForm/);
+  assert.match(admin, /role="alert"[^>]*className="[^"]*red/);
+  assert.match(admin, /role="status"[^>]*className="[^"]*green/);
+  assert.match(admin, /role="status"[^>]*className="[^"]*amber/);
+  assert.doesNotMatch(adminSource, /setError\(response\?\.discordSyncError\)/);
   assert.doesNotMatch(admin, /Purdue time|Eastern Time/);
   assert.doesNotMatch(admin, /DiscordStatusBadge/);
+  const deleteDialogSection = admin.slice(admin.indexOf("function DeleteEventDialog"), admin.indexOf("function EventEditorDialog"));
+  assert.match(deleteDialogSection, /<ModalDialog/);
+  assert.match(deleteDialogSection, /items-end[^\n]*sm:items-center/);
+  assert.match(deleteDialogSection, /max-h-\[calc\(100dvh/);
+  assert.match(deleteDialogSection, /overflow-y-auto/);
+  assert.match(deleteDialogSection, /sticky bottom-0/);
+  assert.match(deleteDialogSection, /safe-area-inset-bottom/);
+  assert.match(deleteDialogSection, /min-h-11/);
+  assert.match(deleteDialogSection, /deleteError/);
+  assert.doesNotMatch(deleteDialogSection, /\berror\b/);
   assert.match(eventsPage, /useEventClock/);
   assert.match(eventsPage, /Showing the last saved event list/);
   assert.match(eventsPage, />\s*Retry/);
   assert.doesNotMatch(eventsPage, /event\.discordSynced\s*&&/);
   assert.doesNotMatch(home, /LiveEventWidget/);
-  assert.match(layout, /LiveEventBar client:load/);
-  assert.match(liveEventBar, /\/api\/events\?view=home/);
-  assert.match(liveEventBar, /top-24/);
-  assert.match(home, /view=home/);
+  assert.match(header, /const showLiveEventBar = currentEvents\.length > 0 && !menuOpen && !dashboardOpen/);
+  assert.match(header, /<LiveEventBar currentEvents=\{currentEvents\}\s*\/>/);
+  assert.match(header, /showLiveEventBar && <div aria-hidden="true" className="h-11"/);
+  assert.doesNotMatch(layout, /LiveEventBar/);
+  assert.match(liveEventBar, /HOME_EVENTS_API_KEY/);
+  assert.match(liveEventBar, /useEventClock\(eventRows\.length > 0\)/);
+  assert.doesNotMatch(liveEventBar, /\/api\/events\?view=home/);
+  assert.doesNotMatch(liveEventBar, /\bfixed\b|top-28/);
+  assert.match(liveEventBar, /min-h-11/);
+  assert.match(liveEventBar, /text-\[10px\]/);
+  assert.match(liveEventBar, /focus-visible:outline/);
+  assert.match(home, /HOME_EVENTS_API_KEY/);
+  assert.doesNotMatch(home, /\/api\/events\?view=home/);
+  assert.match(eventClock, /enabled = true/);
+  assert.match(eventClock, /if \(!enabled\) return/);
 });
