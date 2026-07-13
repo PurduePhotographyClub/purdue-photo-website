@@ -1,4 +1,4 @@
-import { useMemo, useReducer, useState } from "react";
+import { useMemo, useReducer, useState, type Dispatch, type SetStateAction } from "react";
 import useSWR from "swr";
 import { Search, X } from "lucide-react";
 import ModalDialog from "@/components/ModalDialog";
@@ -33,6 +33,21 @@ interface Photo {
   uploaderId: string;
   uploaderName: string | null;
   createdAt: string;
+}
+
+function changeAdminGalleryPage(
+  setFilterTag: Dispatch<SetStateAction<string | null>>,
+  setFilterUser: Dispatch<SetStateAction<string | null>>,
+  setUserSearch: Dispatch<SetStateAction<string>>,
+  setPreviewPhoto: Dispatch<SetStateAction<Photo | null>>,
+  setPage: Dispatch<SetStateAction<number>>,
+  nextPage: number,
+) {
+  setFilterTag(null);
+  setFilterUser(null);
+  setUserSearch("");
+  setPreviewPhoto(null);
+  setPage(nextPage);
 }
 const EMPTY_ADMIN_GALLERY_PHOTOS: Photo[] = [];
 
@@ -768,11 +783,7 @@ export default function AdminGallery() {
   };
   const handlePageChange = (nextPage: number) => {
     if (!galleryPage || nextPage < 1 || nextPage > galleryPage.meta.totalPages) return;
-    setFilterTag(null);
-    setFilterUser(null);
-    setUserSearch("");
-    setPreviewPhoto(null);
-    setPage(nextPage);
+    changeAdminGalleryPage(setFilterTag, setFilterUser, setUserSearch, setPreviewPhoto, setPage, nextPage);
   };
 
   if (loading) return <AdminGallerySkeleton />;

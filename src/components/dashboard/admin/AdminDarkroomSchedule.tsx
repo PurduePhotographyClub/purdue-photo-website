@@ -93,10 +93,36 @@ interface AdminDarkroomScheduleState {
   syncWarning: string;
 }
 
+interface AdminDarkroomSlotPanelsProps {
+  archivedSlots: AdminDarkroomScheduleSlot[];
+  busyAction: string | null;
+  hasArchivedChannels: boolean;
+  postWeekStartIso: string;
+  upcomingSlots: AdminDarkroomScheduleSlot[];
+  weeklyPostOptions: WeeklyPostOption[];
+  onCancel: (slotId: string) => void;
+  onCleanupArchived: () => void;
+  onEdit: (slot: AdminDarkroomScheduleSlot) => void;
+  onEnd: (slotId: string) => void;
+  onPostWeeklyJoinMessage: () => void;
+  onRetrySync: (slotId: string) => void;
+  onWeekChange: (weekStartIso: string) => void;
+}
+
 const inputClass =
   "w-full bg-transparent border border-neutral-800 px-3 py-2.5 text-sm text-neutral-200 placeholder:text-neutral-700 focus:border-neutral-600 focus:outline-none transition-colors";
 const actionButtonClass =
   "inline-flex min-h-9 items-center justify-center gap-2 border px-3 py-2 text-[10px] uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-50";
+
+function AdminDarkroomFeedback({ error, success, syncWarning }: { error: string; success: string; syncWarning: string }) {
+  return (
+    <>
+      {error && <p className="border border-red-900/30 bg-red-900/10 px-4 py-3 text-xs text-red-400">{error}</p>}
+      {success && <p role="status" className="border border-green-900/30 bg-green-900/10 px-4 py-3 text-xs text-green-400">{success}</p>}
+      {syncWarning && <p role="status" className="border border-amber-900/40 bg-amber-950/15 px-4 py-3 text-xs text-amber-300">{syncWarning}</p>}
+    </>
+  );
+}
 
 function createInitialAdminDarkroomScheduleState(): AdminDarkroomScheduleState {
   const initialTimes = getDefaultFormTimes();
@@ -122,6 +148,80 @@ function adminDarkroomScheduleReducer(
   patch: Partial<AdminDarkroomScheduleState>,
 ): AdminDarkroomScheduleState {
   return { ...state, ...patch };
+}
+
+async function postWeeklyJoinMessage(
+  postWeekStartIso: string,
+  setState: (patch: Partial<AdminDarkroomScheduleState>) => void,
+  mutate: () => Promise<unknown>,
+) {
+  setState({ busyAction: "weekly-message", error: "", success: "", syncWarning: "" });
+
+  try {
+    const weekStart = getClubDateParts(new Date(postWeekStartIso));
+    const displayWeekEnd = addClubCalendarDays(weekStart, 6);
+    const queryWeekEnd = clubDateTimeToUtcIso(addClubCalendarDays(weekStart, 7), 0);
+    const response = await fetchApi("/api/admin/darkroom/schedule/weekly-message", {
+      body: JSON.stringify({
+        displayEnd: clubDateTimeToUtcIso(displayWeekEnd, 0),
+        end: queryWeekEnd,
+        start: clubDateTimeToUtcIso(weekStart, 0),
+      }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      setState({ error: await readErrorMessage(response, "Failed to post weekly join message.") });
+      return;
+    }
+
+    const result = await readJson<AdminDarkroomScheduleMutationResponse>(response);
+    const slotCopy = `${result.slotCount ?? 0} slot${result.slotCount === 1 ? "" : "s"}`;
+    const truncatedCopy = result.truncated
+      ? " Discord shows the first 25 slots; the website calendar has the full week."
+      : "";
+    setState({
+      success: `Weekly join message posted for ${formatWeekRange(weekStart)} with ${slotCopy}.${truncatedCopy}`,
+    });
+  } catch {
+    setState({ error: "Failed to post weekly join message." });
+  } finally {
+    setState({ busyAction: null });
+  }
+}
+
+function startEditingSlot(
+  slot: AdminDarkroomScheduleSlot,
+  setState: (patch: Partial<AdminDarkroomScheduleState>) => void,
+) {
+  setState({
+    error: "",
+    form: {
+      capacity: String(slot.capacity),
+      editingId: slot.id,
+      endsAt: toClubDateTimeLocalValue(new Date(slot.endsAt)),
+      startsAt: toClubDateTimeLocalValue(new Date(slot.startsAt)),
+      title: slot.title,
+    },
+    success: "",
+    syncWarning: "",
+  });
+}
+
+function resetDarkroomForm(
+  setState: (patch: Partial<AdminDarkroomScheduleState>) => void,
+) {
+  const nextTimes = getDefaultFormTimes();
+  setState({
+    form: {
+      capacity: "4",
+      editingId: null,
+      endsAt: nextTimes.endsAt,
+      startsAt: nextTimes.startsAt,
+      title: "Open Darkroom",
+    },
+  });
 }
 
 export default function AdminDarkroomSchedule() {
@@ -199,7 +299,7 @@ export default function AdminDarkroomSchedule() {
         success: form.editingId ? "Timeslot updated." : "Timeslot created.",
         syncWarning: result.discordSyncWarning ?? "",
       });
-      resetForm();
+      resetDarkroomForm(setState);
       await mutate();
     } catch {
       setState({ error: "Failed to save timeslot." });
@@ -360,87 +460,9 @@ export default function AdminDarkroomSchedule() {
     }
   };
 
-  const handlePostWeeklyJoinMessage = async () => {
-    setState({
-      busyAction: "weekly-message",
-      error: "",
-      success: "",
-      syncWarning: "",
-    });
+  const handlePostWeeklyJoinMessage = () => postWeeklyJoinMessage(postWeekStartIso, setState, mutate);
 
-    try {
-      const weekStart = getClubDateParts(new Date(postWeekStartIso));
-      const displayWeekEnd = addClubCalendarDays(weekStart, 6);
-      const queryWeekEnd = clubDateTimeToUtcIso(
-        addClubCalendarDays(weekStart, 7),
-        0,
-      );
-      const response = await fetchApi(
-        "/api/admin/darkroom/schedule/weekly-message",
-        {
-          body: JSON.stringify({
-            displayEnd: clubDateTimeToUtcIso(displayWeekEnd, 0),
-            end: queryWeekEnd,
-            start: clubDateTimeToUtcIso(weekStart, 0),
-          }),
-          headers: { "Content-Type": "application/json" },
-          method: "POST",
-        },
-      );
-
-      if (!response.ok) {
-        setState({
-          error: await readErrorMessage(
-            response,
-            "Failed to post weekly join message.",
-          ),
-        });
-        return;
-      }
-
-      const result =
-        await readJson<AdminDarkroomScheduleMutationResponse>(response);
-      const slotCopy = `${result.slotCount ?? 0} slot${result.slotCount === 1 ? "" : "s"}`;
-      const truncatedCopy = result.truncated
-        ? " Discord shows the first 25 slots; the website calendar has the full week."
-        : "";
-      setState({
-        success: `Weekly join message posted for ${formatWeekRange(weekStart)} with ${slotCopy}.${truncatedCopy}`,
-      });
-    } catch {
-      setState({ error: "Failed to post weekly join message." });
-    } finally {
-      setState({ busyAction: null });
-    }
-  };
-
-  const startEditing = (slot: AdminDarkroomScheduleSlot) => {
-    setState({
-      error: "",
-      form: {
-        capacity: String(slot.capacity),
-        editingId: slot.id,
-        endsAt: toClubDateTimeLocalValue(new Date(slot.endsAt)),
-        startsAt: toClubDateTimeLocalValue(new Date(slot.startsAt)),
-        title: slot.title,
-      },
-      success: "",
-      syncWarning: "",
-    });
-  };
-
-  const resetForm = () => {
-    const nextTimes = getDefaultFormTimes();
-    setState({
-      form: {
-        capacity: "4",
-        editingId: null,
-        endsAt: nextTimes.endsAt,
-        startsAt: nextTimes.startsAt,
-        title: "Open Darkroom",
-      },
-    });
-  };
+  const startEditing = (slot: AdminDarkroomScheduleSlot) => startEditingSlot(slot, setState);
 
   if (isLoading) {
     return <p className="text-xs text-neutral-500">Loading schedule</p>;
@@ -448,36 +470,56 @@ export default function AdminDarkroomSchedule() {
 
   return (
     <div className="space-y-6">
-      {(error || loadError) && (
-        <p className="border border-red-900/30 bg-red-900/10 px-4 py-3 text-xs text-red-400">
-          {error || "Failed to load darkroom schedule."}
-        </p>
-      )}
-      {success && (
-        <p
-          role="status"
-          className="border border-green-900/30 bg-green-900/10 px-4 py-3 text-xs text-green-400"
-        >
-          {success}
-        </p>
-      )}
-      {syncWarning && (
-        <p
-          role="status"
-          className="border border-amber-900/40 bg-amber-950/15 px-4 py-3 text-xs text-amber-300"
-        >
-          {syncWarning}
-        </p>
-      )}
+      <AdminDarkroomFeedback
+        error={error || (loadError ? "Failed to load darkroom schedule." : "")}
+        success={success}
+        syncWarning={syncWarning}
+      />
 
       <ScheduleForm
         busy={busyAction === "save"}
         form={form}
-        onCancelEdit={resetForm}
+        onCancelEdit={() => resetDarkroomForm(setState)}
         onChange={(patch) => setState({ form: { ...form, ...patch } })}
         onSubmit={handleSubmit}
       />
 
+      <AdminDarkroomSlotPanels
+        archivedSlots={archivedSlots}
+        busyAction={busyAction}
+        hasArchivedChannels={hasArchivedChannels}
+        postWeekStartIso={postWeekStartIso}
+        upcomingSlots={upcomingSlots}
+        weeklyPostOptions={weeklyPostOptions}
+        onCancel={handleCancel}
+        onCleanupArchived={handleCleanupArchived}
+        onEdit={startEditing}
+        onEnd={handleEndSession}
+        onPostWeeklyJoinMessage={handlePostWeeklyJoinMessage}
+        onRetrySync={handleRetrySync}
+        onWeekChange={(weekStartIso) => setState({ postWeekStartIso: weekStartIso })}
+      />
+    </div>
+  );
+}
+
+function AdminDarkroomSlotPanels({
+  archivedSlots,
+  busyAction,
+  hasArchivedChannels,
+  postWeekStartIso,
+  upcomingSlots,
+  weeklyPostOptions,
+  onCancel,
+  onCleanupArchived,
+  onEdit,
+  onEnd,
+  onPostWeeklyJoinMessage,
+  onRetrySync,
+  onWeekChange,
+}: AdminDarkroomSlotPanelsProps) {
+  return (
+    <>
       <ScheduleSlotSection
         busyAction={busyAction}
         emptyLabel="No upcoming timeslots."
@@ -486,48 +528,41 @@ export default function AdminDarkroomSchedule() {
         action={
           <WeeklyJoinPostControl
             busy={busyAction === "weekly-message"}
-            onPost={handlePostWeeklyJoinMessage}
-            onWeekChange={(weekStartIso) =>
-              setState({ postWeekStartIso: weekStartIso })
-            }
+            onPost={onPostWeeklyJoinMessage}
+            onWeekChange={onWeekChange}
             options={weeklyPostOptions}
             selectedWeekStartIso={postWeekStartIso}
           />
         }
-        onCancel={handleCancel}
-        onEnd={handleEndSession}
-        onEdit={startEditing}
-        onRetrySync={handleRetrySync}
+        onCancel={onCancel}
+        onEnd={onEnd}
+        onEdit={onEdit}
+        onRetrySync={onRetrySync}
       />
-
       {archivedSlots.length > 0 && (
         <ScheduleSlotSection
           busyAction={busyAction}
           emptyLabel="No archived timeslots."
           label={`Archived (${archivedSlots.length})`}
           slots={archivedSlots}
-          action={
-            hasArchivedChannels ? (
-              <button
-                type="button"
-                disabled={busyAction === "cleanup-archived"}
-                onClick={handleCleanupArchived}
-                className={`${actionButtonClass} border-red-900/60 text-red-300 hover:border-red-700 hover:bg-red-950/30`}
-              >
-                <Trash2 className="size-3" aria-hidden="true" />
-                {busyAction === "cleanup-archived"
-                  ? "Cleaning"
-                  : "Clean Archived"}
-              </button>
-            ) : undefined
-          }
-          onCancel={handleCancel}
-          onEnd={handleEndSession}
-          onEdit={startEditing}
-          onRetrySync={handleRetrySync}
+          action={hasArchivedChannels ? (
+            <button
+              type="button"
+              disabled={busyAction === "cleanup-archived"}
+              onClick={onCleanupArchived}
+              className={`${actionButtonClass} border-red-900/60 text-red-300 hover:border-red-700 hover:bg-red-950/30`}
+            >
+              <Trash2 className="size-3" aria-hidden="true" />
+              {busyAction === "cleanup-archived" ? "Cleaning" : "Clean Archived"}
+            </button>
+          ) : undefined}
+          onCancel={onCancel}
+          onEnd={onEnd}
+          onEdit={onEdit}
+          onRetrySync={onRetrySync}
         />
       )}
-    </div>
+    </>
   );
 }
 

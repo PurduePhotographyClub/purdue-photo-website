@@ -4,7 +4,9 @@ import {
   useRef,
   useState,
   type FormEvent,
-  type RefObject
+  type RefObject,
+  type Dispatch,
+  type SetStateAction,
 } from "react";
 import useSWR from "swr";
 import AccessUpsellPanel from "@/components/dashboard/AccessUpsellPanel";
@@ -14,6 +16,17 @@ import {
   fetchJson,
   readErrorMessage
 } from "@/lib/http";
+
+function changeGalleryManagerPage(
+  setExpanded: Dispatch<SetStateAction<string | null>>,
+  setDeleteTarget: Dispatch<SetStateAction<string | null>>,
+  setPage: Dispatch<SetStateAction<number>>,
+  nextPage: number,
+) {
+  setExpanded(null);
+  setDeleteTarget(null);
+  setPage(nextPage);
+}
 import {
   getGalleryUploadValidationError,
   getGalleryUploadSourceValidationError,
@@ -578,9 +591,7 @@ export default function GalleryManager({ userRole, userTier }: Props) {
   };
   const handlePageChange = (nextPage: number) => {
     if (!galleryPage || nextPage < 1 || nextPage > galleryPage.meta.totalPages) return;
-    setExpanded(null);
-    setDeleteTarget(null);
-    setPage(nextPage);
+    changeGalleryManagerPage(setExpanded, setDeleteTarget, setPage, nextPage);
   };
 
   return (
