@@ -87,6 +87,16 @@ const actionButtonClass =
 const inputClass =
   "w-full bg-transparent border border-neutral-800 px-3 py-2.5 text-sm text-neutral-200 placeholder:text-neutral-700 focus:border-neutral-600 focus:outline-none transition-colors";
 
+function AdminStudioFeedback({ pageError, success, syncWarning }: { pageError: string; success: string; syncWarning: string }) {
+  return (
+    <>
+      {pageError && <p className="border border-red-900/30 bg-red-900/10 px-4 py-3 text-xs text-red-400">{pageError}</p>}
+      {success && <p role="status" className="border border-green-900/30 bg-green-900/10 px-4 py-3 text-xs text-green-400">{success}</p>}
+      {syncWarning && <p role="status" className="border border-amber-900/40 bg-amber-950/15 px-4 py-3 text-xs text-amber-300">{syncWarning}</p>}
+    </>
+  );
+}
+
 export default function AdminStudio() {
   const [state, setState] = useReducer(
     adminStudioReducer,
@@ -319,27 +329,7 @@ export default function AdminStudio() {
 
   return (
     <div className="space-y-6">
-      {pageError && (
-        <p className="border border-red-900/30 bg-red-900/10 px-4 py-3 text-xs text-red-400">
-          {pageError}
-        </p>
-      )}
-      {success && (
-        <p
-          role="status"
-          className="border border-green-900/30 bg-green-900/10 px-4 py-3 text-xs text-green-400"
-        >
-          {success}
-        </p>
-      )}
-      {syncWarning && (
-        <p
-          role="status"
-          className="border border-amber-900/40 bg-amber-950/15 px-4 py-3 text-xs text-amber-300"
-        >
-          {syncWarning}
-        </p>
-      )}
+      <AdminStudioFeedback pageError={pageError} success={success} syncWarning={syncWarning} />
 
       <AdminStudioStats stats={data?.stats} />
 

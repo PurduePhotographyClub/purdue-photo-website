@@ -26,6 +26,15 @@ interface DashboardUpdateResponse {
   updates?: DashboardUpdate[];
 }
 
+function openDashboardNotification(
+  setSelectedNotification: (notification: NotificationItem) => void,
+  markRecentNotificationRead: (notification: NotificationItem) => void,
+  notification: NotificationItem,
+) {
+  setSelectedNotification(notification);
+  void markRecentNotificationRead(notification);
+}
+
 export default function DashboardHomePanels() {
   const [selectedUpdate, setSelectedUpdate] = useState<DashboardUpdate | null>(null);
   const [selectedNotification, setSelectedNotification] = useState<NotificationItem | null>(null);
@@ -84,8 +93,7 @@ export default function DashboardHomePanels() {
   };
 
   const openNotification = (notification: NotificationItem) => {
-    setSelectedNotification(notification);
-    void markRecentNotificationRead(notification);
+    openDashboardNotification(setSelectedNotification, markRecentNotificationRead, notification);
   };
 
   return (

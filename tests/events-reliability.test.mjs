@@ -158,11 +158,13 @@ test("public event refreshes preserve cached rows and still discover new events"
   assert.equal(PUBLIC_EVENTS_SWR_OPTIONS.refreshInterval, 60_000);
 });
 
-test("event surfaces use fresh admin reads, reactive live state, recovery, and a homepage widget", async () => {
-  const [admin, eventsPage, home] = await Promise.all([
+test("event surfaces use fresh admin reads, reactive live state, recovery, and a global live event bar", async () => {
+  const [admin, eventsPage, home, layout, liveEventBar] = await Promise.all([
     readFile(new URL("../src/components/dashboard/admin/AdminEvents.tsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/EventsPage.tsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/Home.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/layouts/Layout.astro", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/LiveEventBar.tsx", import.meta.url), "utf8"),
   ]);
 
   assert.match(admin, /fetchFreshJson/);
@@ -173,9 +175,16 @@ test("event surfaces use fresh admin reads, reactive live state, recovery, and a
   assert.ok(syncSection.indexOf("await mutate(") < syncSection.indexOf("if (!res.ok"));
   assert.match(admin, /Confirm event deletion/);
   assert.match(admin, /min-h-11/);
+  assert.match(admin, /showCancel=\{false\}/);
+  assert.doesNotMatch(admin, /Purdue time|Eastern Time/);
+  assert.doesNotMatch(admin, /DiscordStatusBadge/);
   assert.match(eventsPage, /useEventClock/);
   assert.match(eventsPage, /Showing the last saved event list/);
   assert.match(eventsPage, />\s*Retry/);
-  assert.match(home, /LiveEventWidget/);
+  assert.doesNotMatch(eventsPage, /event\.discordSynced\s*&&/);
+  assert.doesNotMatch(home, /LiveEventWidget/);
+  assert.match(layout, /LiveEventBar client:load/);
+  assert.match(liveEventBar, /\/api\/events\?view=home/);
+  assert.match(liveEventBar, /top-28/);
   assert.match(home, /view=home/);
 });

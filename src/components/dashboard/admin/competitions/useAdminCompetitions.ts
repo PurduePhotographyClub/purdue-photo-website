@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import useSWR from "swr";
 import {
   normalizeCompetitionPageForUrl,
@@ -15,6 +15,19 @@ import {
   readErrorMessage,
 } from "@/lib/http";
 import { createKeyedStateSetter, keyedStateReducer } from "@/lib/reducer-state";
+
+function changeAdminCompetitionPage(
+  resetMetadataEditor: () => void,
+  closeResultModal: () => void,
+  closeDeleteModal: () => void,
+  setPage: Dispatch<SetStateAction<number>>,
+  nextPage: number,
+) {
+  resetMetadataEditor();
+  closeResultModal();
+  closeDeleteModal();
+  setPage(nextPage);
+}
 import {
   emptyResultForm,
   type Competition,
@@ -459,10 +472,7 @@ export function useAdminCompetitions() {
 
   const handlePageChange = (nextPage: number) => {
     if (!competitionPage || nextPage < 1 || nextPage > competitionPage.meta.totalPages || nextPage === competitionPage.meta.page) return;
-    resetMetadataEditor();
-    closeResultModal();
-    closeDeleteModal();
-    setPage(nextPage);
+    changeAdminCompetitionPage(resetMetadataEditor, closeResultModal, closeDeleteModal, setPage, nextPage);
   };
 
   return {
