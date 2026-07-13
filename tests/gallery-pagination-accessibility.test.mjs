@@ -14,6 +14,10 @@ const adminGallerySource = await readFile(
   new URL("../src/components/dashboard/admin/AdminGallery.tsx", import.meta.url),
   "utf8",
 );
+const memberPreviewSource = await readFile(
+  new URL("../src/components/dashboard/gallery/GalleryPhotoPreviewModal.tsx", import.meta.url),
+  "utf8",
+);
 
 test("member gallery pagination has reachable state and controls", () => {
   assert.doesNotMatch(
@@ -60,6 +64,14 @@ test("member gallery card actions are visible on touch layouts and keyboard focu
     /sm:group-focus-within:opacity-100/,
     "tabbing to View or Delete must reveal the action overlay",
   );
+  const cardActions = memberGallerySource.slice(
+    memberGallerySource.indexOf('onClick={() => onExpand(photo.id)}'),
+    memberGallerySource.indexOf('</div>', memberGallerySource.indexOf('onClick={() => onDelete(photo.id)}')),
+  );
+  assert.match(cardActions, /min-h-11/);
+  assert.match(cardActions, /min-w-11/);
+  assert.match(memberGallerySource, /absolute inset-x-0 bottom-0 grid grid-cols-3/);
+  assert.match(memberGallerySource, /sm:static/);
 });
 
 test("public gallery filters stay available after a request error and expose selection state", () => {
@@ -98,4 +110,20 @@ test("admin edit-photo modal can scroll within short viewports", () => {
 
   assert.match(editModalSource, /max-h-\[(?:calc\()?100dvh[^"]*\]/);
   assert.match(editModalSource, /overflow-y-auto/);
+});
+
+test("member photo preview keeps details and actions reachable in short viewports", () => {
+  assert.match(memberPreviewSource, /max-h-\[calc\(100dvh-/);
+  assert.match(memberPreviewSource, /overflow-y-auto/);
+  assert.match(memberPreviewSource, /min-h-0/);
+  assert.match(memberPreviewSource, /object-contain/);
+  assert.match(memberPreviewSource, /aria-label="Close photo preview"/);
+  assert.match(memberPreviewSource, /min-h-11/);
+  assert.match(memberPreviewSource, />\s*Edit(?: Photo)?\s*</);
+  assert.match(memberPreviewSource, />\s*Delete(?: Photo)?\s*</);
+});
+
+test("public gallery details scroll region is keyboard reachable", () => {
+  assert.match(publicGallerySource, /aria-label="Gallery photo details"/);
+  assert.match(publicGallerySource, /tabIndex=\{0\}/);
 });

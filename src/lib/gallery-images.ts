@@ -19,6 +19,7 @@ type GalleryMedium = "Digital" | "Film";
 
 interface GalleryRow {
   camera?: unknown;
+  description?: unknown;
   height?: unknown;
   imageUrl?: unknown;
   lens?: unknown;
@@ -113,11 +114,13 @@ export function normalizeGalleryPageForUrl<T>(
 interface GalleryImageSource {
   author: string;
   camera: string | null;
+  description: string | null;
   fullSrc: string;
   height: number | null;
   lens: string | null;
   medium: GalleryMedium;
   previewSrc: string;
+  tags: string | null;
   title: string;
   width: number | null;
 }
@@ -181,11 +184,13 @@ export function getGalleryImageSources(row: GalleryRow): GalleryImageSource | nu
   return {
     author: readString(row.uploaderName) ?? "PPC Member",
     camera: readString(row.camera),
+    description: readString(row.description),
     fullSrc,
     height: readNumber(row.height),
     lens: readString(row.lens),
     medium: readMedium(row.tags),
     previewSrc,
+    tags: readString(row.tags),
     title: readString(row.title) ?? "Untitled",
     width: readNumber(row.width),
   };

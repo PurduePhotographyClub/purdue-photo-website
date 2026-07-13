@@ -111,6 +111,7 @@ async function withMockedBrowserEncoder(getEncodedBytes, run) {
 
 test("gallery image sources use opaque API URLs for previews and titles for captions", () => {
   const sources = getGalleryImageSources({
+    description: "Rain reflected in the street lights.",
     imageUrl: "/api/gallery/image/photo/photo-id",
     thumbnailUrl: "/api/gallery/image/photo/photo-id?variant=thumbnail",
     title: "Late Night Bus",
@@ -123,7 +124,19 @@ test("gallery image sources use opaque API URLs for previews and titles for capt
   assert.equal(sources?.previewSrc, "/api/gallery/image/photo/photo-id?variant=thumbnail");
   assert.equal(sources?.fullSrc, "/api/gallery/image/photo/photo-id");
   assert.equal(sources?.title, "Late Night Bus");
+  assert.equal(sources?.description, "Rain reflected in the street lights.");
   assert.equal(sources?.medium, "Digital");
+});
+
+test("public gallery lightbox carries and renders optional descriptions", () => {
+  assert.equal(getGalleryImageSources({
+    description: "   ",
+    imageUrl: "/api/gallery/image/photo/photo-id",
+    thumbnailUrl: "/api/gallery/image/photo/photo-id?variant=thumbnail",
+  })?.description, null);
+  assert.match(gallerySource, /description:\s*source\.description/);
+  assert.match(gallerySource, /visibleImages\[selected\]\?\.description/);
+  assert.match(gallerySource, /whitespace-pre-wrap/);
 });
 
 test("gallery image sources require both new opaque image URLs now that legacy rows are removed", () => {

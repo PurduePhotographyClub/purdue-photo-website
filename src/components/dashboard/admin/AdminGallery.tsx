@@ -14,6 +14,7 @@ import {
   type GalleryPage,
 } from "@/lib/gallery-images";
 import { createKeyedStateSetter, keyedStateReducer } from "@/lib/reducer-state";
+import { GALLERY_TAGS } from "@/lib/gallery-tags";
 
 const ADMIN_GALLERY_PAGE_SIZE = 60;
 const ADMIN_GALLERY_SWR_OPTIONS = {
@@ -414,6 +415,16 @@ function EditPhotoModal({
   saving,
 }: EditPhotoModalProps) {
   const trimmedNewTag = newTagInput.trim();
+  const [titleError, setTitleError] = useState("");
+  const handleSubmit = (event: React.FormEvent) => {
+    if (!editTitle.trim()) {
+      event.preventDefault();
+      setTitleError("Title cannot be blank.");
+      return;
+    }
+    setTitleError("");
+    onSubmit(event);
+  };
 
   return (
     <ModalDialog ariaLabel="Edit gallery photo" onClose={onClose} preventClose={saving} className="flex items-center justify-center bg-black/80 p-4">
@@ -439,10 +450,26 @@ function EditPhotoModal({
           </div>
         </div>
 
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="AdminGallery-title" className="block text-[10px] tracking-wider uppercase text-neutral-600 mb-1.5">Title</label>
-            <input id="AdminGallery-title" aria-label="Untitled" type="text" value={editTitle} onChange={(e) => onTitleChange(e.target.value)} placeholder="Untitled" className={inputClass} />
+            <input
+              id="AdminGallery-title"
+              aria-label="Title"
+              aria-describedby={titleError ? "admin-gallery-title-error" : undefined}
+              aria-invalid={titleError ? true : undefined}
+              type="text"
+              required
+              maxLength={200}
+              value={editTitle}
+              onChange={(event) => {
+                onTitleChange(event.target.value);
+                if (titleError) setTitleError("");
+              }}
+              placeholder="Title"
+              className={inputClass}
+            />
+            {titleError && <p id="admin-gallery-title-error" role="alert" className="mt-1.5 text-xs text-red-400">{titleError}</p>}
           </div>
           <div>
             <label htmlFor="AdminGallery-description" className="block text-[10px] tracking-wider uppercase text-neutral-600 mb-1.5">Description</label>
@@ -676,6 +703,11 @@ export default function AdminGallery() {
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editPhoto) return;
+    const normalizedTitle = editTitle.trim();
+    if (!normalizedTitle) {
+      setError("Title cannot be blank.");
+      return;
+    }
     setSaving(true);
     setError("");
     setSuccess("");
@@ -684,7 +716,7 @@ export default function AdminGallery() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: editTitle || null,
+          title: normalizedTitle,
           description: editDescription || null,
           tags: editTags || null,
           camera: editCamera || null,
@@ -715,7 +747,7 @@ export default function AdminGallery() {
 
   // Derive unique tags and uploaders
   const allTags = useMemo(() => {
-    const tagSet = new Set<string>();
+    const tagSet = new Set<string>(GALLERY_TAGS);
     photos.forEach((p) => {
       if (p.tags) p.tags.split(",").forEach((t) => { const trimmed = t.trim(); if (trimmed) tagSet.add(trimmed); });
     });
