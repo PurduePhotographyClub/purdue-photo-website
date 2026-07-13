@@ -1,18 +1,21 @@
 import { useMemo } from "react";
 import useSWR from "swr";
-import { Users, ArrowRight, Film, Trophy, Image, Instagram, Mail, ShoppingBag } from "lucide-react";
+import { Users, ArrowRight, Clock, Film, Trophy, Image, Instagram, Mail, MapPin, Radio, ShoppingBag } from "lucide-react";
 import { ImageWithFallback } from "./ImageWithFallback";
 import {
+  findCurrentEvents,
+  formatEventDateTime,
   formatEventMonth,
   normalizeEvent,
-  splitEvents,
+  type WebsiteEvent,
 } from "@/lib/events";
 import {
   getGalleryImageSources,
   normalizeGalleryPageForUrl,
   type GalleryPage,
 } from "@/lib/gallery-images";
-import { fetchPublicJson, PUBLIC_API_SWR_OPTIONS } from "@/lib/http";
+import { useEventClock } from "@/hooks/useEventClock";
+import { fetchPublicJson, HOME_EVENTS_SWR_OPTIONS, PUBLIC_API_SWR_OPTIONS } from "@/lib/http";
 
 const heroImg = "/hero/hero.webp";
 const alejandroPhoto = "/hero/aleg-photo.webp";
@@ -24,6 +27,10 @@ const eventPlaceholders = ["event-placeholder-1", "event-placeholder-2", "event-
 
 interface GalleryItem { height: number | null; img: string; label: string; film: boolean; width: number | null }
 interface EventItem { title: string; date: string; desc: string }
+interface HomeEventsResponse {
+  current: Record<string, unknown>[];
+  recentPast: Record<string, unknown>[];
+}
 interface CompItem { label: string; theme: string; winner: string; winnerTitle: string; img: string }
 interface ClubStats {
   galleryPhotos: number;
@@ -61,14 +68,20 @@ function mapGalleryRows(rows: Record<string, unknown>[]): GalleryItem[] {
   return items;
 }
 
-function mapEventRows(rows: Record<string, unknown>[]): EventItem[] {
-  const loadedEvents = rows.map(normalizeEvent);
-  const { past } = splitEvents(loadedEvents);
-  return past.slice(0, 4).map((e) => ({
-    title: e.title,
-    date: formatEventMonth(e.date),
-    desc: e.description || "",
-  }));
+function mapPastEventRows(rows: Record<string, unknown>[]): EventItem[] {
+  const items: EventItem[] = [];
+  for (const row of rows) {
+    if (items.length === 4) break;
+
+    const event = normalizeEvent(row);
+    items.push({
+      title: event.title,
+      date: formatEventMonth(event.date),
+      desc: event.description || "",
+    });
+  }
+
+  return items;
 }
 
 async function fetchLatestCompetition(): Promise<CompItem | null> {
@@ -167,11 +180,19 @@ const updateLinks = [
   },
 ];
 
-function HomeHero({ theme }: { theme: HomeTheme }) {
+function HomeHero({
+  currentEvent,
+  currentEventCount,
+  theme,
+}: {
+  currentEvent: WebsiteEvent | null;
+  currentEventCount: number;
+  theme: HomeTheme;
+}) {
   const { heading } = theme;
 
   return (
-    <section className="relative flex min-h-[calc(100svh-7rem)] items-center justify-center overflow-hidden py-14 md:min-h-[calc(100svh-6rem)]">
+    <section className="relative flex min-h-[calc(100svh-7rem)] flex-col items-center justify-center overflow-hidden py-14 md:min-h-[calc(100svh-6rem)]">
       <div className="absolute top-0 left-0 right-0 h-32 z-10 bg-gradient-to-b from-neutral-950 to-transparent" />
       <div className="absolute inset-0">
         <ImageWithFallback src={heroImg} alt="Vintage camera" className="size-full object-cover grayscale opacity-40" loading="eager" decoding="async" fetchPriority="high" />
@@ -207,7 +228,47 @@ function HomeHero({ theme }: { theme: HomeTheme }) {
           backgroundSize: "32px 100%",
         }}
       />
+      {currentEvent && (
+        <LiveEventWidget event={currentEvent} additionalEvents={Math.max(0, currentEventCount - 1)} />
+      )}
     </section>
+  );
+}
+
+function LiveEventWidget({ event, additionalEvents }: { event: WebsiteEvent; additionalEvents: number }) {
+  return (
+    <aside
+      aria-label="Club event happening now"
+      aria-live="polite"
+      className="relative z-20 mb-6 mt-8 w-[calc(100%-2rem)] max-w-xl border border-amber-300/30 bg-neutral-950/95 p-4 shadow-lg shadow-black/40 lg:mr-6 lg:w-96 lg:self-end min-[1800px]:absolute min-[1800px]:bottom-12 min-[1800px]:right-6 min-[1800px]:mb-0 min-[1800px]:mt-0"
+    >
+      <div className="flex items-start gap-3">
+        <span className="relative mt-1 flex size-3 shrink-0" aria-hidden="true">
+          <span className="absolute size-full animate-ping rounded-full bg-amber-300 opacity-60 motion-reduce:animate-none" />
+          <span className="relative size-3 rounded-full bg-amber-300" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-amber-300">
+            <Radio size={11} /> Happening now
+          </p>
+          <h2 className="mt-2 text-balance text-lg tracking-wide text-neutral-100" style={{ fontFamily: "'Playfair Display', serif" }}>
+            {event.title}
+          </h2>
+          <div className="mt-2 space-y-1 text-[10px] leading-relaxed text-neutral-400">
+            <p className="flex items-start gap-2"><Clock className="mt-0.5 shrink-0" size={11} />{formatEventDateTime(event)}</p>
+            {event.location && <p className="flex items-start gap-2"><MapPin className="mt-0.5 shrink-0" size={11} />{event.location}</p>}
+          </div>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            {additionalEvents > 0 ? (
+              <span className="text-[9px] uppercase tracking-[0.16em] text-neutral-500">+{additionalEvents} more live</span>
+            ) : <span />}
+            <a href="/events#upcoming-events" className="inline-flex min-h-11 items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-neutral-200 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400">
+              Event details <ArrowRight size={12} />
+            </a>
+          </div>
+        </div>
+      </div>
+    </aside>
   );
 }
 
@@ -607,19 +668,35 @@ export default function Home() {
     fetchHomeGalleryPage,
     PUBLIC_API_SWR_OPTIONS,
   );
-  const { data: eventRows, error: eventsError } = useSWR<Record<string, unknown>[]>("/api/events?limit=12", fetchPublicJson, PUBLIC_API_SWR_OPTIONS);
+  const { data: homeEvents, error: eventsError } = useSWR<HomeEventsResponse>(
+    "/api/events?view=home",
+    fetchPublicJson,
+    HOME_EVENTS_SWR_OPTIONS,
+  );
   const { data: latestComp, error: compError } = useSWR<CompItem | null>("home-latest-competition", fetchLatestCompetition, PUBLIC_API_SWR_OPTIONS);
   const { data: clubStats } = useSWR<ClubStats>("/api/stats", fetchPublicJson, PUBLIC_API_SWR_OPTIONS);
   const galleryRows = galleryPage?.photos;
   const galleryPhotos = useMemo(() => mapGalleryRows(galleryRows ?? []), [galleryRows]);
-  const events = useMemo(() => mapEventRows(eventRows ?? []), [eventRows]);
+  const normalizedCurrentEvents = useMemo(
+    () => (homeEvents?.current ?? []).map(normalizeEvent),
+    [homeEvents],
+  );
+  const now = useEventClock();
+  const currentEvents = useMemo(
+    () => findCurrentEvents(normalizedCurrentEvents, now),
+    [normalizedCurrentEvents, now],
+  );
+  const events = useMemo(
+    () => mapPastEventRows(homeEvents?.recentPast ?? []),
+    [homeEvents],
+  );
   const galleryStatus = statusFromSwr(galleryPage, galleryError);
-  const eventsStatus = statusFromSwr(eventRows, eventsError);
+  const eventsStatus = statusFromSwr(homeEvents, eventsError);
   const compStatus = statusFromSwr(latestComp, compError);
 
   return (
     <div className="overflow-x-hidden">
-      <HomeHero theme={homeTheme} />
+      <HomeHero currentEvent={currentEvents[0] ?? null} currentEventCount={currentEvents.length} theme={homeTheme} />
       <VisitorPathsSection theme={homeTheme} />
       <FeaturedPhotosSection galleryPhotos={galleryPhotos} galleryStatus={galleryStatus} theme={homeTheme} />
       <ClubStatsSection clubStats={clubStats} theme={homeTheme} />

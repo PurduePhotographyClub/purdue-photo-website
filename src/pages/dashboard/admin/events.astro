@@ -6,5 +6,5 @@ export const prerender = false;
 
 <DashboardLayout title="Events — Admin">
   <h1 class="text-sm tracking-[0.2em] uppercase text-neutral-400 mb-8">Manage Events</h1>
-  <AdminEvents client:load />
+  <AdminEvents canDelete={Astro.locals.user?.role === 'admin'} client:load />
 </DashboardLayout>
