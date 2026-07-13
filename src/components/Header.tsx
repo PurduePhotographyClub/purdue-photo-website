@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Menu, X, Instagram, Mail, ExternalLink, UserCircle, LogIn, UserPlus } from "lucide-react";
 import { authClient } from "../lib/auth-client";
+import LiveEventBar, { useCurrentLiveEvents } from "./LiveEventBar";
 
 const navLinks = [
   { to: "/", label: "Home" },
@@ -58,6 +59,8 @@ export default function Header() {
   const dashboardButtonRef = useRef<HTMLButtonElement | null>(null);
   const currentPath = useSyncExternalStore(subscribeToPathChanges, getCurrentPath, () => "/");
   const { data: session } = authClient.useSession();
+  const currentEvents = useCurrentLiveEvents();
+  const showLiveEventBar = currentEvents.length > 0 && !menuOpen && !dashboardOpen;
 
   useEffect(() => {
     if (!menuOpen && !dashboardOpen) return;
@@ -120,8 +123,9 @@ export default function Header() {
   const compactMenuLinkBase = `group flex min-h-11 items-center justify-between border ${border} bg-white/[0.02] px-4 py-3 text-[11px] uppercase tracking-[0.16em] transition-colors hover:border-neutral-600 hover:bg-white/[0.04] focus-visible:border-neutral-400 focus-visible:outline-none`;
 
   return (
+    <>
       <nav ref={navRef} className={`fixed top-0 left-0 right-0 ${navLayer} ${navBg} backdrop-blur-sm border-b ${border} transition-colors duration-500`}>
-        <div className="w-full px-6 py-4 flex items-center justify-between">
+        <div className="flex h-20 w-full items-center justify-between px-6">
           <a href="/" className={`flex min-h-11 items-center gap-3 flex-shrink-0 ${focusRing}`}>
             <img src="/ppc-logo.webp" alt="PPC Logo" className="size-10 rounded-full brightness-[1.8] invert" style={{ mixBlendMode: "screen" }} />
             <span className={`text-sm tracking-[0.2em] uppercase ${logoText} hidden sm:inline`} style={{ fontFamily: "'Playfair Display', serif" }}>
@@ -194,6 +198,8 @@ export default function Header() {
             </button>
           </div>
         </div>
+
+        {showLiveEventBar && <LiveEventBar currentEvents={currentEvents} />}
 
         {/* Dashboard dropdown */}
         {dashboardOpen && !session && (
@@ -295,5 +301,7 @@ export default function Header() {
           </div>
         )}
       </nav>
+      {showLiveEventBar && <div aria-hidden="true" className="h-11" />}
+    </>
   );
 }

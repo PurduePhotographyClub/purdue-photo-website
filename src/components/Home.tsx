@@ -11,7 +11,12 @@ import {
   normalizeGalleryPageForUrl,
   type GalleryPage,
 } from "@/lib/gallery-images";
-import { fetchPublicJson, HOME_EVENTS_SWR_OPTIONS, PUBLIC_API_SWR_OPTIONS } from "@/lib/http";
+import {
+  fetchPublicJson,
+  HOME_EVENTS_API_KEY,
+  HOME_EVENTS_SWR_OPTIONS,
+  PUBLIC_API_SWR_OPTIONS,
+} from "@/lib/http";
 
 const heroImg = "/hero/hero.webp";
 const alejandroPhoto = "/hero/aleg-photo.webp";
@@ -621,7 +626,7 @@ export default function Home() {
     PUBLIC_API_SWR_OPTIONS,
   );
   const { data: homeEvents, error: eventsError } = useSWR<HomeEventsResponse>(
-    "/api/events?view=home",
+    HOME_EVENTS_API_KEY,
     fetchPublicJson,
     HOME_EVENTS_SWR_OPTIONS,
   );

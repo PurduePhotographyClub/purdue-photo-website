@@ -13,6 +13,8 @@ const API_V1_PREFIX = "/api/v1";
 const AUTH_API_ROOT = "/api/auth";
 const AUTH_API_PREFIX = "/api/auth/";
 
+export const HOME_EVENTS_API_KEY = "/api/events?view=home";
+
 export const PUBLIC_API_SWR_OPTIONS = {
   dedupingInterval: 60_000,
   errorRetryCount: 1,
@@ -45,6 +47,7 @@ export const HOME_EVENTS_SWR_OPTIONS = {
   dedupingInterval: 30_000,
   focusThrottleInterval: 30_000,
   refreshInterval: 60_000,
+  refreshWhenHidden: false,
 } satisfies SWRConfiguration;
 
 export const ADMIN_EVENTS_SWR_OPTIONS = {
