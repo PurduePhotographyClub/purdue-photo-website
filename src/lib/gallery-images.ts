@@ -23,6 +23,8 @@ interface GalleryRow {
   height?: unknown;
   imageUrl?: unknown;
   lens?: unknown;
+  metadataHidden?: unknown;
+  profileUrl?: unknown;
   tags?: unknown;
   thumbnailUrl?: unknown;
   title?: unknown;
@@ -112,16 +114,18 @@ export function normalizeGalleryPageForUrl<T>(
 }
 
 interface GalleryImageSource {
-  author: string;
+  author: string | null;
   camera: string | null;
   description: string | null;
   fullSrc: string;
   height: number | null;
   lens: string | null;
-  medium: GalleryMedium;
+  medium: GalleryMedium | null;
+  metadataHidden: boolean;
   previewSrc: string;
+  profileUrl: string | null;
   tags: string | null;
-  title: string;
+  title: string | null;
   width: number | null;
 }
 
@@ -164,6 +168,11 @@ function readGalleryImageUrl(value: unknown) {
   return url?.startsWith(GALLERY_IMAGE_PATH) ? url : null;
 }
 
+function readProfileUrl(value: unknown) {
+  const url = readString(value);
+  return url && /^\/profile\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(url) ? url : null;
+}
+
 function readMedium(tags: unknown): GalleryMedium {
   const tagSet = new Set(
     readString(tags)
@@ -181,17 +190,21 @@ export function getGalleryImageSources(row: GalleryRow): GalleryImageSource | nu
 
   if (!fullSrc || !previewSrc) return null;
 
+  const metadataHidden = row.metadataHidden === true;
+
   return {
-    author: readString(row.uploaderName) ?? "PPC Member",
-    camera: readString(row.camera),
-    description: readString(row.description),
+    author: metadataHidden ? null : readString(row.uploaderName) ?? "PPC Member",
+    camera: metadataHidden ? null : readString(row.camera),
+    description: metadataHidden ? null : readString(row.description),
     fullSrc,
     height: readNumber(row.height),
-    lens: readString(row.lens),
-    medium: readMedium(row.tags),
+    lens: metadataHidden ? null : readString(row.lens),
+    medium: metadataHidden ? null : readMedium(row.tags),
+    metadataHidden,
     previewSrc,
-    tags: readString(row.tags),
-    title: readString(row.title) ?? "Untitled",
+    profileUrl: metadataHidden ? null : readProfileUrl(row.profileUrl),
+    tags: metadataHidden ? null : readString(row.tags),
+    title: metadataHidden ? null : readString(row.title) ?? "Untitled",
     width: readNumber(row.width),
   };
 }

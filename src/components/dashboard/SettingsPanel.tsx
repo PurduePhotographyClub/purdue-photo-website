@@ -1,9 +1,10 @@
-import { useReducer } from "react";
+import { useReducer, type KeyboardEvent } from "react";
 import useSWR from "swr";
 import { authClient } from "@/lib/auth-client";
 import QRCode from "react-qr-code";
 import { fetchApi, fetchJson, readErrorMessage } from "@/lib/http";
 import { createKeyedStateSetter, keyedStateReducer } from "@/lib/reducer-state";
+import ProfileSettingsPanel from "@/components/dashboard/profile/ProfileSettingsPanel";
 
 interface SettingsUser {
   id: string;
@@ -34,6 +35,7 @@ interface DiscordProfileState {
 }
 
 const settingsTabs = [
+  { id: "profile", label: "Profile" },
   { id: "information", label: "Information" },
   { id: "security", label: "Security" },
   { id: "connections", label: "Connections" },
@@ -72,7 +74,7 @@ interface SettingsPanelState {
   discordLinkLoading: boolean;
   discordUnlinkLoading: boolean;
   discordLinkError: string;
-  tab: "information" | "security" | "connections" | "danger";
+  tab: "profile" | "information" | "security" | "connections" | "danger";
 }
 
 function createInitialSettingsPanelState(): SettingsPanelState {
@@ -94,7 +96,7 @@ function createInitialSettingsPanelState(): SettingsPanelState {
     discordLinkLoading: false,
     discordUnlinkLoading: false,
     discordLinkError: getInitialDiscordLinkError(),
-    tab: "information",
+    tab: "profile",
   };
 }
 
@@ -145,12 +147,35 @@ interface SettingsTabsProps {
 }
 
 function SettingsTabs({ activeTab, onTabChange }: SettingsTabsProps) {
+  const moveTabFocus = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    currentIndex: number,
+  ) => {
+    let nextIndex: number | null = null;
+    if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % settingsTabs.length;
+    if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + settingsTabs.length) % settingsTabs.length;
+    if (event.key === "Home") nextIndex = 0;
+    if (event.key === "End") nextIndex = settingsTabs.length - 1;
+    if (nextIndex === null) return;
+
+    event.preventDefault();
+    const nextTab = settingsTabs[nextIndex];
+    onTabChange(nextTab.id);
+    document.getElementById(`settings-tab-${nextTab.id}`)?.focus();
+  };
+
   return (
-    <div className="flex border-b border-neutral-800 mb-8 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-      {settingsTabs.map((tab) => (
+    <div role="tablist" aria-label="Account settings" className="flex border-b border-neutral-800 mb-8 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      {settingsTabs.map((tab, index) => (
         <button type="button"
           key={tab.id}
+          id={`settings-tab-${tab.id}`}
+          role="tab"
+          aria-controls="settings-active-panel"
+          aria-selected={activeTab === tab.id}
+          tabIndex={activeTab === tab.id ? 0 : -1}
           onClick={() => onTabChange(tab.id)}
+          onKeyDown={(event) => moveTabFocus(event, index)}
           className={`px-5 py-3 text-[10px] tracking-[0.2em] uppercase shrink-0 transition-colors border-b-2 -mb-px ${
             activeTab === tab.id
               ? "border-white text-white"
@@ -527,7 +552,7 @@ function DangerPanel({
       <p className="text-[9px] tracking-[0.3em] uppercase text-red-900 mb-1">Danger Zone</p>
       <h2 className="text-sm tracking-wider text-red-400 mb-2">Delete Account</h2>
       <p className="text-xs text-neutral-500 mb-4">
-        Permanently delete your account and all associated data including photos, competition entries, and equipment listings. This action cannot be undone.
+        Permanently delete your account and associated data, including gallery photos, your public profile and profile image, sessions, and equipment listings. Historical competition entries are retained without your identity. This action cannot be undone.
       </p>
       <p className="text-[10px] text-neutral-600 mb-4">
         Active or pending equipment loans must be resolved before you can delete your account.
@@ -810,7 +835,16 @@ export default function SettingsPanel({ initialUser }: SettingsPanelProps) {
     <div>
       <SettingsTabs activeTab={tab} onTabChange={setTab} />
 
-      <div className="max-w-lg">
+      <div
+        id="settings-active-panel"
+        role="tabpanel"
+        aria-labelledby={`settings-tab-${tab}`}
+        className={tab === "profile" ? "max-w-5xl" : "max-w-lg"}
+      >
+      {tab === "profile" && (
+        <ProfileSettingsPanel fallbackDisplayName={user.name} />
+      )}
+
       {tab === "information" && (
         <InformationPanel discordDisplayUser={discordDisplayUser} user={user} />
       )}
