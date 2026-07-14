@@ -1,0 +1,24 @@
+---
+import AdminMemberProfileEditor from '@/components/dashboard/admin/AdminMemberProfileEditor';
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+
+export const prerender = false;
+
+const memberId = Astro.params.id;
+if (!memberId) {
+  return new Response(null, { status: 404 });
+}
+---
+
+<DashboardLayout title="Edit Member Profile — Admin">
+  <div class="mb-7 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <p class="text-[9px] uppercase tracking-[0.25em] text-neutral-600">Members</p>
+      <h1 class="mt-2 text-sm uppercase tracking-[0.2em] text-neutral-300">Edit member profile</h1>
+    </div>
+    <a href="/dashboard/admin/members" class="inline-flex min-h-11 items-center text-[10px] uppercase tracking-[0.15em] text-neutral-500 hover:text-white">
+      Back to members
+    </a>
+  </div>
+  <AdminMemberProfileEditor client:load memberId={memberId} />
+</DashboardLayout>

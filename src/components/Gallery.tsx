@@ -18,12 +18,14 @@ interface GalleryImage {
   fullSrc: string;
   height: number | null;
   src: string;
-  cat: string;
-  author: string;
+  cat: string | null;
+  author: string | null;
   primaryTag: string | null;
   camera: string | null;
   description: string | null;
   lens: string | null;
+  metadataHidden: boolean;
+  profileUrl: string | null;
   tags: string[];
   width: number | null;
 }
@@ -104,6 +106,8 @@ export default function Gallery() {
       camera: source.camera,
       description: source.description,
       lens: source.lens,
+      metadataHidden: source.metadataHidden,
+      profileUrl: source.profileUrl,
       tags,
       width: source.width,
     }];
@@ -215,9 +219,22 @@ export default function Gallery() {
         ) : (
         <div className={galleryLayout.container}>
             {visibleImages.map((img, i) => (
-              <button type="button" key={img.fullSrc + img.author}
-                className={`group relative ${galleryLayout.item} cursor-pointer overflow-hidden text-left focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400`} onClick={() => setSelected(i)}>
-                <ImageWithFallback src={img.src} alt={img.cat}
+              <figure key={img.fullSrc} className={`group relative ${galleryLayout.item} overflow-hidden`}>
+                {!img.metadataHidden && img.author && img.profileUrl && (
+                  <a
+                    href={img.profileUrl}
+                    className="absolute bottom-1 left-4 z-10 inline-flex min-h-11 max-w-[70%] items-center truncate text-xs text-neutral-300 opacity-100 underline decoration-neutral-600 underline-offset-4 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-300 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                  >
+                    by {img.author}
+                  </a>
+                )}
+                <button
+                  type="button"
+                  aria-label={img.metadataHidden ? "View anonymous gallery photograph" : `View ${img.cat ?? "gallery photograph"}`}
+                  className="block w-full cursor-pointer text-left focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
+                  onClick={() => setSelected(i)}
+                >
+                <ImageWithFallback src={img.src} alt={img.metadataHidden ? "Gallery photograph" : img.cat ?? "Gallery photograph"}
                   className="block w-full transition-all duration-700 group-hover:scale-[1.03]"
                   loading={i < 6 ? "eager" : "lazy"}
                   decoding="async"
@@ -226,12 +243,15 @@ export default function Gallery() {
                   width={img.width ?? undefined}
                   height={img.height ?? undefined}
                 />
-                <div className="absolute inset-0 flex items-end bg-black/25 transition-all duration-300 sm:bg-black/0 sm:group-hover:bg-black/30 sm:group-focus-visible:bg-black/30">
-                  <div className="w-full p-4 opacity-100 transition-opacity duration-300 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-visible:opacity-100">
+                {!img.metadataHidden && (
+                <div className="absolute inset-0 flex items-end bg-black/25 transition-all duration-300 sm:bg-black/0 sm:group-hover:bg-black/30 sm:group-focus-within:bg-black/30">
+                  <div className={`w-full p-4 opacity-100 transition-opacity duration-300 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-visible:opacity-100 ${img.profileUrl ? "pb-10" : ""}`}>
                     <div className="flex items-end justify-between gap-4">
                       <div className="min-w-0 flex-1 text-left">
                         <p className="truncate text-xs tracking-[0.2em] uppercase text-white">{img.cat}</p>
-                        <p className="mt-1 truncate text-xs text-neutral-400">by {img.author}</p>
+                        {!img.profileUrl && img.author && (
+                          <p className="mt-1 truncate text-xs text-neutral-400">by {img.author}</p>
+                        )}
                       </div>
                       {img.primaryTag && (
                         <span className="shrink-0 border border-neutral-700 bg-neutral-900/90 px-2 py-1 text-[9px] uppercase tracking-[0.2em] text-neutral-300">
@@ -241,7 +261,9 @@ export default function Gallery() {
                     </div>
                   </div>
                 </div>
-              </button>
+                )}
+                </button>
+              </figure>
             ))}
         </div>
         )}
@@ -298,10 +320,21 @@ export default function Gallery() {
           <button type="button" tabIndex={-1} aria-label="Close gallery lightbox" className="absolute inset-0 cursor-default" onMouseDown={() => setSelected(null)} />
           <button type="button" aria-label="Close gallery lightbox" className="absolute top-6 right-6 z-10 flex min-h-11 min-w-11 items-center justify-center text-neutral-400 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400" onClick={() => setSelected(null)}><X size={24} /></button>
           <img
-            src={visibleImages[selected]?.fullSrc} alt={visibleImages[selected]?.cat ?? "Selected gallery photo"} className="relative z-10 min-h-0 max-h-[62dvh] max-w-full shrink object-contain" loading="eager" decoding="async" />
+            src={visibleImages[selected]?.fullSrc} alt={visibleImages[selected]?.metadataHidden ? "Gallery photograph" : visibleImages[selected]?.cat ?? "Selected gallery photo"} className="relative z-10 min-h-0 max-h-[62dvh] max-w-full shrink object-contain" loading="eager" decoding="async" />
+          {!visibleImages[selected]?.metadataHidden && (
           <div aria-label="Gallery photo details" tabIndex={0} className="relative z-10 max-h-[30dvh] w-full max-w-3xl shrink-0 overflow-y-auto px-2 text-center focus-visible:outline focus-visible:outline-1 focus-visible:outline-neutral-500">
             <p className="text-xs tracking-[0.3em] uppercase text-neutral-400">
-              {visibleImages[selected]?.cat} &middot; {visibleImages[selected]?.author}
+              {visibleImages[selected]?.cat}
+              {visibleImages[selected]?.author && (
+                <>
+                  {" · "}
+                  {visibleImages[selected]?.profileUrl ? (
+                    <a className="underline decoration-neutral-600 underline-offset-4 hover:text-white" href={visibleImages[selected]?.profileUrl ?? undefined}>
+                      {visibleImages[selected]?.author}
+                    </a>
+                  ) : visibleImages[selected]?.author}
+                </>
+              )}
             </p>
             {(visibleImages[selected]?.camera || visibleImages[selected]?.lens) && (
               <p className="text-[10px] tracking-[0.25em] uppercase text-neutral-500 mt-1.5">
@@ -326,6 +359,7 @@ export default function Gallery() {
               </div>
             )}
           </div>
+          )}
           </div>
         </dialog>
       )}

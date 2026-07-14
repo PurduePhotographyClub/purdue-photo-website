@@ -121,7 +121,11 @@ function withSecurityHeaders(response: Response, pathname: string) {
     headers.set("Cache-Control", "private, no-store");
   }
 
-  if (pathname === "/gallery" || pathname === "/gallery/") {
+  if (
+    pathname === "/gallery" ||
+    pathname === "/gallery/" ||
+    pathname.startsWith("/profile/")
+  ) {
     headers.set("X-Robots-Tag", GALLERY_ROBOTS_TAG);
   }
 

@@ -358,8 +358,9 @@ test("gallery uses equal gutters and a two-column sparse layout for exactly two 
 test("gallery card captions keep title and author left aligned", () => {
   assert.match(
     gallerySource,
-    /className=\{`group relative \$\{galleryLayout\.item\} cursor-pointer overflow-hidden text-left/,
+    /<figure[^>]*className=\{`group relative \$\{galleryLayout\.item\} overflow-hidden`\}/,
   );
+  assert.match(gallerySource, /className="block w-full cursor-pointer text-left/);
   assert.match(
     gallerySource,
     /<div className="min-w-0 flex-1 text-left">[\s\S]*?<p className="truncate text-xs tracking-\[0\.2em\] uppercase text-white">/,

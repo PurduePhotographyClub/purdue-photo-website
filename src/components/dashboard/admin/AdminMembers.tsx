@@ -21,6 +21,8 @@ interface Member {
   discordId: string | null;
   createdAt: string;
   suspendedUntil: string | null;
+  profileEnabled: boolean;
+  profileUsername: string | null;
 }
 
 interface AvailableKey {
@@ -217,6 +219,10 @@ function MemberRow({
   const status = getStatus(member);
   const canEditMember = member.id !== currentUserId;
   const isStaffAccount = member.role === "admin" || member.role === "officer";
+  const canEditProfile = canEditMember &&
+    member.profileEnabled &&
+    !!member.profileUsername &&
+    (currentUserRole === "admin" || !isStaffAccount);
 
   return (
     <tr className="border-b border-neutral-800/50 hover:bg-white/[0.01] transition-colors">
@@ -224,6 +230,11 @@ function MemberRow({
         <p className="text-sm text-neutral-200">{member.name}</p>
         <p className="text-[10px] text-neutral-600">{member.email}</p>
         {member.discordId && <p className="text-[9px] text-indigo-400/60 mt-0.5">Discord linked</p>}
+        {member.profileEnabled && member.profileUsername && (
+          <p className="mt-0.5 text-[9px] text-neutral-500">
+            Profile /{member.profileUsername}
+          </p>
+        )}
       </td>
       <td className="px-4 py-3">
         <select
@@ -273,6 +284,14 @@ function MemberRow({
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
+          {canEditProfile && (
+            <a
+              href={`/dashboard/admin/members/${encodeURIComponent(member.id)}/profile`}
+              className="flex min-h-11 items-center gap-1 text-[9px] uppercase tracking-wider text-cyan-400 transition-colors hover:text-cyan-300"
+            >
+              Edit profile
+            </a>
+          )}
           {canEditMember ? (
             isStaffAccount ? (
               <span className="text-[9px] text-neutral-600 uppercase tracking-wider">Staff Account</span>
@@ -405,7 +424,7 @@ function DeleteMemberModal({ confirmText, inputClass, loading, onClose, onConfir
           Permanently delete <span className="text-red-400">{target.name}</span> ({target.email})
         </p>
         <p className="text-[10px] text-neutral-600 mb-4">
-          This will remove their account, photos, sessions, and revoke any activation keys they used. This cannot be undone.
+          This will remove their account, photos, public profile, profile image, sessions, and revoke any activation keys they used. This cannot be undone.
         </p>
         <label htmlFor="AdminMembers-type-delete-to-confirm" className="text-[10px] tracking-wider uppercase text-neutral-500 block mb-1">
           Type DELETE to confirm

@@ -26,7 +26,7 @@ const galleryPlaceholders = ["gallery-placeholder-1", "gallery-placeholder-2", "
 const statPlaceholders = ["stat-placeholder-1", "stat-placeholder-2", "stat-placeholder-3", "stat-placeholder-4"];
 const eventPlaceholders = ["event-placeholder-1", "event-placeholder-2", "event-placeholder-3", "event-placeholder-4"];
 
-interface GalleryItem { height: number | null; img: string; label: string; film: boolean; width: number | null }
+interface GalleryItem { height: number | null; img: string; label: string; medium: "Film" | "Digital" | null; width: number | null }
 interface EventItem { title: string; date: string; desc: string }
 interface HomeEventsResponse {
   current: Record<string, unknown>[];
@@ -61,8 +61,8 @@ function mapGalleryRows(rows: Record<string, unknown>[]): GalleryItem[] {
     items.push({
       height: source.height,
       img: source.previewSrc,
-      label: source.title,
-      film: source.medium === "Film",
+      label: source.title ?? "Gallery photograph",
+      medium: source.medium,
       width: source.width,
     });
   }
@@ -366,11 +366,13 @@ function FeaturedPhotosSection({ galleryPhotos, galleryStatus, theme }: Featured
                   />
                 </div>
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all duration-500" />
-                <div className="absolute top-3 left-3">
-                  <span className={`text-[8px] tracking-[0.2em] uppercase px-2 py-1 ${item.film ? `${tagBg} border ${tagBorder}` : "bg-white/10 backdrop-blur-sm text-neutral-300"}`}>
-                    {item.film ? "Film" : "Digital"}
-                  </span>
-                </div>
+                {item.medium && (
+                  <div className="absolute top-3 left-3">
+                    <span className={`text-[8px] tracking-[0.2em] uppercase px-2 py-1 ${item.medium === "Film" ? `${tagBg} border ${tagBorder}` : "bg-white/10 backdrop-blur-sm text-neutral-300"}`}>
+                      {item.medium}
+                    </span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
