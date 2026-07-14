@@ -18,7 +18,6 @@ export const GALLERY_TAGS = [
 const CANONICAL_GALLERY_TAGS = new Map(
   GALLERY_TAGS.map((tag) => [tag.toLowerCase(), tag]),
 );
-const LEADING_EMOJI_PATTERN = /^(?:\p{Extended_Pictographic}|\uFE0F|\u200D|\s)+/gu;
 
 export function parseGalleryTags(value: string | null | undefined) {
   const tags: string[] = [];
@@ -28,10 +27,8 @@ export function parseGalleryTags(value: string | null | undefined) {
     const trimmed = valuePart.trim();
     if (!trimmed) continue;
 
-    const withoutEmojiPrefix = trimmed.replace(LEADING_EMOJI_PATTERN, "").trim();
-    const tag = CANONICAL_GALLERY_TAGS.get(trimmed.toLowerCase())
-      ?? CANONICAL_GALLERY_TAGS.get(withoutEmojiPrefix.toLowerCase())
-      ?? trimmed;
+    const tag = CANONICAL_GALLERY_TAGS.get(trimmed.toLowerCase());
+    if (!tag) continue;
     const key = tag.toLowerCase();
     if (seen.has(key)) continue;
 
@@ -40,6 +37,35 @@ export function parseGalleryTags(value: string | null | undefined) {
   }
 
   return tags;
+}
+
+type GalleryTagValue = string | readonly string[] | null | undefined;
+
+function normalizeGalleryTagValue(value: GalleryTagValue) {
+  const serialized = typeof value === "string" || value == null
+    ? value
+    : value.join(",");
+  return parseGalleryTags(serialized);
+}
+
+export function getPrimaryGalleryTag(value: GalleryTagValue) {
+  return normalizeGalleryTagValue(value)[0] ?? null;
+}
+
+export function makeGalleryTagPrimary(
+  tags: readonly string[],
+  primaryTag: string,
+) {
+  const normalized = normalizeGalleryTagValue(tags);
+  const primaryIndex = normalized.findIndex(
+    (tag) => tag.toLowerCase() === primaryTag.trim().toLowerCase(),
+  );
+  if (primaryIndex <= 0) return normalized;
+
+  return [
+    normalized[primaryIndex],
+    ...normalized.filter((_, index) => index !== primaryIndex),
+  ];
 }
 
 export function serializeGalleryTags(tags: readonly string[]) {

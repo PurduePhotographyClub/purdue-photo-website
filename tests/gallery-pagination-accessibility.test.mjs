@@ -20,6 +20,7 @@ const memberPreviewSource = await readFile(
 );
 
 test("member gallery pagination has reachable state and controls", () => {
+  assert.match(memberGallerySource, /const GALLERY_MANAGER_PAGE_SIZE = 15;/);
   assert.doesNotMatch(
     memberGallerySource,
     /\/api\/gallery\?mine=true&page=1&per_page=/,
@@ -34,6 +35,12 @@ test("member gallery pagination has reachable state and controls", () => {
   assert.match(memberGallerySource, />\s*Next\s*</);
   assert.match(memberGallerySource, /aria-current=\{[^}]*["']page["']/);
   assert.match(memberGallerySource, /setPage\(/);
+  assert.match(memberGallerySource, /role="status"/);
+  assert.match(memberGallerySource, /aria-live="polite"/);
+  assert.match(
+    memberGallerySource,
+    /Page \{meta\.page\} of \{meta\.totalPages\}/,
+  );
 });
 
 test("admin gallery pagination has reachable state and controls", () => {
@@ -71,7 +78,58 @@ test("member gallery card actions are visible on touch layouts and keyboard focu
   assert.match(cardActions, /min-h-11/);
   assert.match(cardActions, /min-w-11/);
   assert.match(memberGallerySource, /absolute inset-x-0 bottom-0 grid grid-cols-3/);
-  assert.match(memberGallerySource, /sm:static/);
+  assert.doesNotMatch(cardActions, /sm:flex-col/);
+  assert.doesNotMatch(cardActions, /sm:static/);
+});
+
+test("public gallery exposes every supported tag as a server-backed filter", () => {
+  assert.match(
+    publicGallerySource,
+    /const galleryCategories = \["All", \.\.\.GALLERY_TAGS\]/,
+  );
+  assert.match(
+    publicGallerySource,
+    /tag=\$\{encodeURIComponent\(filter\)\}/,
+  );
+  assert.doesNotMatch(
+    publicGallerySource,
+    /const galleryCategories = \["All", "Digital", "Film"\]/,
+  );
+});
+
+test("gallery cards show only the primary tag", () => {
+  const publicCards = publicGallerySource.slice(
+    publicGallerySource.indexOf("visibleImages.map"),
+    publicGallerySource.indexOf('aria-label="Gallery pagination"'),
+  );
+  const memberGrid = memberGallerySource.slice(
+    memberGallerySource.indexOf("function GalleryPhotoGrid"),
+    memberGallerySource.indexOf("function DeletePhotoModal"),
+  );
+  const adminGrid = adminGallerySource.slice(
+    adminGallerySource.indexOf("function AdminGalleryGrid"),
+    adminGallerySource.indexOf("function DeleteConfirmModal"),
+  );
+
+  assert.match(publicCards, /img\.primaryTag/);
+  assert.doesNotMatch(publicCards, /img\.tags/);
+  assert.doesNotMatch(publicCards, /img\.medium === "Film"/);
+  assert.match(memberGrid, /getPrimaryGalleryTag\(photo\.tags\)/);
+  assert.doesNotMatch(memberGrid, /\{photo\.tags\}/);
+  assert.match(adminGrid, /getPrimaryGalleryTag\(photo\.tags\)/);
+  assert.doesNotMatch(adminGrid, /photo\.tags\.split\(","\)/);
+});
+
+test("public and member previews render all ordered tags", () => {
+  const publicPreview = publicGallerySource.slice(
+    publicGallerySource.indexOf('aria-label="Gallery photo preview"'),
+  );
+
+  assert.match(publicPreview, /\.tags\.map\(/);
+  assert.match(memberPreviewSource, /parseGalleryTags\(photo\.tags\)/);
+  assert.match(memberPreviewSource, /tags\.map\(/);
+  assert.match(adminGallerySource, /parseGalleryTags\(photo\.tags\)/);
+  assert.match(adminGallerySource, /aria-label="Photo tags"/);
 });
 
 test("public gallery filters stay available after a request error and expose selection state", () => {
@@ -110,6 +168,24 @@ test("admin edit-photo modal can scroll within short viewports", () => {
 
   assert.match(editModalSource, /max-h-\[(?:calc\()?100dvh[^"]*\]/);
   assert.match(editModalSource, /overflow-y-auto/);
+});
+
+test("admin photo preview is contained by the mobile dynamic viewport", () => {
+  const preview = adminGallerySource.slice(
+    adminGallerySource.indexOf("function PhotoPreviewModal"),
+    adminGallerySource.indexOf("interface DeletePhotoModalProps"),
+  );
+
+  assert.match(preview, /100dvh/);
+  assert.match(preview, /min-h-0/);
+  assert.match(preview, /overflow-y-auto/);
+  assert.match(preview, /object-contain/);
+  assert.match(preview, /aria-label="Gallery photo details"/);
+  assert.match(preview, /tabIndex=\{0\}/);
+  assert.match(preview, /whitespace-pre-wrap/);
+  assert.match(preview, /break-words/);
+  assert.doesNotMatch(preview, /max-h-\[90vh\]/);
+  assert.doesNotMatch(preview, /max-h-\[75vh\]/);
 });
 
 test("member photo preview keeps details and actions reachable in short viewports", () => {
