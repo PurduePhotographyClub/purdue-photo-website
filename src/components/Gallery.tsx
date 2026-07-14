@@ -1,12 +1,17 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import useSWR from "swr";
-import { X, Film, Aperture } from "lucide-react";
+import { X } from "lucide-react";
 import { ImageWithFallback } from "./ImageWithFallback";
 import {
   getGalleryImageSources,
   normalizeGalleryPageForUrl,
 } from "@/lib/gallery-images";
 import { getGalleryLayoutClassNames } from "@/lib/gallery-layout";
+import {
+  GALLERY_TAGS,
+  getPrimaryGalleryTag,
+  parseGalleryTags,
+} from "@/lib/gallery-tags";
 import { fetchPublicJson, PUBLIC_API_SWR_OPTIONS } from "@/lib/http";
 
 interface GalleryImage {
@@ -15,11 +20,11 @@ interface GalleryImage {
   src: string;
   cat: string;
   author: string;
-  medium: string;
+  primaryTag: string | null;
   camera: string | null;
   description: string | null;
   lens: string | null;
-  tags: string | null;
+  tags: string[];
   width: number | null;
 }
 
@@ -36,7 +41,7 @@ interface GalleryPageResponse {
   };
 }
 
-const galleryCategories = ["All", "Digital", "Film"];
+const galleryCategories = ["All", ...GALLERY_TAGS];
 const GALLERY_PAGE_SIZE = 15;
 const GALLERY_SWR_OPTIONS = {
   ...PUBLIC_API_SWR_OPTIONS,
@@ -77,8 +82,8 @@ async function fetchGalleryPage(url: string): Promise<GalleryPageResponse> {
 export default function Gallery() {
   const [filter, setFilter] = useState("All");
   const [page, setPage] = useState(1);
-  const medium = filter === "All" ? "" : `&medium=${filter.toLowerCase()}`;
-  const galleryUrl = `/api/gallery?page=${page}&per_page=${GALLERY_PAGE_SIZE}&format=page${medium}`;
+  const tagFilter = filter === "All" ? "" : `&tag=${encodeURIComponent(filter)}`;
+  const galleryUrl = `/api/gallery?page=${page}&per_page=${GALLERY_PAGE_SIZE}&format=page${tagFilter}`;
   const { data: galleryPage, error, mutate } = useSWR<GalleryPageResponse>(
     galleryUrl,
     fetchGalleryPage,
@@ -87,6 +92,7 @@ export default function Gallery() {
   const images: GalleryImage[] = (galleryPage?.photos ?? []).flatMap((r) => {
     const source = getGalleryImageSources(r);
     if (!source) return [];
+    const tags = parseGalleryTags(source.tags);
 
     return [{
       fullSrc: source.fullSrc,
@@ -94,16 +100,16 @@ export default function Gallery() {
       src: source.previewSrc,
       cat: source.title,
       author: source.author,
-      medium: source.medium,
+      primaryTag: getPrimaryGalleryTag(tags),
       camera: source.camera,
       description: source.description,
       lens: source.lens,
-      tags: source.tags,
+      tags,
       width: source.width,
     }];
   });
   const visibleImages = galleryPage?.legacy && filter !== "All"
-    ? images.filter((image) => image.medium === filter)
+    ? images.filter((image) => image.tags.includes(filter))
     : images;
   const status: "loading" | "loaded" | "error" = !galleryPage && !error ? "loading" : error ? "error" : "loaded";
   const [selected, setSelected] = useState<number | null>(null);
@@ -227,9 +233,11 @@ export default function Gallery() {
                         <p className="truncate text-xs tracking-[0.2em] uppercase text-white">{img.cat}</p>
                         <p className="mt-1 truncate text-xs text-neutral-400">by {img.author}</p>
                       </div>
-                      <span className={`shrink-0 text-[9px] tracking-[0.2em] uppercase px-2 py-1 ${img.medium === "Film" ? "bg-neutral-900/90 text-neutral-400 border border-neutral-700" : "bg-white/10 backdrop-blur-sm text-neutral-300"}`}>
-                        {img.medium === "Film" ? <span className="flex items-center gap-1"><Film size={8} /> Film</span> : <span className="flex items-center gap-1"><Aperture size={8} /> Digital</span>}
-                      </span>
+                      {img.primaryTag && (
+                        <span className="shrink-0 border border-neutral-700 bg-neutral-900/90 px-2 py-1 text-[9px] uppercase tracking-[0.2em] text-neutral-300">
+                          {img.primaryTag}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -293,7 +301,7 @@ export default function Gallery() {
             src={visibleImages[selected]?.fullSrc} alt={visibleImages[selected]?.cat ?? "Selected gallery photo"} className="relative z-10 min-h-0 max-h-[62dvh] max-w-full shrink object-contain" loading="eager" decoding="async" />
           <div aria-label="Gallery photo details" tabIndex={0} className="relative z-10 max-h-[30dvh] w-full max-w-3xl shrink-0 overflow-y-auto px-2 text-center focus-visible:outline focus-visible:outline-1 focus-visible:outline-neutral-500">
             <p className="text-xs tracking-[0.3em] uppercase text-neutral-400">
-              {visibleImages[selected]?.cat} &middot; {visibleImages[selected]?.author} &middot; Shot on {visibleImages[selected]?.medium}
+              {visibleImages[selected]?.cat} &middot; {visibleImages[selected]?.author}
             </p>
             {(visibleImages[selected]?.camera || visibleImages[selected]?.lens) && (
               <p className="text-[10px] tracking-[0.25em] uppercase text-neutral-500 mt-1.5">
@@ -305,10 +313,17 @@ export default function Gallery() {
                 {visibleImages[selected].description}
               </p>
             )}
-            {visibleImages[selected]?.tags && (
-              <p className="mt-3 break-words text-[9px] uppercase tracking-[0.2em] text-neutral-600">
-                {visibleImages[selected].tags}
-              </p>
+            {visibleImages[selected]?.tags.length > 0 && (
+              <div aria-label="Photo tags" className="mt-3 flex flex-wrap justify-center gap-2">
+                {visibleImages[selected].tags.map((tag, index) => (
+                  <span
+                    key={tag}
+                    className={`border px-2 py-1 text-[9px] uppercase tracking-[0.2em] ${index === 0 ? "border-neutral-500 text-neutral-300" : "border-neutral-800 text-neutral-600"}`}
+                  >
+                    {tag}{index === 0 ? " (Main)" : ""}
+                  </span>
+                ))}
+              </div>
             )}
           </div>
           </div>

@@ -23,7 +23,12 @@ import {
   readErrorMessage,
   readJson,
 } from "@/lib/http";
-import { GALLERY_TAGS, serializeGalleryTags } from "@/lib/gallery-tags";
+import {
+  GALLERY_TAGS,
+  getPrimaryGalleryTag,
+  makeGalleryTagPrimary,
+  serializeGalleryTags,
+} from "@/lib/gallery-tags";
 
 function changeGalleryManagerPage(
   setExpanded: Dispatch<SetStateAction<string | null>>,
@@ -46,7 +51,7 @@ import {
 } from "@/lib/gallery-images";
 import { createKeyedStateSetter, keyedStateReducer } from "@/lib/reducer-state";
 
-const GALLERY_MANAGER_PAGE_SIZE = 60;
+const GALLERY_MANAGER_PAGE_SIZE = 15;
 const EMPTY_GALLERY_PHOTOS: GalleryPhoto[] = [];
 const GALLERY_INPUT_CLASS =
   "w-full px-4 py-3 bg-white/[0.02] border border-neutral-800 text-sm text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-neutral-600 transition-colors";
@@ -82,6 +87,9 @@ function GalleryManagerPagination({
 
   return (
     <nav aria-label="Member gallery pagination" className="flex flex-wrap items-center justify-center gap-2">
+      <p role="status" aria-live="polite" className="w-full text-center text-[10px] uppercase tracking-[0.2em] text-neutral-600">
+        Page {meta.page} of {meta.totalPages}
+      </p>
       <button
         type="button"
         disabled={!meta.hasPreviousPage}
@@ -165,6 +173,7 @@ interface GalleryUploadPanelProps {
   onLensChange: (value: string) => void;
   onShowNameToggle: () => void;
   onSubmit: (event: FormEvent) => void;
+  onTagMakePrimary: (tag: string) => void;
   onTagToggle: (tag: string) => void;
   onTitleChange: (value: string) => void;
   preview: string | null;
@@ -188,6 +197,7 @@ function GalleryUploadPanel({
   onLensChange,
   onShowNameToggle,
   onSubmit,
+  onTagMakePrimary,
   onTagToggle,
   onTitleChange,
   preview,
@@ -261,6 +271,7 @@ function GalleryUploadPanel({
                 <button
                   key={tag}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => onTagToggle(tag)}
                   className={`px-3 py-1.5 text-[10px] tracking-[0.15em] uppercase border transition-colors ${
                     active
@@ -273,6 +284,26 @@ function GalleryUploadPanel({
               );
             })}
           </div>
+          {selectedTags.length > 0 && (
+            <div className="mt-3 border-l border-neutral-800 pl-3">
+              <p className="text-[9px] uppercase tracking-[0.2em] text-neutral-600">Main tag</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {selectedTags.map((tag, index) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    aria-label={index === 0 ? `${tag} is the main tag` : `Make ${tag} the main tag`}
+                    aria-pressed={index === 0}
+                    disabled={index === 0}
+                    onClick={() => onTagMakePrimary(tag)}
+                    className={`min-h-9 border px-3 text-[9px] uppercase tracking-wider transition-colors ${index === 0 ? "border-white bg-white/[0.08] text-white" : "border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-200"}`}
+                  >
+                    {tag}{index === 0 ? " (Main)" : ""}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-3 cursor-pointer group">
           <button
@@ -335,7 +366,9 @@ function GalleryPhotoGrid({ canUpload, loading, onDelete, onEdit, onExpand, phot
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {photos.map((photo) => (
+          {photos.map((photo) => {
+            const primaryTag = getPrimaryGalleryTag(photo.tags);
+            return (
             <div key={photo.id} className="group relative bg-white/[0.02] border border-neutral-800 overflow-hidden">
               <img
                 src={photo.thumbnailUrl}
@@ -347,19 +380,19 @@ function GalleryPhotoGrid({ canUpload, loading, onDelete, onEdit, onExpand, phot
                   (e.target as HTMLImageElement).parentElement!.classList.add("min-h-[120px]");
                 }}
               />
-              <div className="absolute inset-0 flex items-end bg-black/60 p-3 pb-14 opacity-100 transition-opacity sm:pb-3 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+              <div className="absolute inset-0 flex items-end bg-black/60 p-3 pb-14 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                 <div className="flex-1 min-w-0">
                   {photo.title && (
                     <p className="text-xs text-white truncate">{photo.title}</p>
                   )}
-                  {photo.tags && (
-                    <p className="text-[10px] text-neutral-500 truncate mt-0.5">{photo.tags}</p>
+                  {primaryTag && (
+                    <p className="text-[10px] text-neutral-500 truncate mt-0.5">{primaryTag}</p>
                   )}
                   <p className="text-[10px] text-neutral-400 mt-0.5">
                     {new Date(photo.createdAt).toLocaleDateString()}
                   </p>
                 </div>
-                <div className="absolute inset-x-0 bottom-0 grid grid-cols-3 bg-black/90 sm:static sm:ml-2 sm:flex sm:w-auto sm:shrink-0 sm:flex-col sm:gap-1.5 sm:bg-transparent">
+                <div className="absolute inset-x-0 bottom-0 grid grid-cols-3 border-t border-white/10 bg-black/90">
                   <button type="button"
                     onClick={() => onExpand(photo.id)}
                     className="min-h-11 w-full px-1 text-[10px] text-neutral-300 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-white sm:min-w-11"
@@ -381,7 +414,8 @@ function GalleryPhotoGrid({ canUpload, loading, onDelete, onEdit, onExpand, phot
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -681,8 +715,6 @@ export default function GalleryManager({ userRole, userTier }: Props) {
         }
         : current, { revalidate: false });
       setEditTarget(null);
-      setSuccess("Photo updated.");
-      setTimeout(() => setSuccess(""), 4000);
     } catch {
       setEditError("Unable to update photo. Please try again.");
     } finally {
@@ -726,6 +758,7 @@ export default function GalleryManager({ userRole, userTier }: Props) {
           onLensChange={setLens}
           onShowNameToggle={() => setShowName((value) => !value)}
           onSubmit={handleUpload}
+          onTagMakePrimary={(tag) => setSelectedTags((tags) => makeGalleryTagPrimary(tags, tag))}
           onTagToggle={handleTagToggle}
           onTitleChange={setTitle}
           preview={preview}

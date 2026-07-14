@@ -14,13 +14,20 @@ import {
   type GalleryPage,
 } from "@/lib/gallery-images";
 import { createKeyedStateSetter, keyedStateReducer } from "@/lib/reducer-state";
-import { GALLERY_TAGS } from "@/lib/gallery-tags";
+import {
+  GALLERY_TAGS,
+  getPrimaryGalleryTag,
+  makeGalleryTagPrimary,
+  parseGalleryTags,
+  serializeGalleryTags,
+} from "@/lib/gallery-tags";
 
 const ADMIN_GALLERY_PAGE_SIZE = 60;
 const ADMIN_GALLERY_SWR_OPTIONS = {
   ...PUBLIC_API_SWR_OPTIONS,
   keepPreviousData: false,
 };
+const ADMIN_GALLERY_TAGS = [...GALLERY_TAGS];
 
 interface Photo {
   id: string;
@@ -79,7 +86,6 @@ interface AdminGalleryState {
   filterTag: string | null;
   filterUser: string | null;
   userSearch: string;
-  newTagInput: string;
 }
 
 const initialAdminGalleryState: AdminGalleryState = {
@@ -98,7 +104,6 @@ const initialAdminGalleryState: AdminGalleryState = {
   filterTag: null,
   filterUser: null,
   userSearch: "",
-  newTagInput: "",
 };
 
 function AdminGallerySkeleton() {
@@ -118,7 +123,7 @@ function AdminGallerySkeleton() {
 }
 
 interface AdminGalleryFiltersProps {
-  allTags: string[];
+  allTags: readonly string[];
   allUploaders: [string, string][];
   filterTag: string | null;
   inputClass: string;
@@ -207,7 +212,10 @@ function AdminGalleryGrid({
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-      {filteredPhotos.map((photo) => (
+      {filteredPhotos.map((photo) => {
+        const primaryTag = getPrimaryGalleryTag(photo.tags);
+        const isPrimaryTagActive = filterTag?.toLowerCase() === primaryTag?.toLowerCase();
+        return (
         <div key={photo.id} className="group bg-white/[0.02] border border-neutral-800 hover:border-neutral-600 transition-all overflow-hidden">
           <button type="button"
             className="aspect-square bg-neutral-900 relative cursor-pointer overflow-hidden"
@@ -237,27 +245,20 @@ function AdminGalleryGrid({
               )}
               <span className="text-[10px] text-neutral-700">{new Date(photo.createdAt).toLocaleDateString()}</span>
             </div>
-            {photo.tags && (
-              <div className="flex flex-wrap gap-1">
-                {photo.tags.split(",").map((tag) => {
-                  const trimmed = tag.trim();
-                  if (!trimmed) return null;
-                  const isActive = filterTag?.toLowerCase() === trimmed.toLowerCase();
-                  return (
-                    <button type="button"
-                      key={trimmed}
-                      onClick={(e) => { e.stopPropagation(); onTagChange(isActive ? null : trimmed); }}
-                      className={`text-[9px] px-1.5 py-0.5 border uppercase tracking-wider transition-colors ${
-                        isActive
-                          ? "border-white text-white bg-white/10"
-                          : "border-neutral-800 text-neutral-600 hover:border-neutral-600 hover:text-neutral-400"
-                      }`}
-                    >
-                      {trimmed}
-                    </button>
-                  );
-                })}
-              </div>
+            {primaryTag && (
+              <button type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onTagChange(isPrimaryTagActive ? null : primaryTag);
+                }}
+                className={`border px-1.5 py-0.5 text-[9px] uppercase tracking-wider transition-colors ${
+                  isPrimaryTagActive
+                    ? "border-white bg-white/10 text-white"
+                    : "border-neutral-800 text-neutral-600 hover:border-neutral-600 hover:text-neutral-400"
+                }`}
+              >
+                {primaryTag}
+              </button>
             )}
             <div className="flex items-center gap-2 pt-1">
               <button type="button"
@@ -276,7 +277,8 @@ function AdminGalleryGrid({
             </div>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -287,28 +289,44 @@ interface PhotoPreviewModalProps {
 }
 
 function PhotoPreviewModal({ onClose, photo }: PhotoPreviewModalProps) {
+  const tags = parseGalleryTags(photo.tags);
   return (
-    <ModalDialog ariaLabel="Gallery photo preview" onClose={onClose} className="flex items-center justify-center bg-black/90 p-4">
+    <ModalDialog ariaLabel="Gallery photo preview" onClose={onClose} className="flex items-center justify-center overflow-y-auto bg-black/90 p-2 sm:p-4">
       <button type="button" tabIndex={-1} aria-label="Close photo preview" className="absolute inset-0 cursor-default" onMouseDown={onClose} />
-      <div className="relative z-10 max-w-4xl max-h-[90vh] w-full flex flex-col">
-        <div className="flex items-center justify-between mb-3">
-          <div>
+      <div className="relative z-10 grid h-[calc(100dvh-1rem)] min-h-0 w-full max-w-4xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:h-[calc(100dvh-2rem)]">
+        <div className="mb-3 flex shrink-0 items-center justify-between gap-3">
+          <div className="min-w-0">
             <p className="text-sm text-neutral-200">{photo.title || "Untitled"}</p>
             {photo.uploaderName && <p className="text-[10px] text-neutral-500">by {photo.uploaderName}</p>}
           </div>
-          <button type="button" aria-label="Close photo preview" onClick={onClose} className="text-neutral-600 hover:text-white transition-colors">
+          <button type="button" aria-label="Close photo preview" onClick={onClose} className="flex min-h-11 min-w-11 shrink-0 items-center justify-center text-neutral-600 transition-colors hover:text-white">
             <X size={18} />
           </button>
         </div>
-        <img
-          src={photo.imageUrl}
-          alt={photo.title || "Gallery photo"}
-          className="w-full max-h-[75vh] object-contain rounded"
-        />
-        <div className="mt-3 flex flex-wrap gap-4 text-[10px] text-neutral-500">
+        <div className="flex min-h-0 items-center justify-center overflow-hidden">
+          <img
+            src={photo.imageUrl}
+            alt={photo.title || "Gallery photo"}
+            className="max-h-full max-w-full object-contain"
+          />
+        </div>
+        <div
+          aria-label="Gallery photo details"
+          tabIndex={0}
+          className="mt-3 flex max-h-[25dvh] shrink-0 flex-wrap gap-4 overflow-y-auto text-[10px] text-neutral-500 focus-visible:outline focus-visible:outline-1 focus-visible:outline-neutral-500"
+        >
           {photo.camera && <span>Camera: {photo.camera}</span>}
           {photo.lens && <span>Lens: {photo.lens}</span>}
-          {photo.description && <span className="basis-full text-neutral-400">{photo.description}</span>}
+          {photo.description && <span className="basis-full whitespace-pre-wrap break-words text-neutral-400">{photo.description}</span>}
+          {tags.length > 0 && (
+            <div aria-label="Photo tags" className="flex basis-full flex-wrap gap-2">
+              {tags.map((tag, index) => (
+                <span key={tag} className={index === 0 ? "text-neutral-300" : "text-neutral-600"}>
+                  {tag}{index === 0 ? " (Main)" : ""}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </ModalDialog>
@@ -370,7 +388,7 @@ function DeletePhotoModal({ deleting, onClose, onDelete, target }: DeletePhotoMo
 }
 
 interface EditPhotoModalProps {
-  allTags: string[];
+  allTags: readonly string[];
   editCamera: string;
   editDescription: string;
   editLens: string;
@@ -378,13 +396,12 @@ interface EditPhotoModalProps {
   editTags: string;
   editTitle: string;
   inputClass: string;
-  newTagInput: string;
   onAddTag: (tag: string) => void;
   onCameraChange: (value: string) => void;
   onClose: () => void;
   onDescriptionChange: (value: string) => void;
   onLensChange: (value: string) => void;
-  onNewTagInputChange: (value: string) => void;
+  onMakeTagPrimary: (tag: string) => void;
   onRemoveTag: (tag: string) => void;
   onSubmit: (event: React.FormEvent) => void;
   onTitleChange: (value: string) => void;
@@ -401,20 +418,19 @@ function EditPhotoModal({
   editTags,
   editTitle,
   inputClass,
-  newTagInput,
   onAddTag,
   onCameraChange,
   onClose,
   onDescriptionChange,
   onLensChange,
-  onNewTagInputChange,
+  onMakeTagPrimary,
   onRemoveTag,
   onSubmit,
   onTitleChange,
   photo,
   saving,
 }: EditPhotoModalProps) {
-  const trimmedNewTag = newTagInput.trim();
+  const selectedTags = parseGalleryTags(editTags);
   const [titleError, setTitleError] = useState("");
   const handleSubmit = (event: React.FormEvent) => {
     if (!editTitle.trim()) {
@@ -476,24 +492,31 @@ function EditPhotoModal({
             <textarea id="AdminGallery-description" aria-label="Description" value={editDescription} onChange={(e) => onDescriptionChange(e.target.value)} placeholder="Description" rows={3} className={inputClass + " resize-none"} />
           </div>
           <div>
-            <label htmlFor="AdminGallery-new-tag" className="block text-[10px] tracking-wider uppercase text-neutral-600 mb-1.5">Tags</label>
+            <p className="mb-1.5 text-[10px] uppercase tracking-wider text-neutral-600">Tags</p>
             {editTags && (
               <div className="flex flex-wrap gap-1.5 mb-2">
-                {editTags.split(",").map((tag) => {
-                  const trimmed = tag.trim();
-                  if (!trimmed) return null;
-                  return (
+                {selectedTags.map((tag, index) => (
+                  <span key={tag} className="inline-flex min-h-9 items-stretch border border-neutral-700 bg-white/5">
                     <button
-                      key={trimmed}
                       type="button"
-                      onClick={() => onRemoveTag(trimmed)}
-                      className="inline-flex items-center gap-1 text-[9px] px-2 py-1 border border-neutral-700 text-neutral-300 bg-white/5 hover:border-red-800 hover:text-red-400 transition-colors uppercase tracking-wider group"
+                      aria-label={index === 0 ? `${tag} is the main tag` : `Make ${tag} the main tag`}
+                      aria-pressed={index === 0}
+                      disabled={index === 0}
+                      onClick={() => onMakeTagPrimary(tag)}
+                      className="px-2 text-[9px] uppercase tracking-wider text-neutral-300 disabled:text-white"
                     >
-                      {trimmed}
-                      <span className="text-neutral-600 group-hover:text-red-400">✕</span>
+                      {tag}{index === 0 ? " (Main)" : ""}
                     </button>
-                  );
-                })}
+                    <button
+                      type="button"
+                      aria-label={`Remove tag ${tag}`}
+                      onClick={() => onRemoveTag(tag)}
+                      className="min-w-9 border-l border-neutral-700 px-2 text-neutral-600 transition-colors hover:text-red-400"
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
               </div>
             )}
             {allTags.length > 0 && (
@@ -510,30 +533,6 @@ function EditPhotoModal({
                 ])}
               </div>
             )}
-            <div className="flex gap-2">
-              <input id="AdminGallery-new-tag" aria-label="Add custom tag"
-                type="text"
-                value={newTagInput}
-                onChange={(e) => onNewTagInputChange(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && trimmedNewTag) {
-                    e.preventDefault();
-                    onAddTag(trimmedNewTag);
-                  }
-                }}
-                placeholder="Add custom tag"
-                className={inputClass}
-              />
-              {trimmedNewTag && (
-                <button
-                  type="button"
-                  onClick={() => onAddTag(trimmedNewTag)}
-                  className="px-3 py-2.5 border border-neutral-800 text-[10px] text-neutral-400 hover:text-white hover:border-neutral-600 transition-colors whitespace-nowrap"
-                >
-                  Add
-                </button>
-              )}
-            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -630,7 +629,6 @@ export default function AdminGallery() {
     filterTag,
     filterUser,
     userSearch,
-    newTagInput,
   } = state;
   const setError = createKeyedStateSetter(dispatchState, "error");
   const setSuccess = createKeyedStateSetter(dispatchState, "success");
@@ -647,7 +645,6 @@ export default function AdminGallery() {
   const setFilterTag = createKeyedStateSetter(dispatchState, "filterTag");
   const setFilterUser = createKeyedStateSetter(dispatchState, "filterUser");
   const setUserSearch = createKeyedStateSetter(dispatchState, "userSearch");
-  const setNewTagInput = createKeyedStateSetter(dispatchState, "newTagInput");
 
   const inputClass = "w-full bg-transparent border border-neutral-800 px-3 py-2.5 text-sm text-neutral-200 placeholder:text-neutral-700 focus:border-neutral-600 focus:outline-none transition-colors";
 
@@ -693,7 +690,7 @@ export default function AdminGallery() {
     setEditPhoto(photo);
     setEditTitle(photo.title || "");
     setEditDescription(photo.description || "");
-    setEditTags(photo.tags || "");
+    setEditTags(serializeGalleryTags(parseGalleryTags(photo.tags)) ?? "");
     setEditCamera(photo.camera || "");
     setEditLens(photo.lens || "");
     setError("");
@@ -731,7 +728,6 @@ export default function AdminGallery() {
             photos: current.photos.map((photo) => photo.id === updated.id ? { ...photo, ...updated } : photo),
           }
           : current, { revalidate: false });
-        setSuccess("Photo updated.");
         setEditPhoto(null);
       } else {
         setError(await readErrorMessage(res, "Failed to update photo."));
@@ -746,19 +742,8 @@ export default function AdminGallery() {
   const deleteTarget = photos.find((p) => p.id === deleteId);
 
   // Derive unique tags and uploaders
-  const allTags = useMemo(() => {
-    const tagSet = new Set<string>(GALLERY_TAGS);
-    photos.forEach((p) => {
-      if (p.tags) p.tags.split(",").forEach((t) => { const trimmed = t.trim(); if (trimmed) tagSet.add(trimmed); });
-    });
-    return Array.from(tagSet).sort((a, b) => a.localeCompare(b));
-  }, [photos]);
-
   const editTagSet = useMemo(
-    () => new Set(editTags.split(",").flatMap((tag) => {
-      const normalized = tag.trim().toLowerCase();
-      return normalized ? [normalized] : [];
-    })),
+    () => new Set(parseGalleryTags(editTags).map((tag) => tag.toLowerCase())),
     [editTags],
   );
 
@@ -773,7 +758,7 @@ export default function AdminGallery() {
   const filteredPhotos = useMemo(() => {
     let result = photos;
     if (filterTag) {
-      result = result.filter((p) => p.tags?.split(",").some((t) => t.trim().toLowerCase() === filterTag.toLowerCase()));
+      result = result.filter((p) => parseGalleryTags(p.tags).some((tag) => tag.toLowerCase() === filterTag.toLowerCase()));
     }
     if (filterUser) {
       if (filterUser === "__searching__") {
@@ -797,21 +782,22 @@ export default function AdminGallery() {
   };
 
   const handleAddEditTag = (tag: string) => {
-    const trimmed = tag.trim();
-    if (!trimmed) return;
-    if (!editTagSet.has(trimmed.toLowerCase())) {
-      setEditTags(editTags ? `${editTags}, ${trimmed}` : trimmed);
+    const canonicalTag = parseGalleryTags(tag)[0];
+    if (!canonicalTag) return;
+    if (!editTagSet.has(canonicalTag.toLowerCase())) {
+      const updated = parseGalleryTags(editTags ? `${editTags}, ${canonicalTag}` : canonicalTag);
+      setEditTags(serializeGalleryTags(updated) ?? "");
     }
-    setNewTagInput("");
   };
 
   const handleRemoveEditTag = (tag: string) => {
-    const updated = editTags
-      .split(",")
-      .map((value) => value.trim())
+    const updated = parseGalleryTags(editTags)
       .filter((value) => value.toLowerCase() !== tag.toLowerCase())
-      .join(", ");
-    setEditTags(updated);
+    setEditTags(serializeGalleryTags(updated) ?? "");
+  };
+  const handleMakeEditTagPrimary = (tag: string) => {
+    const updated = makeGalleryTagPrimary(parseGalleryTags(editTags), tag);
+    setEditTags(serializeGalleryTags(updated) ?? "");
   };
   const handlePageChange = (nextPage: number) => {
     if (!galleryPage || nextPage < 1 || nextPage > galleryPage.meta.totalPages) return;
@@ -826,7 +812,7 @@ export default function AdminGallery() {
       {success && <p className="text-xs text-green-400 bg-green-900/10 border border-green-900/30 px-4 py-3">{success}</p>}
 
       <AdminGalleryFilters
-        allTags={allTags}
+        allTags={ADMIN_GALLERY_TAGS}
         allUploaders={allUploaders}
         filterTag={filterTag}
         inputClass={inputClass}
@@ -874,7 +860,7 @@ export default function AdminGallery() {
 
       {editPhoto && (
         <EditPhotoModal
-          allTags={allTags}
+          allTags={ADMIN_GALLERY_TAGS}
           editCamera={editCamera}
           editDescription={editDescription}
           editLens={editLens}
@@ -882,13 +868,12 @@ export default function AdminGallery() {
           editTags={editTags}
           editTitle={editTitle}
           inputClass={inputClass}
-          newTagInput={newTagInput}
           onAddTag={handleAddEditTag}
           onCameraChange={setEditCamera}
           onClose={() => setEditPhoto(null)}
           onDescriptionChange={setEditDescription}
           onLensChange={setEditLens}
-          onNewTagInputChange={setNewTagInput}
+          onMakeTagPrimary={handleMakeEditTagPrimary}
           onRemoveTag={handleRemoveEditTag}
           onSubmit={handleSaveEdit}
           onTitleChange={setEditTitle}

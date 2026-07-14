@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import ModalDialog from "@/components/ModalDialog";
 import {
   GALLERY_TAGS,
+  makeGalleryTagPrimary,
   parseGalleryTags,
   serializeGalleryTags,
 } from "@/lib/gallery-tags";
@@ -29,7 +30,6 @@ export default function GalleryPhotoEditModal({
   const [camera, setCamera] = useState(photo.camera ?? "");
   const [lens, setLens] = useState(photo.lens ?? "");
   const [selectedTags, setSelectedTags] = useState(() => parseGalleryTags(photo.tags));
-  const legacyTags = selectedTags.filter((tag) => !GALLERY_TAGS.some((galleryTag) => galleryTag === tag));
 
   const inputClass = "w-full border border-neutral-800 bg-white/[0.02] px-3 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-700 focus:border-neutral-500 focus:outline-none";
   const toggleTag = (tag: string) => {
@@ -126,19 +126,21 @@ export default function GalleryPhotoEditModal({
                 );
               })}
             </div>
-            {legacyTags.length > 0 && (
-              <div className="mt-3">
-                <p className="text-[9px] uppercase tracking-wider text-neutral-600">Existing custom tags</p>
+            {selectedTags.length > 0 && (
+              <div className="mt-3 border-l border-neutral-800 pl-3">
+                <p className="text-[9px] uppercase tracking-[0.2em] text-neutral-600">Main tag</p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {legacyTags.map((tag) => (
+                  {selectedTags.map((tag, index) => (
                     <button
                       key={tag}
                       type="button"
-                      aria-label={`Remove legacy tag ${tag}`}
-                      onClick={() => toggleTag(tag)}
-                      className="min-h-9 border border-neutral-800 px-3 text-[10px] text-neutral-500 transition-colors hover:border-red-900 hover:text-red-400"
+                      aria-label={index === 0 ? `${tag} is the main tag` : `Make ${tag} the main tag`}
+                      aria-pressed={index === 0}
+                      disabled={index === 0}
+                      onClick={() => setSelectedTags((currentTags) => makeGalleryTagPrimary(currentTags, tag))}
+                      className={`min-h-9 border px-3 text-[9px] uppercase tracking-wider transition-colors ${index === 0 ? "border-white bg-white/[0.08] text-white" : "border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-200"}`}
                     >
-                      {tag} ×
+                      {tag}{index === 0 ? " (Main)" : ""}
                     </button>
                   ))}
                 </div>
