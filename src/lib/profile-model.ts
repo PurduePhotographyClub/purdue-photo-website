@@ -1,4 +1,5 @@
-export const PROFILE_TEMPLATES = ["contact-sheet", "print-index"] as const;
+export const PROFILE_TEMPLATES = ["contact-sheet", "print-index", "split-frame", "negative-strip"] as const;
+export const PROFILE_DECORATIONS = ["none", "film-frame", "contact-marks", "viewfinder"] as const;
 export const PROFILE_NAME_STYLES = ["classic", "film-credit", "editorial", "bold-print"] as const;
 export const PROFILE_SOCIAL_PLATFORMS = ["instagram", "discord", "vsco", "website", "email"] as const;
 export const PROFILE_SOCIAL_ICONS = ["instagram", "discord", "vsco", "globe", "mail"] as const;
@@ -18,6 +19,7 @@ export const PROFILE_SPECIALTIES = [
 ] as const;
 
 export type ProfileTemplate = (typeof PROFILE_TEMPLATES)[number];
+export type ProfileDecoration = (typeof PROFILE_DECORATIONS)[number];
 export type ProfileNameStyle = (typeof PROFILE_NAME_STYLES)[number];
 export type ProfileSocialPlatform = (typeof PROFILE_SOCIAL_PLATFORMS)[number];
 export type ProfileSocialIconName = (typeof PROFILE_SOCIAL_ICONS)[number];
@@ -31,9 +33,11 @@ export interface ProfileSocial {
 
 export interface ProfileDraft {
   anonymous: boolean;
+  anonymousId: string | null;
   avatarId: string | null;
   avatarUrl: string | null;
   bio: string;
+  decoration: ProfileDecoration;
   displayName: string;
   enabled: boolean;
   nameStyle: ProfileNameStyle;
@@ -65,6 +69,7 @@ const RESERVED_PROFILE_USERNAMES = new Set([
 ]);
 
 const PROFILE_USERNAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const ANONYMOUS_PROFILE_ID_PATTERN = /^p_[a-f0-9]{32}$/;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -89,9 +94,11 @@ function includesValue<const Values extends readonly string[]>(
 export function createEmptyProfileDraft(displayName: string): ProfileDraft {
   return {
     anonymous: false,
+    anonymousId: null,
     avatarId: null,
     avatarUrl: null,
     bio: "",
+    decoration: "none",
     displayName: displayName.trim(),
     enabled: false,
     nameStyle: "classic",
@@ -120,8 +127,17 @@ export function normalizeProfileUsername(value: string) {
   return value.trim().toLowerCase();
 }
 
-export function getPublicProfileHref(username: string) {
-  const normalized = normalizeProfileUsername(username);
+export function getPublicProfileHref(
+  profile: Pick<ProfileDraft, "anonymous" | "anonymousId" | "enabled" | "username">,
+) {
+  if (!profile.enabled) return null;
+  if (profile.anonymous) {
+    return profile.anonymousId && ANONYMOUS_PROFILE_ID_PATTERN.test(profile.anonymousId)
+      ? `/profile/${encodeURIComponent(profile.anonymousId)}`
+      : null;
+  }
+
+  const normalized = normalizeProfileUsername(profile.username);
   return getProfileUsernameValidationError(normalized)
     ? null
     : `/profile/${encodeURIComponent(normalized)}`;
@@ -174,6 +190,18 @@ export function normalizeProfileSocialValue(
     ]));
   }
   return normalizeHttpsUrl(value);
+}
+
+export function getProfileSocialValidationError(
+  platform: ProfileSocialPlatform,
+  value: string,
+) {
+  if (!value.trim() || normalizeProfileSocialValue(platform, value)) return null;
+  if (platform === "email") return "Enter the email address only.";
+  if (platform === "instagram") return "Use an Instagram link that starts with https://.";
+  if (platform === "discord") return "Use a Discord link that starts with https://.";
+  if (platform === "vsco") return "Use a VSCO link that starts with https://.";
+  return "Use a complete link that starts with https://.";
 }
 
 export function getProfileSocialHref(social: ProfileSocial) {
@@ -250,9 +278,15 @@ export function normalizeProfileResponse(
     },
     profile: {
       anonymous: rawProfile.anonymous === true,
+      anonymousId: typeof rawProfile.anonymousId === "string" && ANONYMOUS_PROFILE_ID_PATTERN.test(rawProfile.anonymousId)
+        ? rawProfile.anonymousId
+        : null,
       avatarId: readNullableString(rawProfile.avatarId),
       avatarUrl: isAllowedProfileAssetUrl(rawProfile.avatarUrl) ? rawProfile.avatarUrl : null,
       bio: readString(rawProfile.bio),
+      decoration: includesValue(PROFILE_DECORATIONS, rawProfile.decoration)
+        ? rawProfile.decoration
+        : fallback.decoration,
       displayName: readString(rawProfile.displayName, fallback.displayName) || fallback.displayName,
       enabled: rawProfile.enabled === true,
       nameStyle: includesValue(PROFILE_NAME_STYLES, rawProfile.nameStyle)
@@ -274,6 +308,7 @@ export function toProfileUpdate(
 ) {
   const base = {
     bio: profile.bio.trim() || null,
+    decoration: profile.decoration,
     displayName: profile.displayName.trim(),
     nameStyle: profile.nameStyle,
     socials: profile.socials.map((social) => ({ ...social })),

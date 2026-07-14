@@ -24,20 +24,21 @@ test("named gallery photos accept only same-origin API profile links", () => {
   })?.profileUrl, null);
 });
 
-test("profile-wide anonymous gallery data stays image-only in presentation helpers", () => {
+test("profile-wide anonymous gallery data keeps photo copy and an opaque PPC Member link", () => {
   const source = getGalleryImageSources({
     ...basePhoto,
     metadataHidden: true,
-    profileUrl: "/profile/jane-doe",
+    profileUrl: "/profile/p_11111111111111111111111111111111",
+    uploaderName: "PPC Member",
   });
 
   assert.equal(source?.metadataHidden, true);
-  assert.equal(source?.title, null);
-  assert.equal(source?.author, null);
-  assert.equal(source?.description, null);
+  assert.equal(source?.title, "Night Walk");
+  assert.equal(source?.author, "PPC Member");
+  assert.equal(source?.description, "Rain on the pavement");
   assert.equal(source?.camera, null);
   assert.equal(source?.lens, null);
-  assert.equal(source?.tags, null);
-  assert.equal(source?.profileUrl, null);
-  assert.equal(source?.medium, null);
+  assert.equal(source?.tags, "Street, Film");
+  assert.equal(source?.profileUrl, "/profile/p_11111111111111111111111111111111");
+  assert.equal(source?.medium, "Film");
 });

@@ -21,9 +21,7 @@ test("inactive members render locked profile fields while retaining the disable 
     username: "jane-doe",
   };
   const html = renderToStaticMarkup(createElement(ProfileFormFields, {
-    canDisable: true,
-    canEnable: false,
-    disabled: true,
+    access: { canDisable: true, canEnable: false, disabled: true },
     onChange() {
       throw new Error("server render must not mutate the profile");
     },
@@ -35,17 +33,19 @@ test("inactive members render locked profile fields while retaining the disable 
   assert.match(publishingSwitch, /checked=""/);
   assert.doesNotMatch(publishingSwitch, /disabled=""/);
   assert.match(html, /Enable public profile/);
-  assert.match(html, /Profiles start disabled/);
+  assert.match(html, /Anyone can visit your page and browse the photos you have shared/);
   assert.match(html, /Anonymous profile/);
   assert.match(html, /Contact sheet/);
   assert.match(html, /Print index/);
+  assert.match(html, /Split frame/);
+  assert.match(html, /Negative strip/);
+  assert.match(html, /Add social/);
+  assert.match(html, /Up to 512px and 200KB\./);
 });
 
 test("an unpublished inactive member cannot enable or edit profile fields", () => {
   const html = renderToStaticMarkup(createElement(ProfileFormFields, {
-    canDisable: false,
-    canEnable: false,
-    disabled: true,
+    access: { canDisable: false, canEnable: false, disabled: true },
     onChange() {},
     profile: createEmptyProfileDraft("Jane Doe"),
   }));
@@ -53,6 +53,7 @@ test("an unpublished inactive member cannot enable or edit profile fields", () =
   const publishingSwitch = html.match(/<input[^>]+role="switch"[^>]*>/)?.[0] ?? "";
   assert.match(publishingSwitch, /disabled=""/);
   assert.match(html, /<fieldset disabled="" class="contents">/);
+  assert.match(html, /Only you can see this draft/);
 });
 
 test("public profile rendering shows the selected template content and safe social link", () => {
@@ -61,6 +62,7 @@ test("public profile rendering shows the selected template content and safe soci
       anonymous: false,
       avatarUrl: "/api/profiles/avatar/public-avatar?v=1",
       bio: "Street and travel photographer.",
+      decoration: "film-frame",
       displayName: "Jane Portfolio",
       nameStyle: "editorial",
       socials: [{
@@ -90,6 +92,7 @@ test("anonymous public rendering is image-portfolio-only and never emits supplie
       anonymous: true,
       avatarUrl: "/api/profiles/avatar/private-avatar?v=secret",
       bio: "Private biography",
+      decoration: "viewfinder",
       displayName: "Private Display Name",
       nameStyle: "bold-print",
       socials: [{
@@ -103,7 +106,8 @@ test("anonymous public rendering is image-portfolio-only and never emits supplie
     },
   }));
 
-  assert.match(html, /Anonymous photographer/);
+  assert.match(html, /PPC Member/);
+  assert.match(html, /Viewfinder/);
   assert.doesNotMatch(
     html,
     /Private Display Name|Private biography|private@example\.com|private-avatar|private-member|>Street</,

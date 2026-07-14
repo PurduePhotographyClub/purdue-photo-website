@@ -4,12 +4,12 @@ import PublicProfile from '@/components/profile/PublicProfile';
 
 export const prerender = false;
 
-const username = Astro.params.username;
-if (!username) {
+const identifier = Astro.params.username;
+if (!identifier) {
   return new Response(null, { status: 404 });
 }
 ---
 
 <Layout title="Member Profile | Purdue Photography Club" robots="noindex, nofollow, noimageindex, noarchive">
-  <PublicProfile client:load username={username} />
+  <PublicProfile client:load identifier={identifier} />
 </Layout>
