@@ -12,7 +12,7 @@ import ProfileTemplateRenderer, {
 } from "./ProfileTemplateRenderer";
 
 interface Props {
-  username: string;
+  identifier: string;
 }
 
 interface PublicProfilePayload {
@@ -62,15 +62,16 @@ function normalizePhoto(value: unknown, anonymous: boolean): ProfileGalleryPhoto
 
   return {
     camera: anonymous ? null : readNullableText(value.camera),
-    description: anonymous ? null : readNullableText(value.description),
+    createdAt: readNullableText(value.createdAt),
+    description: readNullableText(value.description),
     height,
     id: value.id,
     imageUrl,
     lens: anonymous ? null : readNullableText(value.lens),
     metadataHidden: anonymous || value.metadataHidden === true,
-    tags: anonymous ? null : parseGalleryTags(readNullableText(value.tags)).join(", ") || null,
+    tags: parseGalleryTags(readNullableText(value.tags)).join(", ") || null,
     thumbnailUrl,
-    title: anonymous ? null : readNullableText(value.title),
+    title: readNullableText(value.title),
     width,
   };
 }
@@ -81,13 +82,13 @@ function normalizePublicProfilePayload(value: unknown): PublicProfilePayload {
   const rawProfile = isRecord(response.profile) ? response.profile : {};
   const normalized = normalizeProfileResponse({ profile: rawProfile }, "PPC member").profile;
   const anonymous = rawProfile.anonymous === true;
-  const template = normalized.template === "print-index" ? "print-index" : "contact-sheet";
+  const template = normalized.template;
   const rawMeta = isRecord(response.meta) ? response.meta : {};
   const totalPages = readInteger(rawMeta.totalPages, 1, 1);
   const page = Math.min(readInteger(rawMeta.page, 1, 1), totalPages);
   const rawPhotos = Array.isArray(response.photos) ? response.photos : [];
   const allowedTags = new Set<string>(GALLERY_TAGS);
-  const availableTags = anonymous || !Array.isArray(response.availableTags)
+  const availableTags = !Array.isArray(response.availableTags)
     ? []
     : response.availableTags.filter(
       (tag): tag is string => typeof tag === "string" && allowedTags.has(tag),
@@ -111,8 +112,9 @@ function normalizePublicProfilePayload(value: unknown): PublicProfilePayload {
       anonymous,
       avatarUrl: anonymous ? null : normalized.avatarUrl,
       bio: anonymous ? null : normalized.bio || null,
-      displayName: anonymous ? null : normalized.displayName,
-      nameStyle: anonymous ? null : normalized.nameStyle,
+      decoration: normalized.decoration,
+      displayName: anonymous ? "PPC Member" : normalized.displayName,
+      nameStyle: anonymous ? "classic" : normalized.nameStyle,
       socials: anonymous ? [] : normalized.socials,
       specialties: anonymous ? [] : normalized.specialties,
       template,
@@ -121,18 +123,18 @@ function normalizePublicProfilePayload(value: unknown): PublicProfilePayload {
   };
 }
 
-export default function PublicProfile({ username }: Props) {
+export default function PublicProfile({ identifier }: Props) {
   const [page, setPage] = useState(1);
   const [selectedTag, setSelectedTag] = useState("All");
   const tagQuery = selectedTag === "All" ? "" : `&tag=${encodeURIComponent(selectedTag)}`;
-  const endpoint = `/api/profiles/${encodeURIComponent(username)}?page=${page}&per_page=15${tagQuery}`;
+  const endpoint = `/api/profiles/${encodeURIComponent(identifier)}?page=${page}&per_page=15${tagQuery}`;
   const { data, error, isLoading, mutate } = useSWR<unknown>(
     endpoint,
     fetchPublicJson,
     PUBLIC_API_SWR_OPTIONS,
   );
   const payload = data ? normalizePublicProfilePayload(data) : null;
-  const anonymousLabel = "Anonymous photographer";
+  const anonymousLabel = "PPC Member profile";
 
   if (!payload && error) {
     return (

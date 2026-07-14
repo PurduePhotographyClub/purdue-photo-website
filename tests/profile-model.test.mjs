@@ -2,19 +2,23 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  PROFILE_DECORATIONS,
   PROFILE_NAME_STYLES,
   PROFILE_SOCIAL_PLATFORMS,
   PROFILE_SPECIALTIES,
   PROFILE_TEMPLATES,
   createEmptyProfileDraft,
+  getProfileSocialValidationError,
   getProfileSocialHref,
+  getPublicProfileHref,
   normalizeProfileSocialValue,
   normalizeProfileResponse,
   refreshProfileAfterMutation,
 } from "../src/lib/profile-model.ts";
 
 test("profile editor choices match the fixed server contract", () => {
-  assert.deepEqual(PROFILE_TEMPLATES, ["contact-sheet", "print-index"]);
+  assert.deepEqual(PROFILE_TEMPLATES, ["contact-sheet", "print-index", "split-frame", "negative-strip"]);
+  assert.deepEqual(PROFILE_DECORATIONS, ["none", "film-frame", "contact-marks", "viewfinder"]);
   assert.deepEqual(PROFILE_NAME_STYLES, ["classic", "film-credit", "editorial", "bold-print"]);
   assert.deepEqual(PROFILE_SOCIAL_PLATFORMS, ["instagram", "discord", "vsco", "website", "email"]);
   assert.deepEqual(PROFILE_SPECIALTIES, [
@@ -37,9 +41,11 @@ test("profile editor choices match the fixed server contract", () => {
 test("new profile drafts are disabled without mutating response data", () => {
   assert.deepEqual(createEmptyProfileDraft("Member Name"), {
     anonymous: false,
+    anonymousId: null,
     avatarId: null,
     avatarUrl: null,
     bio: "",
+    decoration: "none",
     displayName: "Member Name",
     enabled: false,
     nameStyle: "classic",
@@ -64,6 +70,23 @@ test("new profile drafts are disabled without mutating response data", () => {
   assert.deepEqual(source.profile.specialties, ["Travel"]);
 });
 
+test("public profile links switch to the opaque id only while anonymous mode is active", () => {
+  const profile = {
+    ...createEmptyProfileDraft("Jane Doe"),
+    anonymousId: "p_11111111111111111111111111111111",
+    enabled: true,
+    username: "jane-doe",
+  };
+
+  assert.equal(getPublicProfileHref(profile), "/profile/jane-doe");
+  assert.equal(
+    getPublicProfileHref({ ...profile, anonymous: true }),
+    "/profile/p_11111111111111111111111111111111",
+  );
+  assert.equal(getPublicProfileHref({ ...profile, anonymous: true, anonymousId: null }), null);
+  assert.equal(getPublicProfileHref({ ...profile, enabled: false }), null);
+});
+
 test("malformed stored choices fall back to safe profile values", () => {
   const normalized = normalizeProfileResponse({
     permissions: { canDisable: "yes", canEdit: null, canEnable: 1 },
@@ -71,6 +94,7 @@ test("malformed stored choices fall back to safe profile values", () => {
       anonymous: false,
       displayName: "Jane",
       enabled: true,
+      decoration: "script-injection",
       nameStyle: "script-injection",
       socials: [{ platform: "unknown", value: "javascript:alert(1)" }],
       specialties: ["Admin", "Street"],
@@ -79,6 +103,7 @@ test("malformed stored choices fall back to safe profile values", () => {
     },
   }, "Fallback");
 
+  assert.equal(normalized.profile.decoration, "none");
   assert.equal(normalized.profile.nameStyle, "classic");
   assert.equal(normalized.profile.template, "contact-sheet");
   assert.deepEqual(normalized.profile.socials, []);
@@ -124,6 +149,23 @@ test("client social host validation matches server-approved service subdomains",
     normalizeProfileSocialValue("instagram", "https://instagram.com.evil.example/member"),
     null,
   );
+});
+
+test("social editor validation explains invalid values before profile submission", () => {
+  assert.equal(getProfileSocialValidationError("instagram", ""), null);
+  assert.equal(
+    getProfileSocialValidationError("instagram", "https://example.com/member"),
+    "Use an Instagram link that starts with https://.",
+  );
+  assert.equal(
+    getProfileSocialValidationError("website", "example.com"),
+    "Use a complete link that starts with https://.",
+  );
+  assert.equal(
+    getProfileSocialValidationError("email", "mailto:member@example.com"),
+    "Enter the email address only.",
+  );
+  assert.equal(getProfileSocialValidationError("vsco", "https://vsco.co/member"), null);
 });
 
 test("a committed profile mutation remains successful when follow-up refresh fails", async () => {

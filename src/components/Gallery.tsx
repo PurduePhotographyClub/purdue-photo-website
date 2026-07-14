@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import useSWR from "swr";
-import { X } from "lucide-react";
+import { ExternalLink, X } from "lucide-react";
 import { ImageWithFallback } from "./ImageWithFallback";
 import {
+  formatGalleryDate,
   getGalleryImageSources,
   normalizeGalleryPageForUrl,
 } from "@/lib/gallery-images";
@@ -22,6 +23,7 @@ interface GalleryImage {
   author: string | null;
   primaryTag: string | null;
   camera: string | null;
+  createdAt: string | null;
   description: string | null;
   lens: string | null;
   metadataHidden: boolean;
@@ -104,6 +106,7 @@ export default function Gallery() {
       author: source.author,
       primaryTag: getPrimaryGalleryTag(tags),
       camera: source.camera,
+      createdAt: source.createdAt,
       description: source.description,
       lens: source.lens,
       metadataHidden: source.metadataHidden,
@@ -123,6 +126,11 @@ export default function Gallery() {
   const meta = galleryPage?.meta;
   const visiblePageNumbers = meta ? getVisiblePageNumbers(meta.page, meta.totalPages) : [];
   const galleryLayout = getGalleryLayoutClassNames(visibleImages.length);
+  const selectedImage = selected === null ? null : visibleImages[selected] ?? null;
+  const selectedImageDescription = selected === null
+    ? null
+    : visibleImages[selected]?.description ?? null;
+  const selectedImageDate = formatGalleryDate(selectedImage?.createdAt);
 
   useEffect(() => {
     if (selected === null) return;
@@ -218,23 +226,27 @@ export default function Gallery() {
           </div>
         ) : (
         <div className={galleryLayout.container}>
-            {visibleImages.map((img, i) => (
+            {visibleImages.map((img, i) => {
+              const formattedDate = formatGalleryDate(img.createdAt);
+              return (
               <figure key={img.fullSrc} className={`group relative ${galleryLayout.item} overflow-hidden`}>
-                {!img.metadataHidden && img.author && img.profileUrl && (
+                {img.author && img.profileUrl && (
                   <a
                     href={img.profileUrl}
-                    className="absolute bottom-1 left-4 z-10 inline-flex min-h-11 max-w-[70%] items-center truncate text-xs text-neutral-300 opacity-100 underline decoration-neutral-600 underline-offset-4 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-300 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                    aria-label={`View ${img.author} profile`}
+                    className="absolute bottom-1 left-4 z-20 inline-flex min-h-11 max-w-[70%] items-center gap-1.5 text-xs text-neutral-300 opacity-100 underline decoration-neutral-600 underline-offset-4 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-300 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                   >
-                    by {img.author}
+                    <span className="truncate">by {img.author}</span>
+                    <ExternalLink aria-hidden="true" className="shrink-0" size={13} strokeWidth={1.5} />
                   </a>
                 )}
                 <button
                   type="button"
-                  aria-label={img.metadataHidden ? "View anonymous gallery photograph" : `View ${img.cat ?? "gallery photograph"}`}
+                  aria-label={`View ${img.cat ?? "gallery photograph"}`}
                   className="block w-full cursor-pointer text-left focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
                   onClick={() => setSelected(i)}
                 >
-                <ImageWithFallback src={img.src} alt={img.metadataHidden ? "Gallery photograph" : img.cat ?? "Gallery photograph"}
+                <ImageWithFallback src={img.src} alt={img.cat ?? "Gallery photograph"}
                   className="block w-full transition-all duration-700 group-hover:scale-[1.03]"
                   loading={i < 6 ? "eager" : "lazy"}
                   decoding="async"
@@ -243,14 +255,23 @@ export default function Gallery() {
                   width={img.width ?? undefined}
                   height={img.height ?? undefined}
                 />
-                {!img.metadataHidden && (
                 <div className="absolute inset-0 flex items-end bg-black/25 transition-all duration-300 sm:bg-black/0 sm:group-hover:bg-black/30 sm:group-focus-within:bg-black/30">
-                  <div className={`w-full p-4 opacity-100 transition-opacity duration-300 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-visible:opacity-100 ${img.profileUrl ? "pb-10" : ""}`}>
-                    <div className="flex items-end justify-between gap-4">
+                  <div className={`w-full p-4 opacity-100 transition-opacity duration-300 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 ${img.author && img.profileUrl ? "pb-11" : ""}`}>
+                    <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0 flex-1 text-left">
                         <p className="truncate text-xs tracking-[0.2em] uppercase text-white">{img.cat}</p>
+                        {img.description && (
+                          <p className="mt-1 line-clamp-2 break-words text-[11px] leading-4 text-neutral-300">
+                            {img.description}
+                          </p>
+                        )}
                         {!img.profileUrl && img.author && (
                           <p className="mt-1 truncate text-xs text-neutral-400">by {img.author}</p>
+                        )}
+                        {formattedDate && (
+                          <p className="mt-1 text-[10px] text-neutral-400">
+                            <time dateTime={img.createdAt ?? undefined}>{formattedDate}</time>
+                          </p>
                         )}
                       </div>
                       {img.primaryTag && (
@@ -261,10 +282,10 @@ export default function Gallery() {
                     </div>
                   </div>
                 </div>
-                )}
                 </button>
               </figure>
-            ))}
+              );
+            })}
         </div>
         )}
 
@@ -310,7 +331,7 @@ export default function Gallery() {
         </div>
       </div>
 
-      {selected !== null && (
+      {selectedImage && (
         <dialog
           aria-label="Gallery photo preview"
           ref={lightboxDialogRef}
@@ -318,37 +339,47 @@ export default function Gallery() {
           className="fixed inset-0 z-[120] h-dvh max-h-none w-dvw max-w-none border-0 bg-black/95 p-6 pt-16 text-inherit backdrop:bg-transparent">
           <div className="flex h-full min-h-0 w-full flex-col items-center justify-center gap-3">
           <button type="button" tabIndex={-1} aria-label="Close gallery lightbox" className="absolute inset-0 cursor-default" onMouseDown={() => setSelected(null)} />
-          <button type="button" aria-label="Close gallery lightbox" className="absolute top-6 right-6 z-10 flex min-h-11 min-w-11 items-center justify-center text-neutral-400 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400" onClick={() => setSelected(null)}><X size={24} /></button>
+          <button type="button" aria-label="Close gallery lightbox" className="absolute top-6 right-6 z-10 flex min-h-11 min-w-11 items-center justify-center text-neutral-400 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400" onClick={() => setSelected(null)}><X aria-hidden="true" size={24} /></button>
           <img
-            src={visibleImages[selected]?.fullSrc} alt={visibleImages[selected]?.metadataHidden ? "Gallery photograph" : visibleImages[selected]?.cat ?? "Selected gallery photo"} className="relative z-10 min-h-0 max-h-[62dvh] max-w-full shrink object-contain" loading="eager" decoding="async" />
-          {!visibleImages[selected]?.metadataHidden && (
+            src={selectedImage.fullSrc} alt={selectedImage.cat ?? "Selected gallery photo"} className="relative z-10 min-h-0 max-h-[62dvh] max-w-full shrink object-contain" loading="eager" decoding="async" />
           <div aria-label="Gallery photo details" tabIndex={0} className="relative z-10 max-h-[30dvh] w-full max-w-3xl shrink-0 overflow-y-auto px-2 text-center focus-visible:outline focus-visible:outline-1 focus-visible:outline-neutral-500">
             <p className="text-xs tracking-[0.3em] uppercase text-neutral-400">
-              {visibleImages[selected]?.cat}
-              {visibleImages[selected]?.author && (
+              {selectedImage.cat}
+              {selectedImage.author && (
                 <>
                   {" · "}
-                  {visibleImages[selected]?.profileUrl ? (
-                    <a className="underline decoration-neutral-600 underline-offset-4 hover:text-white" href={visibleImages[selected]?.profileUrl ?? undefined}>
-                      {visibleImages[selected]?.author}
+                  {selectedImage.profileUrl ? (
+                    <a
+                      aria-label={`View ${selectedImage.author} profile`}
+                      className="inline-flex items-center gap-1 underline decoration-neutral-600 underline-offset-4 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
+                      href={selectedImage.profileUrl}
+                    >
+                      <span>{selectedImage.author}</span>
+                      <ExternalLink aria-hidden="true" size={12} strokeWidth={1.5} />
                     </a>
-                  ) : visibleImages[selected]?.author}
+                  ) : selectedImage.author}
+                </>
+              )}
+              {selectedImageDate && (
+                <>
+                  {" · "}
+                  <time dateTime={selectedImage.createdAt ?? undefined}>{selectedImageDate}</time>
                 </>
               )}
             </p>
-            {(visibleImages[selected]?.camera || visibleImages[selected]?.lens) && (
+            {!selectedImage.metadataHidden && (selectedImage.camera || selectedImage.lens) && (
               <p className="text-[10px] tracking-[0.25em] uppercase text-neutral-500 mt-1.5">
-                {[visibleImages[selected]?.camera, visibleImages[selected]?.lens].filter(Boolean).join(" · ")}
+                {[selectedImage.camera, selectedImage.lens].filter(Boolean).join(" · ")}
               </p>
             )}
-            {visibleImages[selected]?.description && (
+            {selectedImageDescription && (
               <p className="mx-auto mt-3 max-w-2xl whitespace-pre-wrap break-words text-xs leading-5 text-neutral-400">
-                {visibleImages[selected].description}
+                {selectedImageDescription}
               </p>
             )}
-            {visibleImages[selected]?.tags.length > 0 && (
+            {selectedImage.tags.length > 0 && (
               <div aria-label="Photo tags" className="mt-3 flex flex-wrap justify-center gap-2">
-                {visibleImages[selected].tags.map((tag, index) => (
+                {selectedImage.tags.map((tag, index) => (
                   <span
                     key={tag}
                     className={`border px-2 py-1 text-[9px] uppercase tracking-[0.2em] ${index === 0 ? "border-neutral-500 text-neutral-300" : "border-neutral-800 text-neutral-600"}`}
@@ -359,7 +390,6 @@ export default function Gallery() {
               </div>
             )}
           </div>
-          )}
           </div>
         </dialog>
       )}

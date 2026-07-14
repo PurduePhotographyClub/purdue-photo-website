@@ -133,14 +133,13 @@ function AdminMemberProfileForm({
       </div>
 
       <ProfileFormFields
-        avatarBusy={avatarBusy}
+        access={{ avatarBusy }}
         idPrefix={`admin-member-profile-${memberId}`}
         onAvatarChange={uploadAvatar}
         onAvatarRemove={removeAvatar}
         onChange={setProfile}
         profile={profile}
-        showPrivacy={false}
-        showPublishing={false}
+        variant="staff"
       />
 
       <div className="sticky bottom-0 z-10 border border-neutral-800 bg-neutral-950 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:flex sm:items-center sm:justify-between sm:px-5">

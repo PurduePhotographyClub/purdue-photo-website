@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { ExternalLink } from "lucide-react";
 import useSWR from "swr";
 import AccessUpsellPanel from "@/components/dashboard/AccessUpsellPanel";
 import ProfileFormFields from "@/components/profile/ProfileFormFields";
@@ -8,6 +9,7 @@ import {
   PROFILE_SOCIAL_PLATFORMS,
   PROFILE_SPECIALTIES,
   PROFILE_TEMPLATES,
+  getPublicProfileHref,
   getProfileUsernameValidationError,
   normalizeProfileResponse,
   normalizeProfileSocialValue,
@@ -56,6 +58,7 @@ function ProfileSettingsEditor({
   const { canDisable, canEdit, canEnable } = initial.permissions;
   const disableOnly = !canEdit && initial.profile.enabled && !profile.enabled && canDisable;
   const canSave = canEdit || disableOnly;
+  const publicProfileHref = getPublicProfileHref(profile);
 
   const saveProfile = async (event: FormEvent) => {
     event.preventDefault();
@@ -135,7 +138,7 @@ function ProfileSettingsEditor({
   };
 
   return (
-    <form onSubmit={saveProfile} className="max-w-4xl space-y-5">
+    <form onSubmit={saveProfile} className="max-w-5xl space-y-4">
       {!canEdit && (
         <AccessUpsellPanel
           eyebrow="Profile locked"
@@ -146,21 +149,30 @@ function ProfileSettingsEditor({
         />
       )}
 
-      <div>
-        <p className="text-xs leading-5 text-neutral-500">
-          Edit your Display name, Profile URL, Bio, Social links, Photography roles, and Profile template in one place.
-          Use Enable public profile to publish, or Anonymous profile to share an image-only portfolio.
-        </p>
-        <p className="mt-1 text-[9px] uppercase tracking-[0.15em] text-neutral-600">
-          {PROFILE_SOCIAL_PLATFORMS.length} social icons · {PROFILE_SPECIALTIES.length} roles · {PROFILE_TEMPLATES.length} layouts
-        </p>
+      <div className="flex flex-col gap-4 border border-neutral-800 bg-neutral-950/60 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+        <div>
+          <p className="text-sm text-neutral-200">Make the page feel like yours.</p>
+          <p className="mt-1 max-w-2xl text-xs leading-5 text-neutral-500">
+            Set your Display name, Profile URL, Bio, Social links, Photography roles, and layout. Use Enable public profile when it is ready. Anonymous profile swaps your name for PPC Member.
+          </p>
+          <p className="mt-2 text-[9px] uppercase tracking-[0.15em] text-neutral-600">
+            {PROFILE_SOCIAL_PLATFORMS.length} social options · {PROFILE_SPECIALTIES.length} roles · {PROFILE_TEMPLATES.length} layouts
+          </p>
+        </div>
+        {publicProfileHref && (
+          <a
+            href={publicProfileHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 border border-neutral-600 px-4 text-[10px] uppercase tracking-[0.14em] text-neutral-200 hover:border-neutral-300 hover:text-white"
+          >
+            View profile <ExternalLink aria-hidden="true" size={14} />
+          </a>
+        )}
       </div>
 
       <ProfileFormFields
-        avatarBusy={avatarBusy}
-        canDisable={canDisable}
-        canEnable={canEnable}
-        disabled={!canEdit}
+        access={{ avatarBusy, canDisable, canEnable, disabled: !canEdit }}
         onAvatarChange={uploadAvatar}
         onAvatarRemove={removeAvatar}
         onChange={setProfile}
@@ -200,7 +212,7 @@ export default function ProfileSettingsPanel({ fallbackDisplayName }: Props) {
   }
 
   const normalized = normalizeProfileResponse(data, fallbackDisplayName);
-  const editorKey = `${normalized.profile.enabled}:${normalized.profile.avatarUrl ?? "none"}:${normalized.profile.username}`;
+  const editorKey = `${normalized.profile.enabled}:${normalized.profile.anonymousId ?? "named"}:${normalized.profile.avatarUrl ?? "none"}:${normalized.profile.username}:${normalized.profile.decoration}`;
   return (
     <ProfileSettingsEditor
       key={editorKey}

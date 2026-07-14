@@ -14,11 +14,18 @@ export const GALLERY_PREVIEW_IMAGE_TARGET_BYTES = 160 * 1024;
 export const GALLERY_SOURCE_IMAGE_MAX_BYTES = 50_000_000;
 export const GALLERY_SOURCE_IMAGE_MAX_DIMENSION = 16_384;
 export const GALLERY_SOURCE_IMAGE_MAX_PIXELS = 70_000_000;
+const GALLERY_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
+  year: "numeric",
+});
 
 type GalleryMedium = "Digital" | "Film";
 
 interface GalleryRow {
   camera?: unknown;
+  createdAt?: unknown;
   description?: unknown;
   height?: unknown;
   imageUrl?: unknown;
@@ -116,6 +123,7 @@ export function normalizeGalleryPageForUrl<T>(
 interface GalleryImageSource {
   author: string | null;
   camera: string | null;
+  createdAt: string | null;
   description: string | null;
   fullSrc: string;
   height: number | null;
@@ -170,7 +178,20 @@ function readGalleryImageUrl(value: unknown) {
 
 function readProfileUrl(value: unknown) {
   const url = readString(value);
-  return url && /^\/profile\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(url) ? url : null;
+  return url && /^\/profile\/(?:[a-z0-9]+(?:-[a-z0-9]+)*|p_[a-f0-9]{32})$/.test(url)
+    ? url
+    : null;
+}
+
+function readDate(value: unknown) {
+  const date = readString(value);
+  return date && !Number.isNaN(Date.parse(date)) ? date : null;
+}
+
+export function formatGalleryDate(value: string | null | undefined) {
+  if (!value) return null;
+  const timestamp = Date.parse(value);
+  return Number.isNaN(timestamp) ? null : GALLERY_DATE_FORMATTER.format(timestamp);
 }
 
 function readMedium(tags: unknown): GalleryMedium {
@@ -193,18 +214,19 @@ export function getGalleryImageSources(row: GalleryRow): GalleryImageSource | nu
   const metadataHidden = row.metadataHidden === true;
 
   return {
-    author: metadataHidden ? null : readString(row.uploaderName) ?? "PPC Member",
+    author: readString(row.uploaderName),
     camera: metadataHidden ? null : readString(row.camera),
-    description: metadataHidden ? null : readString(row.description),
+    createdAt: readDate(row.createdAt),
+    description: readString(row.description),
     fullSrc,
     height: readNumber(row.height),
     lens: metadataHidden ? null : readString(row.lens),
-    medium: metadataHidden ? null : readMedium(row.tags),
+    medium: readMedium(row.tags),
     metadataHidden,
     previewSrc,
-    profileUrl: metadataHidden ? null : readProfileUrl(row.profileUrl),
-    tags: metadataHidden ? null : readString(row.tags),
-    title: metadataHidden ? null : readString(row.title) ?? "Untitled",
+    profileUrl: readProfileUrl(row.profileUrl),
+    tags: readString(row.tags),
+    title: readString(row.title) ?? "Untitled",
     width: readNumber(row.width),
   };
 }

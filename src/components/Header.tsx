@@ -1,6 +1,14 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  type KeyboardEvent as ReactKeyboardEvent,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { Menu, X, Instagram, Mail, ExternalLink, UserCircle, LogIn, UserPlus } from "lucide-react";
 import { authClient } from "../lib/auth-client";
+import { fetchApi } from "../lib/http";
+import { getPublicProfileHref, normalizeProfileResponse } from "../lib/profile-model";
 import LiveEventBar, { useCurrentLiveEvents } from "./LiveEventBar";
 
 const navLinks = [
@@ -54,11 +62,14 @@ function isExternalHref(href: string) {
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dashboardOpen, setDashboardOpen] = useState(false);
+  const [publicProfileHref, setPublicProfileHref] = useState<string | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const dashboardButtonRef = useRef<HTMLButtonElement | null>(null);
+  const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const currentPath = useSyncExternalStore(subscribeToPathChanges, getCurrentPath, () => "/");
   const { data: session } = authClient.useSession();
+  const isSignedIn = Boolean(session);
   const currentEvents = useCurrentLiveEvents();
   const showLiveEventBar = currentEvents.length > 0 && !menuOpen && !dashboardOpen;
 
@@ -88,7 +99,17 @@ export default function Header() {
     };
 
     const handlePointerDown = (event: PointerEvent) => {
-      if (!navRef.current?.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        dashboardOpen &&
+        isSignedIn &&
+        !dashboardButtonRef.current?.contains(target) &&
+        !accountMenuRef.current?.contains(target)
+      ) {
+        setDashboardOpen(false);
+        return;
+      }
+      if (!navRef.current?.contains(target)) {
         closePanels(false);
       }
     };
@@ -100,12 +121,88 @@ export default function Header() {
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("pointerdown", handlePointerDown);
     };
-  }, [dashboardOpen, menuOpen]);
+  }, [dashboardOpen, isSignedIn, menuOpen]);
 
   useEffect(() => {
     document.body.classList.toggle("ppc-nav-open", menuOpen || dashboardOpen);
     return () => document.body.classList.remove("ppc-nav-open");
   }, [dashboardOpen, menuOpen]);
+
+  useEffect(() => {
+    if (!dashboardOpen || !isSignedIn) return;
+    const controller = new AbortController();
+
+    void (async () => {
+      try {
+        const response = await fetchApi("/api/profile", {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          setPublicProfileHref(null);
+          return;
+        }
+        const normalized = normalizeProfileResponse(await response.json(), "PPC member");
+        setPublicProfileHref(getPublicProfileHref(normalized.profile));
+      } catch {
+        if (!controller.signal.aborted) setPublicProfileHref(null);
+      }
+    })();
+
+    return () => controller.abort();
+  }, [dashboardOpen, isSignedIn]);
+
+  useEffect(() => {
+    if (!dashboardOpen || !isSignedIn) return;
+    const focusFrame = window.requestAnimationFrame(() => {
+      accountMenuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    });
+    return () => window.cancelAnimationFrame(focusFrame);
+  }, [dashboardOpen, isSignedIn]);
+
+  const handleAccountMenuKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    const menuItems = Array.from(
+      accountMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [],
+    );
+    if (event.key === "Tab") {
+      setDashboardOpen(false);
+      return;
+    }
+    if (menuItems.length === 0) return;
+
+    const currentIndex = menuItems.indexOf(document.activeElement as HTMLElement);
+    let nextIndex: number | null = null;
+    if (event.key === "ArrowDown") {
+      nextIndex = (currentIndex + 1) % menuItems.length;
+    } else if (event.key === "ArrowUp") {
+      nextIndex = currentIndex <= 0 ? menuItems.length - 1 : currentIndex - 1;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = menuItems.length - 1;
+    }
+
+    if (nextIndex !== null) {
+      event.preventDefault();
+      menuItems[nextIndex]?.focus();
+    }
+  };
+
+  const handleSignOut = async () => {
+    setDashboardOpen(false);
+    try {
+      await authClient.signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            window.location.href = "/login";
+          },
+        },
+      });
+    } catch {
+      // Continue to login so the next page can resolve any stale session state.
+    }
+    window.location.href = "/login";
+  };
 
   const navBg = "bg-neutral-950/90";
   const border = "border-neutral-800";
@@ -165,9 +262,19 @@ export default function Header() {
               <UserCircle size={22} />
             </button>
             ) : (
-	              <a href="/dashboard" className={iconControl} aria-label="Dashboard" title="Dashboard">
+	              <button
+                  type="button"
+                  ref={dashboardButtonRef}
+                  onClick={() => { setDashboardOpen(!dashboardOpen); setMenuOpen(false); }}
+                  className={iconControl}
+                  aria-label="Account menu"
+                  aria-controls="account-menu"
+                  aria-expanded={dashboardOpen}
+                  aria-haspopup="menu"
+                  title="Account menu"
+                >
                 <UserCircle size={22} />
-              </a>
+              </button>
             )}
             <div className="hidden sm:flex items-center gap-1.5">
               {socialLinks.slice(0, 3).map((social) => (
@@ -228,6 +335,61 @@ export default function Header() {
                 </a>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Signed-in account menu */}
+        {dashboardOpen && isSignedIn && (
+          <div
+            ref={accountMenuRef}
+            id="account-menu"
+            role="menu"
+            aria-label="Account"
+            onKeyDown={handleAccountMenuKeyDown}
+            className={`absolute right-4 top-full grid w-[calc(100vw-2rem)] max-w-xs gap-2 border ${border} bg-neutral-950 p-2 shadow-2xl shadow-black/40 sm:right-6`}
+          >
+            {publicProfileHref && (
+              <a
+                href={publicProfileHref}
+                role="menuitem"
+                tabIndex={-1}
+                onClick={() => setDashboardOpen(false)}
+                className={`${compactMenuLinkBase} ${linkInactive}`}
+              >
+                View profile
+                <span aria-hidden="true" className="text-neutral-700 transition-colors group-hover:text-neutral-500">/</span>
+              </a>
+            )}
+            <a
+              href="/dashboard/settings?tab=profile"
+              role="menuitem"
+              tabIndex={-1}
+              onClick={() => setDashboardOpen(false)}
+              className={`${compactMenuLinkBase} ${linkInactive}`}
+            >
+              Profile settings
+              <span aria-hidden="true" className="text-neutral-700 transition-colors group-hover:text-neutral-500">/</span>
+            </a>
+            <a
+              href="/dashboard"
+              role="menuitem"
+              tabIndex={-1}
+              onClick={() => setDashboardOpen(false)}
+              className={`${compactMenuLinkBase} ${linkInactive}`}
+            >
+              Dashboard
+              <span aria-hidden="true" className="text-neutral-700 transition-colors group-hover:text-neutral-500">/</span>
+            </a>
+            <button
+              type="button"
+              role="menuitem"
+              tabIndex={-1}
+              onClick={() => void handleSignOut()}
+              className={`${compactMenuLinkBase} ${linkInactive} w-full`}
+            >
+              Sign out
+              <span aria-hidden="true" className="text-neutral-700 transition-colors group-hover:text-neutral-500">/</span>
+            </button>
           </div>
         )}
 
