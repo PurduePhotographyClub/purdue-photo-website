@@ -146,7 +146,7 @@ export default function PublicProfile({ identifier }: Props) {
     return (
       <main className="mx-auto min-h-[60dvh] max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-xl border border-neutral-800 px-5 py-14 text-center">
-          <p className="text-[9px] uppercase tracking-[0.28em] text-neutral-600">Member portfolio</p>
+          <p className="text-[9px] uppercase tracking-[0.28em] text-neutral-600">Member mini-portfolio</p>
           <h1 className="mt-4 text-2xl text-neutral-100" style={{ fontFamily: "'Playfair Display', serif" }}>Profile unavailable</h1>
           <p role="alert" className="mt-3 text-xs leading-5 text-neutral-500">This profile is disabled, missing, or temporarily unavailable.</p>
           <button type="button" onClick={() => void mutate()} className="mt-6 min-h-11 border border-neutral-700 px-5 text-[10px] uppercase tracking-wider text-neutral-300 hover:border-neutral-500">Try again</button>
@@ -169,22 +169,24 @@ export default function PublicProfile({ identifier }: Props) {
   return (
     <main className="mx-auto min-h-[60dvh] max-w-7xl px-4 sm:px-6 lg:px-8">
       <span className="sr-only">{payload.profile.anonymous ? anonymousLabel : "Member photographer profile"}</span>
-      <ProfileTemplateRenderer profile={payload.profile} />
-      <ProfileGallery
-        availableTags={payload.availableTags}
-        loading={isLoading}
-        meta={payload.meta || EMPTY_META}
-        metadataHidden={payload.profile.anonymous}
-        onPageChange={setPage}
-        onRetry={() => void mutate()}
-        onTagChange={(tag) => {
-          setSelectedTag(tag);
-          setPage(1);
-        }}
-        photos={payload.photos}
-        requestError={error ? "Unable to load these photographs." : ""}
-        selectedTag={selectedTag}
-      />
+      <ProfileTemplateRenderer profile={payload.profile}>
+        <ProfileGallery
+          availableTags={payload.availableTags}
+          loading={isLoading}
+          meta={payload.meta || EMPTY_META}
+          metadataHidden={payload.profile.anonymous}
+          onPageChange={setPage}
+          onRetry={() => void mutate()}
+          onTagChange={(tag) => {
+            setSelectedTag(tag);
+            setPage(1);
+          }}
+          photos={payload.photos}
+          requestError={error ? "Unable to load these photographs." : ""}
+          selectedTag={selectedTag}
+          template={payload.profile.template}
+        />
+      </ProfileTemplateRenderer>
     </main>
   );
 }

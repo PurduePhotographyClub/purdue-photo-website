@@ -174,7 +174,7 @@ export default function Gallery() {
     <div className="min-h-screen px-6 py-24">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <p className={`text-xs tracking-[0.4em] uppercase ${mutedText} mb-4`}>Member Portfolio</p>
+          <p className={`text-xs tracking-[0.4em] uppercase ${mutedText} mb-4`}>Member mini-portfolio</p>
           <h1 className={`text-4xl md:text-5xl tracking-wider ${heading}`} style={{ fontFamily: "'Playfair Display', serif" }}>Gallery</h1>
           <p className={`text-sm ${mutedText} tracking-wider mt-4`}>Film & Digital, all mediums welcome</p>
         </div>

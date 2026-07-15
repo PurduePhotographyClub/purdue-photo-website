@@ -146,8 +146,8 @@ function SocialStylePreview({ style }: { style: ProfileSocialStyle }) {
 export default function ProfileAppearancePicker({ idPrefix, onChange, profile }: Props) {
   return (
     <section aria-labelledby={`${idPrefix}-appearance-heading`} className="border border-neutral-800 bg-white/[0.015] p-4 sm:p-5">
-      <h2 id={`${idPrefix}-appearance-heading`} className="text-sm tracking-wide text-neutral-100">Layout and details</h2>
-      <p className="mt-1 text-xs leading-5 text-neutral-500">Pick the structure, then add a light finishing detail.</p>
+      <h2 id={`${idPrefix}-appearance-heading`} className="text-sm tracking-wide text-neutral-100">Mini-portfolio appearance</h2>
+      <p className="mt-1 max-w-3xl text-xs leading-5 text-neutral-500">Choose an introduction layout, then let its palette and details continue through the gallery.</p>
 
       <fieldset className="mt-4">
         <legend className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Layout</legend>
@@ -181,7 +181,7 @@ export default function ProfileAppearancePicker({ idPrefix, onChange, profile }:
 
       <fieldset className="mt-5">
         <legend className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Color palette</legend>
-        <p className="mt-1 text-[10px] leading-4 text-neutral-600">Choose a fixed, readable accent for your profile header.</p>
+        <p className="mt-1 text-[10px] leading-4 text-neutral-600">Choose a fixed, readable accent for your full mini-portfolio.</p>
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
           {PROFILE_PALETTES.map((palette) => (
             <label key={palette} className={`cursor-pointer border p-2 transition-colors ${profile.palette === palette ? "border-white bg-white/[0.055]" : "border-neutral-800 hover:border-neutral-600"}`}>

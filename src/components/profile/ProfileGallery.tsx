@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import ModalDialog from "@/components/ModalDialog";
 import { formatGalleryDate } from "@/lib/gallery-images";
 import { parseGalleryTags } from "@/lib/gallery-tags";
+import type { ProfileTemplate } from "@/lib/profile-model";
 
 export interface ProfileGalleryPhoto {
   camera: string | null;
@@ -39,7 +40,18 @@ interface Props {
   photos: ProfileGalleryPhoto[];
   requestError?: string;
   selectedTag: string;
+  template: ProfileTemplate;
 }
+
+const GALLERY_INTRO_CLASSES: Record<ProfileTemplate, string> = {
+  "contact-sheet": "flex flex-col gap-5 border-b [border-color:var(--profile-border)] pb-6 sm:flex-row sm:items-end sm:justify-between",
+  "print-index": "flex flex-col items-center gap-5 border-b [border-color:var(--profile-border)] pb-6 text-center",
+  "split-frame": "grid gap-5 border-b [border-color:var(--profile-border)] pb-6 sm:grid-cols-2 sm:items-end",
+  "negative-strip": "flex flex-col gap-5 border-b [border-color:var(--profile-border)] pb-6 sm:flex-row sm:items-end sm:justify-between",
+  "editorial-grid": "grid gap-5 border-b [border-color:var(--profile-border)] pb-6 sm:grid-cols-[56px_minmax(0,1fr)_minmax(0,1fr)] sm:items-end",
+  "darkroom-card": "flex flex-col gap-5 border-b [border-color:var(--profile-border)] pb-6 sm:flex-row sm:items-end sm:justify-between",
+  diptych: "grid gap-5 border-b [border-color:var(--profile-border)] pb-6 sm:grid-cols-2 sm:items-end",
+};
 
 function getVisiblePages(page: number, totalPages: number) {
   return Array.from(new Set([1, page - 1, page, page + 1, totalPages]))
@@ -58,6 +70,7 @@ export default function ProfileGallery({
   photos,
   requestError = "",
   selectedTag,
+  template,
 }: Props) {
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
   const resultsRef = useRef<HTMLDivElement | null>(null);
@@ -82,21 +95,29 @@ export default function ProfileGallery({
   };
 
   return (
-    <section aria-labelledby="profile-gallery-heading" className="py-10 sm:py-14">
-      <div className="flex flex-col gap-5 border-b border-neutral-800 pb-6 sm:flex-row sm:items-end sm:justify-between">
+    <section
+      aria-labelledby="profile-gallery-heading"
+      className="pb-12 pt-7 [background-color:var(--profile-surface)] sm:pb-16 sm:pt-8"
+      data-profile-gallery="true"
+      data-profile-gallery-layout={template}
+    >
+      <div className={GALLERY_INTRO_CLASSES[template]}>
+        {template === "editorial-grid" && (
+          <p aria-hidden="true" className="hidden font-mono text-3xl text-[var(--profile-border)] sm:block">02</p>
+        )}
         <div>
-          <p className="text-[9px] uppercase tracking-[0.3em] text-neutral-600">Contact sheet</p>
-          <h2 id="profile-gallery-heading" className="mt-2 text-2xl tracking-[0.04em] text-neutral-100" style={{ fontFamily: "'Playfair Display', serif" }}>Gallery</h2>
+          <p className="text-[9px] uppercase tracking-[0.24em] text-[var(--profile-muted)]">Mini-portfolio</p>
+          <h2 id="profile-gallery-heading" className="mt-2 text-2xl tracking-[0.04em] text-[var(--profile-ink)]" style={{ fontFamily: "'Playfair Display', serif" }}>Gallery</h2>
         </div>
         {showFilters && (
-          <div aria-label="Filter profile gallery by tag" className="flex max-w-full gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:justify-end">
+          <div aria-label="Filter profile gallery by tag" className={`flex max-w-full gap-2 overflow-x-auto pb-1 sm:flex-wrap ${template === "print-index" ? "justify-center" : "sm:justify-end"}`}>
             {["All", ...availableTags].map((tag) => (
               <button
                 key={tag}
                 type="button"
                 aria-pressed={selectedTag === tag}
                 onClick={() => onTagChange(tag)}
-                className={`min-h-11 shrink-0 border px-3 text-[9px] uppercase tracking-[0.15em] transition-colors focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 ${selectedTag === tag ? "border-white text-white" : "border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-200"}`}
+                className={`min-h-11 shrink-0 border px-3 text-[9px] uppercase tracking-[0.15em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--profile-accent)] ${selectedTag === tag ? "[border-color:var(--profile-accent)] [background-color:var(--profile-chip)] text-[var(--profile-accent)]" : "[border-color:var(--profile-border)] text-[var(--profile-muted)] hover:[border-color:var(--profile-accent)] hover:text-[var(--profile-ink)]"}`}
               >
                 {tag}
               </button>
@@ -106,24 +127,24 @@ export default function ProfileGallery({
       </div>
 
       <div ref={resultsRef} tabIndex={-1} className="scroll-mt-24 pt-6 outline-none">
-        <p role="status" aria-live="polite" className="mb-4 text-center text-[9px] uppercase tracking-[0.2em] text-neutral-600">
+        <p role="status" aria-live="polite" className="mb-4 text-center text-[9px] uppercase tracking-[0.2em] text-[var(--profile-muted)]">
           {loading ? "Loading photographs" : `Page ${meta.page} of ${meta.totalPages}`}
         </p>
 
         {loading ? (
           <div className="columns-1 gap-2 sm:columns-2 lg:columns-3">
             {Array.from({ length: 9 }).map((_, index) => (
-              <div key={index} className={`mb-2 break-inside-avoid bg-neutral-800/40 ${index % 3 === 0 ? "aspect-[3/4]" : "aspect-square"}`} />
+              <div key={index} className={`mb-2 break-inside-avoid opacity-60 [background-color:var(--profile-chip)] ${index % 3 === 0 ? "aspect-[3/4]" : "aspect-square"}`} />
             ))}
           </div>
         ) : requestError ? (
-          <div className="border border-neutral-800 py-16 text-center">
-            <p className="text-xs text-neutral-500">{requestError}</p>
-            <button type="button" onClick={onRetry} className="mt-5 min-h-11 border border-neutral-700 px-5 text-[10px] uppercase tracking-wider text-neutral-300 hover:border-neutral-500">Try again</button>
+          <div className="border [border-color:var(--profile-border)] py-16 text-center">
+            <p className="text-xs text-[var(--profile-muted)]">{requestError}</p>
+            <button type="button" onClick={onRetry} className="mt-5 min-h-11 border [border-color:var(--profile-border)] px-5 text-[10px] uppercase tracking-wider text-[var(--profile-ink)] hover:[border-color:var(--profile-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--profile-accent)]">Try again</button>
           </div>
         ) : photos.length === 0 ? (
-          <div className="border border-dashed border-neutral-800 py-16 text-center">
-            <p className="text-sm text-neutral-500">{selectedTag === "All" ? "No public photographs yet." : "No photographs match this tag."}</p>
+          <div className="border border-dashed [border-color:var(--profile-border)] py-16 text-center">
+            <p className="text-sm text-[var(--profile-muted)]">{selectedTag === "All" ? "No public photographs yet." : "No photographs match this tag."}</p>
           </div>
         ) : (
           <div className="columns-1 gap-2 sm:columns-2 lg:columns-3">
@@ -134,7 +155,7 @@ export default function ProfileGallery({
                     type="button"
                     aria-label={`Open ${photo.title || "photograph"}`}
                     onClick={() => setSelectedPhotoId(photo.id)}
-                    className="block w-full text-left focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
+                    className="block w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--profile-accent)]"
                   >
                     <img
                       src={photo.thumbnailUrl}
@@ -144,7 +165,7 @@ export default function ProfileGallery({
                       loading={index < 4 ? "eager" : "lazy"}
                       decoding="async"
                       sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                      className="block w-full transition-transform duration-200 group-hover:scale-[1.015]"
+                      className="block w-full transition-transform duration-200 group-hover:scale-[1.015] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                     />
                     {photo.title && (
                       <span className="absolute inset-x-0 bottom-0 bg-black/75 px-4 py-3 text-[10px] uppercase tracking-[0.15em] text-neutral-200 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
@@ -161,11 +182,11 @@ export default function ProfileGallery({
 
       {!loading && !requestError && meta.totalPages > 1 && (
         <nav aria-label="Profile gallery pagination" className="mt-10 flex flex-wrap items-center justify-center gap-2">
-          <button type="button" disabled={!meta.hasPreviousPage} onClick={() => changePage(meta.page - 1)} className="min-h-11 border border-neutral-800 px-4 text-[10px] uppercase tracking-wider text-neutral-400 hover:border-neutral-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-30">Previous</button>
+          <button type="button" disabled={!meta.hasPreviousPage} onClick={() => changePage(meta.page - 1)} className="min-h-11 border [border-color:var(--profile-border)] px-4 text-[10px] uppercase tracking-wider text-[var(--profile-muted)] hover:[border-color:var(--profile-accent)] hover:text-[var(--profile-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--profile-accent)] disabled:cursor-not-allowed disabled:opacity-30">Previous</button>
           {visiblePages.map((page) => (
-            <button key={page} type="button" aria-label={`Go to profile gallery page ${page}`} aria-current={page === meta.page ? "page" : undefined} onClick={() => changePage(page)} className={`min-h-11 min-w-11 border px-3 text-xs ${page === meta.page ? "border-white text-white" : "border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-white"}`}>{page}</button>
+            <button key={page} type="button" aria-label={`Go to profile gallery page ${page}`} aria-current={page === meta.page ? "page" : undefined} onClick={() => changePage(page)} className={`min-h-11 min-w-11 border px-3 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--profile-accent)] ${page === meta.page ? "[border-color:var(--profile-accent)] text-[var(--profile-accent)]" : "[border-color:var(--profile-border)] text-[var(--profile-muted)] hover:[border-color:var(--profile-accent)] hover:text-[var(--profile-ink)]"}`}>{page}</button>
           ))}
-          <button type="button" disabled={!meta.hasNextPage} onClick={() => changePage(meta.page + 1)} className="min-h-11 border border-neutral-800 px-4 text-[10px] uppercase tracking-wider text-neutral-400 hover:border-neutral-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-30">Next</button>
+          <button type="button" disabled={!meta.hasNextPage} onClick={() => changePage(meta.page + 1)} className="min-h-11 border [border-color:var(--profile-border)] px-4 text-[10px] uppercase tracking-wider text-[var(--profile-muted)] hover:[border-color:var(--profile-accent)] hover:text-[var(--profile-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--profile-accent)] disabled:cursor-not-allowed disabled:opacity-30">Next</button>
         </nav>
       )}
 
