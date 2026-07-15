@@ -79,8 +79,8 @@ test("profile editor exposes every fixed field and uses immutable update pattern
     "Profile URL",
     "Bio",
     "Social links",
-    "Photography roles",
-    "Layout and details",
+    "Photography types",
+    "Mini-portfolio appearance",
   ]) {
     assert.match(
       `${profileSettingsSource}\n${profileFieldsSource}\n${profileSocialsSource}\n${profileAppearanceSource}`,
@@ -114,10 +114,15 @@ test("profile editor exposes every fixed field and uses immutable update pattern
   assert.match(profileAppearanceSource, /Color palette/);
   assert.match(profileAppearanceSource, /Portrait shape/);
   assert.match(profileAppearanceSource, /Social link style/);
+  assert.match(profileAppearanceSource, /Mini-portfolio appearance/);
+  assert.match(profileAppearanceSource, /continue through the gallery/);
   assert.match(profileRendererSource, /data-profile-safe-area/);
+  assert.match(profileRendererSource, /data-profile-surface/);
+  assert.match(profileRendererSource, /data-profile-identity-group/);
+  assert.match(profileRendererSource, /data-profile-meta-group/);
   assert.match(profileRendererSource, /data-profile-social-style/);
   assert.match(profileRendererSource, /data-profile-role-tag/);
-  assert.match(profileRendererSource, /size=\{32\}/);
+  assert.match(profileRendererSource, /size=\{22\}/);
   assert.match(profileSocialsSource, /size-14/);
   assert.match(profileSocialsSource, /size=\{28\}/);
   assert.match(profileSocialIconSource, /size = 18/);
@@ -139,6 +144,7 @@ test("public profiles render seven responsive templates from one aggregate pagin
   assert.match(publicProfileSource, /\/api\/profiles\//);
   assert.match(publicProfileSource, /per_page=15/);
   assert.match(publicProfileSource, /PPC Member profile/);
+  assert.match(publicProfileSource, /<ProfileTemplateRenderer[\s\S]*<ProfileGallery[\s\S]*<\/ProfileTemplateRenderer>/);
   assert.match(publicProfileSource, /createdAt:\s*readNullableText\(value\.createdAt\)/);
   assert.match(profileGallerySource, /aria-label="Profile gallery pagination"/);
   assert.match(profileGallerySource, /aria-live="polite"/);
@@ -146,6 +152,13 @@ test("public profiles render seven responsive templates from one aggregate pagin
   assert.match(profileGallerySource, /min-h-11/);
   assert.match(profileGallerySource, /sm:columns-2/);
   assert.match(profileGallerySource, /lg:columns-3/);
+  assert.match(profileGallerySource, /Mini-portfolio/);
+  assert.match(profileGallerySource, /data-profile-gallery-layout/);
+  assert.match(profileGallerySource, /var\(--profile-surface\)/);
+  assert.match(profileGallerySource, /\[border-color:var\(--profile-border\)\]/);
+  assert.match(profileGallerySource, /motion-reduce:group-hover:scale-100/);
+  assert.match(`${publicProfileSource}\n${profileRendererSource}\n${gallerySource}`, /Member mini-portfolio/i);
+  assert.doesNotMatch(`${publicProfileSource}\n${profileRendererSource}\n${gallerySource}`, /Member portfolio/i);
 });
 
 test("global gallery uses API-provided profile links without nesting interactive controls", () => {

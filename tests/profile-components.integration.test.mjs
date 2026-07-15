@@ -73,7 +73,7 @@ test("public profile rendering shows the selected template content and safe soci
       avatarZoom: 180,
       bio: "Street and travel photographer.",
       decoration: "film-frame",
-      displayName: "Jane Portfolio",
+      displayName: "Jane Example",
       nameStyle: "editorial",
       palette: "cyanotype",
       socialStyle: "labels",
@@ -88,9 +88,13 @@ test("public profile rendering shows the selected template content and safe soci
     },
   }));
 
-  assert.match(html, /Jane Portfolio/);
+  assert.match(html, /Jane Example/);
   assert.match(html, /Street and travel photographer\./);
-  assert.match(html, /Photography roles/);
+  assert.match(html, /Photography types/);
+  assert.match(html, /data-profile-meta-group="photography"/);
+  assert.match(html, /data-profile-meta-group="socials"/);
+  const photographyGroupClass = html.match(/<div class="([^"]*)" data-profile-meta-group="photography"/)?.[1] ?? "";
+  assert.doesNotMatch(photographyGroupClass, /basis-64/);
   assert.match(html, />Street</);
   assert.match(html, />Travel</);
   assert.match(html, /href="https:\/\/www\.instagram\.com\/jane\/"/);
@@ -104,7 +108,7 @@ test("public profile rendering shows the selected template content and safe soci
   assert.match(html, /data-profile-role-tag="true"/);
 });
 
-test("anonymous public rendering is image-portfolio-only and never emits supplied identity", () => {
+test("anonymous public rendering is image-only and never emits supplied identity", () => {
   const html = renderToStaticMarkup(createElement(ProfileTemplateRenderer, {
     profile: {
       anonymous: true,
@@ -136,6 +140,6 @@ test("anonymous public rendering is image-portfolio-only and never emits supplie
     html,
     /Private Display Name|Private biography|private@example\.com|private-avatar|private-member|>Street</,
   );
-  assert.doesNotMatch(html, /<img|Profile social links|Photography roles/);
+  assert.doesNotMatch(html, /<img|Profile social links|Photography types/);
   assert.doesNotMatch(html, /data-profile-avatar|<svg/);
 });

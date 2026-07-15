@@ -189,7 +189,7 @@ export default function ProfileFormFields({
 
         <section className="border border-neutral-800 bg-white/[0.015] p-4 sm:p-5">
           <fieldset>
-            <legend className="text-sm tracking-wide text-neutral-100">Photography roles</legend>
+            <legend className="text-sm tracking-wide text-neutral-100">Photography types</legend>
             <p className="mt-1 text-xs leading-5 text-neutral-500">Choose the kinds of work you want listed.</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {PROFILE_SPECIALTIES.map((specialty) => (

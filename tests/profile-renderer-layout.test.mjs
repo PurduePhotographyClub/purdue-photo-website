@@ -54,14 +54,37 @@ test("every core layout combination preserves identity, copy, tags, socials, and
           const context = `${template}/${decoration}/${nameStyle}/${palette}`;
           assert.match(html, /Alexandria Montgomery-Santiago/, context);
           assert.match(html, /long-form photographer biography/, context);
-          assert.match(html, /Photography roles/, context);
+          assert.match(html, /Photography types/, context);
           assert.match(html, /Profile social links/, context);
+          assert.match(html, /data-profile-identity-group="true"/, context);
+          assert.match(html, /data-profile-meta-group="photography"/, context);
+          assert.match(html, /data-profile-meta-group="socials"/, context);
+          assert.ok(
+            html.indexOf('data-profile-meta-group="photography"')
+              < html.indexOf('data-profile-meta-group="socials"'),
+            `${context}: photography types should read before social links`,
+          );
           assert.match(html, /data-profile-role-tag="true"/, context);
           assert.match(html, /data-profile-safe-area="true"/, context);
           assert.match(html, new RegExp(`data-profile-template="${template}"`), context);
         }
       }
     }
+  }
+});
+
+test("the selected profile presentation wraps the gallery in one mini-portfolio surface", () => {
+  for (const palette of PROFILE_PALETTES) {
+    const html = renderToStaticMarkup(createElement(
+      ProfileTemplateRenderer,
+      { profile: createProfile({ palette }) },
+      createElement("div", { "data-profile-gallery": "true" }, "Mini-portfolio gallery"),
+    ));
+
+    assert.match(html, new RegExp(`data-profile-palette="${palette}"`));
+    assert.match(html, /data-profile-surface="true"/);
+    assert.match(html, /data-profile-gallery="true"/);
+    assert.match(html, /Mini-portfolio gallery/);
   }
 });
 
@@ -99,6 +122,6 @@ test("anonymous profiles remove the entire portrait region in every template", (
     }));
     assert.match(html, /PPC Member/);
     assert.doesNotMatch(html, /data-profile-avatar|layout-matrix|<img|<svg/);
-    assert.doesNotMatch(html, /Alexandria|biography|Profile social links|Photography roles/);
+    assert.doesNotMatch(html, /Alexandria|biography|Profile social links|Photography types/);
   }
 });
