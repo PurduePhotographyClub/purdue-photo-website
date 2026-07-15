@@ -33,6 +33,8 @@ export const PROFILE_PALETTES = [
   "burgundy",
   "violet",
 ] as const;
+export const PROFILE_AVATAR_SHAPES = ["auto", "circle", "rounded", "square"] as const;
+export const PROFILE_SOCIAL_STYLES = ["tiles", "labels"] as const;
 export const PROFILE_SOCIAL_PLATFORMS = ["instagram", "discord", "vsco", "website", "email"] as const;
 export const PROFILE_SOCIAL_ICONS = ["instagram", "discord", "vsco", "globe", "mail"] as const;
 export const PROFILE_SPECIALTIES = [
@@ -54,9 +56,16 @@ export type ProfileTemplate = (typeof PROFILE_TEMPLATES)[number];
 export type ProfileDecoration = (typeof PROFILE_DECORATIONS)[number];
 export type ProfileNameStyle = (typeof PROFILE_NAME_STYLES)[number];
 export type ProfilePalette = (typeof PROFILE_PALETTES)[number];
+export type ProfileAvatarShape = (typeof PROFILE_AVATAR_SHAPES)[number];
+export type ProfileSocialStyle = (typeof PROFILE_SOCIAL_STYLES)[number];
 export type ProfileSocialPlatform = (typeof PROFILE_SOCIAL_PLATFORMS)[number];
 export type ProfileSocialIconName = (typeof PROFILE_SOCIAL_ICONS)[number];
 export type ProfileSpecialty = (typeof PROFILE_SPECIALTIES)[number];
+
+export const PROFILE_AVATAR_ZOOM_MIN = 100;
+export const PROFILE_AVATAR_ZOOM_MAX = 200;
+export const PROFILE_AVATAR_POSITION_MIN = 0;
+export const PROFILE_AVATAR_POSITION_MAX = 100;
 
 export interface ProfileSocial {
   icon: ProfileSocialIconName;
@@ -68,17 +77,36 @@ export interface ProfileDraft {
   anonymous: boolean;
   anonymousId: string | null;
   avatarId: string | null;
+  avatarPositionX: number;
+  avatarPositionY: number;
+  avatarShape: ProfileAvatarShape;
   avatarUrl: string | null;
+  avatarZoom: number;
   bio: string;
   decoration: ProfileDecoration;
   displayName: string;
   enabled: boolean;
   nameStyle: ProfileNameStyle;
   palette: ProfilePalette;
+  socialStyle: ProfileSocialStyle;
   socials: ProfileSocial[];
   specialties: ProfileSpecialty[];
   template: ProfileTemplate;
   username: string;
+}
+
+const SQUARE_PROFILE_AVATAR_TEMPLATES = new Set<ProfileTemplate>([
+  "split-frame",
+  "negative-strip",
+  "editorial-grid",
+  "diptych",
+]);
+
+export function resolveProfileAvatarShape(
+  profile: Pick<ProfileDraft, "avatarShape" | "template">,
+): Exclude<ProfileAvatarShape, "auto"> {
+  if (profile.avatarShape !== "auto") return profile.avatarShape;
+  return SQUARE_PROFILE_AVATAR_TEMPLATES.has(profile.template) ? "square" : "circle";
 }
 
 export interface ProfilePermissions {
@@ -118,6 +146,20 @@ function readNullableString(value: unknown) {
   return text || null;
 }
 
+function readBoundedInteger(
+  value: unknown,
+  fallback: number,
+  minimum: number,
+  maximum: number,
+) {
+  return typeof value === "number" &&
+    Number.isInteger(value) &&
+    value >= minimum &&
+    value <= maximum
+    ? value
+    : fallback;
+}
+
 function includesValue<const Values extends readonly string[]>(
   values: Values,
   value: unknown,
@@ -130,13 +172,18 @@ export function createEmptyProfileDraft(displayName: string): ProfileDraft {
     anonymous: false,
     anonymousId: null,
     avatarId: null,
+    avatarPositionX: 50,
+    avatarPositionY: 50,
+    avatarShape: "auto",
     avatarUrl: null,
+    avatarZoom: 100,
     bio: "",
     decoration: "none",
     displayName: displayName.trim(),
     enabled: false,
     nameStyle: "classic",
     palette: "monochrome",
+    socialStyle: "tiles",
     socials: [],
     specialties: [],
     template: "contact-sheet",
@@ -317,7 +364,28 @@ export function normalizeProfileResponse(
         ? rawProfile.anonymousId
         : null,
       avatarId: readNullableString(rawProfile.avatarId),
+      avatarPositionX: readBoundedInteger(
+        rawProfile.avatarPositionX,
+        fallback.avatarPositionX,
+        PROFILE_AVATAR_POSITION_MIN,
+        PROFILE_AVATAR_POSITION_MAX,
+      ),
+      avatarPositionY: readBoundedInteger(
+        rawProfile.avatarPositionY,
+        fallback.avatarPositionY,
+        PROFILE_AVATAR_POSITION_MIN,
+        PROFILE_AVATAR_POSITION_MAX,
+      ),
+      avatarShape: includesValue(PROFILE_AVATAR_SHAPES, rawProfile.avatarShape)
+        ? rawProfile.avatarShape
+        : fallback.avatarShape,
       avatarUrl: isAllowedProfileAssetUrl(rawProfile.avatarUrl) ? rawProfile.avatarUrl : null,
+      avatarZoom: readBoundedInteger(
+        rawProfile.avatarZoom,
+        fallback.avatarZoom,
+        PROFILE_AVATAR_ZOOM_MIN,
+        PROFILE_AVATAR_ZOOM_MAX,
+      ),
       bio: readString(rawProfile.bio),
       decoration: includesValue(PROFILE_DECORATIONS, rawProfile.decoration)
         ? rawProfile.decoration
@@ -330,6 +398,9 @@ export function normalizeProfileResponse(
       palette: includesValue(PROFILE_PALETTES, rawProfile.palette)
         ? rawProfile.palette
         : fallback.palette,
+      socialStyle: includesValue(PROFILE_SOCIAL_STYLES, rawProfile.socialStyle)
+        ? rawProfile.socialStyle
+        : fallback.socialStyle,
       socials: normalizeSocials(rawProfile.socials),
       specialties: normalizeSpecialties(rawProfile.specialties),
       template: includesValue(PROFILE_TEMPLATES, rawProfile.template)
@@ -345,11 +416,16 @@ export function toProfileUpdate(
   options: { includePrivacy?: boolean; includePublishing?: boolean } = {},
 ) {
   const base = {
+    avatarPositionX: profile.avatarPositionX,
+    avatarPositionY: profile.avatarPositionY,
+    avatarShape: profile.avatarShape,
+    avatarZoom: profile.avatarZoom,
     bio: profile.bio.trim() || null,
     decoration: profile.decoration,
     displayName: profile.displayName.trim(),
     nameStyle: profile.nameStyle,
     palette: profile.palette,
+    socialStyle: profile.socialStyle,
     socials: profile.socials.map((social) => ({ ...social })),
     specialties: [...profile.specialties],
     template: profile.template,
@@ -360,5 +436,35 @@ export function toProfileUpdate(
     ...base,
     ...(options.includePrivacy === false ? {} : { anonymous: profile.anonymous }),
     ...(options.includePublishing === false ? {} : { enabled: profile.enabled }),
+  };
+}
+
+export function getProfileAvatarImageStyle(
+  profile: Pick<ProfileDraft, "avatarPositionX" | "avatarPositionY" | "avatarZoom">,
+) {
+  const positionX = readBoundedInteger(
+    profile.avatarPositionX,
+    50,
+    PROFILE_AVATAR_POSITION_MIN,
+    PROFILE_AVATAR_POSITION_MAX,
+  );
+  const positionY = readBoundedInteger(
+    profile.avatarPositionY,
+    50,
+    PROFILE_AVATAR_POSITION_MIN,
+    PROFILE_AVATAR_POSITION_MAX,
+  );
+  const zoom = readBoundedInteger(
+    profile.avatarZoom,
+    PROFILE_AVATAR_ZOOM_MIN,
+    PROFILE_AVATAR_ZOOM_MIN,
+    PROFILE_AVATAR_ZOOM_MAX,
+  );
+  const focalPoint = `${positionX}% ${positionY}%`;
+
+  return {
+    objectPosition: focalPoint,
+    transform: `scale(${zoom / 100})`,
+    transformOrigin: focalPoint,
   };
 }

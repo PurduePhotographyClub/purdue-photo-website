@@ -176,7 +176,18 @@ export default function AdminMemberProfileEditor({
   }
 
   const normalized = normalizeProfileResponse(data, fallbackDisplayName).profile;
-  const editorKey = `${normalized.avatarUrl ?? "none"}:${normalized.username}:${normalized.template}:${normalized.decoration}:${normalized.palette}`;
+  const editorKey = [
+    normalized.avatarUrl ?? "none",
+    normalized.username,
+    normalized.template,
+    normalized.decoration,
+    normalized.palette,
+    normalized.avatarShape,
+    normalized.avatarPositionX,
+    normalized.avatarPositionY,
+    normalized.avatarZoom,
+    normalized.socialStyle,
+  ].join(":");
   return (
     <AdminMemberProfileForm
       key={editorKey}

@@ -1,11 +1,15 @@
 import { Camera } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 import {
+  getProfileAvatarImageStyle,
   getProfileSocialHref,
+  resolveProfileAvatarShape,
+  type ProfileAvatarShape,
   type ProfileDecoration,
   type ProfileNameStyle,
   type ProfilePalette,
   type ProfileSocial,
+  type ProfileSocialStyle,
   type ProfileSpecialty,
   type ProfileTemplate,
 } from "@/lib/profile-model";
@@ -13,12 +17,17 @@ import ProfileSocialIcon from "./ProfileSocialIcon";
 
 export interface PublicProfileIdentity {
   anonymous: boolean;
+  avatarPositionX: number;
+  avatarPositionY: number;
+  avatarShape: ProfileAvatarShape;
   avatarUrl: string | null;
+  avatarZoom: number;
   bio: string | null;
   decoration: ProfileDecoration;
   displayName: string | null;
   nameStyle: ProfileNameStyle | null;
   palette: ProfilePalette;
+  socialStyle: ProfileSocialStyle;
   socials: ProfileSocial[];
   specialties: ProfileSpecialty[];
   template: ProfileTemplate;
@@ -27,12 +36,12 @@ export interface PublicProfileIdentity {
 
 const NAME_CLASSES: Record<ProfileNameStyle, string> = {
   classic: "font-normal tracking-[0.04em]",
-  "film-credit": "font-mono font-bold uppercase tracking-[0.14em]",
+  "film-credit": "font-mono font-bold uppercase tracking-[0.12em]",
   editorial: "italic tracking-[0.02em]",
   "bold-print": "font-bold tracking-[0.01em]",
-  condensed: "font-sans font-semibold uppercase tracking-[-0.04em]",
-  typewriter: "font-mono tracking-[0.08em]",
-  "small-caps": "font-serif uppercase tracking-[0.18em]",
+  condensed: "font-sans font-semibold uppercase tracking-[-0.035em]",
+  typewriter: "font-mono tracking-[0.06em]",
+  "small-caps": "font-serif uppercase tracking-[0.14em]",
 };
 
 const SERIF_NAME_STYLES = new Set<ProfileNameStyle>([
@@ -66,57 +75,86 @@ type ProfilePaletteStyle = CSSProperties & Record<`--profile-${string}`, string>
 const PROFILE_PALETTE_CLASSES: Record<ProfilePalette, ProfilePaletteStyle> = {
   monochrome: {
     "--profile-accent": "#f5f5f5",
-    "--profile-border": "#303030",
-    "--profile-muted": "#8a8a8a",
+    "--profile-border": "#4a4a4a",
+    "--profile-chip": "#202020",
+    "--profile-ink": "#f5f5f5",
+    "--profile-muted": "#b7b7b7",
     "--profile-surface": "#0a0a0a",
   },
   amber: {
     "--profile-accent": "#fcd34d",
-    "--profile-border": "#78350f",
-    "--profile-muted": "#d6a949",
-    "--profile-surface": "#1c1203",
+    "--profile-border": "#a16207",
+    "--profile-chip": "#3b2608",
+    "--profile-ink": "#fff7db",
+    "--profile-muted": "#e4c477",
+    "--profile-surface": "#1a1003",
   },
   cyanotype: {
     "--profile-accent": "#67e8f9",
-    "--profile-border": "#155e75",
-    "--profile-muted": "#6fb8c5",
+    "--profile-border": "#16819a",
+    "--profile-chip": "#0e3038",
+    "--profile-ink": "#e8fbff",
+    "--profile-muted": "#a7dce4",
     "--profile-surface": "#06171b",
   },
   forest: {
     "--profile-accent": "#86efac",
-    "--profile-border": "#166534",
-    "--profile-muted": "#6fae82",
+    "--profile-border": "#288c50",
+    "--profile-chip": "#102f1c",
+    "--profile-ink": "#ecfff2",
+    "--profile-muted": "#a9d8b7",
     "--profile-surface": "#07170d",
   },
   burgundy: {
     "--profile-accent": "#fda4af",
-    "--profile-border": "#881337",
-    "--profile-muted": "#c77984",
+    "--profile-border": "#a02747",
+    "--profile-chip": "#3d111a",
+    "--profile-ink": "#fff0f2",
+    "--profile-muted": "#e0abb3",
     "--profile-surface": "#1b070b",
   },
   violet: {
     "--profile-accent": "#c4b5fd",
-    "--profile-border": "#5b21b6",
-    "--profile-muted": "#9f8bd5",
+    "--profile-border": "#7048bd",
+    "--profile-chip": "#2d1c4a",
+    "--profile-ink": "#f6f0ff",
+    "--profile-muted": "#ccbdea",
     "--profile-surface": "#120b22",
   },
 };
 
+function getAvatarShapeClass(profile: PublicProfileIdentity) {
+  const shape = resolveProfileAvatarShape(profile);
+  if (shape === "rounded") return "rounded-[14%]";
+  return shape === "square" ? "rounded-none" : "rounded-full";
+}
+
 function Avatar({
   profile,
   sizeClass,
-  square = false,
 }: {
   profile: PublicProfileIdentity;
   sizeClass: string;
-  square?: boolean;
 }) {
+  if (profile.anonymous) return null;
+  const resolvedShape = resolveProfileAvatarShape(profile);
+
   return (
-    <div className={`flex shrink-0 items-center justify-center overflow-hidden border [border-color:var(--profile-border)] [background-color:var(--profile-surface)] text-[var(--profile-muted)] ${square ? "rounded-none" : "rounded-full"} ${sizeClass}`}>
+    <div
+      className={`relative flex shrink-0 items-center justify-center overflow-hidden border [border-color:var(--profile-border)] [background-color:var(--profile-chip)] text-[var(--profile-muted)] ${getAvatarShapeClass(profile)} ${sizeClass}`}
+      data-profile-avatar="true"
+      data-profile-avatar-shape={resolvedShape}
+    >
       {profile.avatarUrl ? (
-        <img src={profile.avatarUrl} alt={`${profile.displayName || "Member"} portrait`} className="size-full object-cover" />
+        <img
+          src={profile.avatarUrl}
+          alt={`${profile.displayName || "Member"} portrait`}
+          className="size-full object-cover"
+          draggable={false}
+          style={getProfileAvatarImageStyle(profile)}
+        />
       ) : (
-        <Camera aria-hidden="true" size={26} />
+        <Camera aria-hidden="true" size={32} />
       )}
     </div>
   );
@@ -132,17 +170,44 @@ function Name({
   compact?: boolean;
 }) {
   const style = profile.nameStyle || "classic";
+  const name = profile.displayName || "PPC Member";
+  const longName = name.length > 25;
+  const sizeClass = compact
+    ? longName ? "text-xl sm:text-2xl" : "text-2xl sm:text-3xl"
+    : longName ? "text-2xl sm:text-3xl lg:text-4xl" : "text-3xl sm:text-4xl lg:text-5xl";
+  const reduceTracking = longName && (
+    style === "film-credit" || style === "small-caps" || style === "typewriter"
+  );
+  const inlineStyle: CSSProperties = {
+    ...(SERIF_NAME_STYLES.has(style) ? { fontFamily: "'Playfair Display', serif" } : {}),
+    ...(reduceTracking ? { letterSpacing: "0.045em" } : {}),
+  };
+
   return (
     <h1
-      className={`break-words text-[var(--profile-accent)] ${compact ? "text-2xl sm:text-3xl" : "text-3xl sm:text-4xl"} ${centered ? "text-center" : ""} ${NAME_CLASSES[style]}`}
-      style={SERIF_NAME_STYLES.has(style) ? { fontFamily: "'Playfair Display', serif" } : undefined}
+      className={`max-w-full [overflow-wrap:anywhere] text-balance leading-[1.08] text-[var(--profile-accent)] ${sizeClass} ${centered ? "text-center" : ""} ${NAME_CLASSES[style]}`}
+      style={inlineStyle}
     >
-      {profile.displayName || "PPC Member"}
+      {name}
     </h1>
   );
 }
 
-function SocialLinks({ socials, centered = false }: { socials: ProfileSocial[]; centered?: boolean }) {
+function getSocialLabel(platform: ProfileSocial["platform"]) {
+  if (platform === "vsco") return "VSCO";
+  if (platform === "website") return "Website";
+  return `${platform.charAt(0).toUpperCase()}${platform.slice(1)}`;
+}
+
+function SocialLinks({
+  socials,
+  style,
+  centered = false,
+}: {
+  socials: ProfileSocial[];
+  style: ProfileSocialStyle;
+  centered?: boolean;
+}) {
   const links = socials.flatMap((social) => {
     const href = getProfileSocialHref(social);
     return href ? [{ ...social, href }] : [];
@@ -150,10 +215,14 @@ function SocialLinks({ socials, centered = false }: { socials: ProfileSocial[]; 
   if (links.length === 0) return null;
 
   return (
-    <nav aria-label="Profile social links" className={`flex flex-wrap items-center gap-1 ${centered ? "justify-center" : ""}`}>
+    <nav
+      aria-label="Profile social links"
+      className={`flex flex-wrap items-center gap-2 ${centered ? "justify-center" : ""}`}
+      data-profile-social-style={style}
+    >
       {links.map((social) => {
         const external = social.platform !== "email";
-        const label = social.platform === "vsco" ? "VSCO" : social.platform;
+        const label = getSocialLabel(social.platform);
         return (
           <a
             key={social.platform}
@@ -162,9 +231,12 @@ function SocialLinks({ socials, centered = false }: { socials: ProfileSocial[]; 
             rel={external ? "noopener noreferrer" : undefined}
             aria-label={label}
             title={label}
-            className="flex size-14 items-center justify-center text-[var(--profile-muted)] transition-colors hover:text-[var(--profile-accent)] focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-[var(--profile-accent)]"
+            className={style === "labels"
+              ? "inline-flex min-h-12 max-w-full items-center gap-2.5 border [border-color:var(--profile-border)] [background-color:var(--profile-chip)] px-3.5 py-2 text-xs text-[var(--profile-ink)] transition-colors hover:[border-color:var(--profile-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--profile-accent)]"
+              : "flex size-16 items-center justify-center border [border-color:var(--profile-border)] [background-color:var(--profile-chip)] text-[var(--profile-ink)] transition-colors hover:[border-color:var(--profile-accent)] hover:text-[var(--profile-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--profile-accent)]"}
           >
-            <ProfileSocialIcon platform={social.icon} size={28} />
+            <ProfileSocialIcon platform={social.icon} size={32} />
+            {style === "labels" && <span className="truncate">{label}</span>}
           </a>
         );
       })}
@@ -177,7 +249,13 @@ function Specialties({ specialties, centered = false }: { specialties: ProfileSp
   return (
     <div aria-label="Photography roles" className={`flex flex-wrap gap-2 ${centered ? "justify-center" : ""}`}>
       {specialties.map((specialty) => (
-        <span key={specialty} className="border [border-color:var(--profile-border)] px-2.5 py-1.5 text-[9px] uppercase tracking-[0.16em] text-[var(--profile-muted)]">{specialty}</span>
+        <span
+          key={specialty}
+          className="border [border-color:var(--profile-border)] [background-color:var(--profile-chip)] px-3 py-2 text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--profile-ink)]"
+          data-profile-role-tag="true"
+        >
+          {specialty}
+        </span>
       ))}
     </div>
   );
@@ -186,55 +264,68 @@ function Specialties({ specialties, centered = false }: { specialties: ProfileSp
 function ProfileCopy({ profile, centered = false }: { profile: PublicProfileIdentity; centered?: boolean }) {
   return (
     <>
-      {profile.bio && <p className={`mt-4 max-w-2xl whitespace-pre-wrap break-words text-sm leading-6 text-[var(--profile-muted)] ${centered ? "mx-auto" : ""}`}>{profile.bio}</p>}
-      <div className="mt-3"><SocialLinks socials={profile.socials} centered={centered} /></div>
+      {profile.bio && (
+        <p className={`mt-4 max-w-2xl whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-6 text-[var(--profile-ink)] sm:text-[15px] sm:leading-7 ${centered ? "mx-auto" : ""}`}>
+          {profile.bio}
+        </p>
+      )}
+      <div className="mt-4">
+        <SocialLinks socials={profile.socials} style={profile.socialStyle} centered={centered} />
+      </div>
     </>
+  );
+}
+
+function ProfileDetails({ profile, centered = false, compact = false }: { profile: PublicProfileIdentity; centered?: boolean; compact?: boolean }) {
+  return (
+    <div className={`min-w-0 ${centered ? "text-center" : ""}`}>
+      <Name profile={profile} centered={centered} compact={compact} />
+      <ProfileCopy profile={profile} centered={centered} />
+      <div className="mt-5"><Specialties specialties={profile.specialties} centered={centered} /></div>
+    </div>
   );
 }
 
 function ContactSheetHeader({ profile }: { profile: PublicProfileIdentity }) {
   return (
-    <header className="grid gap-7 py-10 sm:py-14 lg:grid-cols-[156px_minmax(0,1fr)_minmax(200px,0.65fr)] lg:items-start lg:gap-9">
-      <Avatar profile={profile} sizeClass="size-28 sm:size-36" />
+    <header className={profile.anonymous
+      ? "py-12 sm:py-16"
+      : "grid gap-7 py-10 sm:py-14 lg:grid-cols-[176px_minmax(0,1fr)] lg:items-start lg:gap-10"}
+    >
+      <Avatar profile={profile} sizeClass="size-36 sm:size-44" />
       <div className="min-w-0">
-        <p className="mb-3 text-[10px] uppercase tracking-[0.3em] text-[var(--profile-muted)]">Member portfolio</p>
-        <Name profile={profile} />
-        <ProfileCopy profile={profile} />
+        <p className="mb-3 text-[10px] uppercase tracking-[0.24em] text-[var(--profile-muted)]">Member portfolio</p>
+        <ProfileDetails profile={profile} />
       </div>
-      {profile.specialties.length > 0 && (
-        <div className="min-w-0 border-t [border-color:var(--profile-border)] pt-5 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
-          <p className="mb-3 text-[9px] uppercase tracking-[0.25em] text-[var(--profile-muted)]">Photography roles</p>
-          <Specialties specialties={profile.specialties} />
-        </div>
-      )}
     </header>
   );
 }
 
 function PrintIndexHeader({ profile }: { profile: PublicProfileIdentity }) {
   return (
-    <header className="mx-auto flex max-w-2xl flex-col items-center py-11 text-center sm:py-16">
-      <Avatar profile={profile} sizeClass="size-24 sm:size-28" />
-      <p className="mt-5 text-[9px] uppercase tracking-[0.3em] text-[var(--profile-muted)]">Purdue Photography Club</p>
-      <div className="mt-2 min-w-0 max-w-full"><Name profile={profile} centered /></div>
-      <ProfileCopy profile={profile} centered />
-      <div className="mt-4"><Specialties specialties={profile.specialties} centered /></div>
+    <header className="mx-auto flex max-w-3xl flex-col items-center py-12 text-center sm:py-16">
+      <Avatar profile={profile} sizeClass="size-32 sm:size-40" />
+      <p className={`${profile.anonymous ? "" : "mt-6"} text-[9px] uppercase tracking-[0.25em] text-[var(--profile-muted)]`}>Purdue Photography Club</p>
+      <div className="mt-3 min-w-0 max-w-full"><ProfileDetails profile={profile} centered /></div>
     </header>
   );
 }
 
 function SplitFrameHeader({ profile }: { profile: PublicProfileIdentity }) {
   return (
-    <header className="grid min-h-64 overflow-hidden py-8 sm:grid-cols-[minmax(0,1fr)_240px] sm:py-10">
-      <div className="flex min-w-0 flex-col justify-center border-y [border-color:var(--profile-border)] px-1 py-8 sm:border-r-0 sm:px-8">
-        <p className="mb-3 text-[9px] uppercase tracking-[0.3em] text-[var(--profile-muted)]">Selected work</p>
-        <Name profile={profile} />
-        <ProfileCopy profile={profile} />
-        <div className="mt-4"><Specialties specialties={profile.specialties} /></div>
+    <header className={profile.anonymous
+      ? "py-10 sm:py-14"
+      : "grid min-h-72 overflow-hidden py-8 sm:grid-cols-[minmax(0,1fr)_280px] sm:py-10"}
+    >
+      <div className="flex min-w-0 flex-col justify-center border-y [border-color:var(--profile-border)] px-4 py-9 sm:px-8">
+        <p className="mb-3 text-[9px] uppercase tracking-[0.25em] text-[var(--profile-muted)]">Selected work</p>
+        <ProfileDetails profile={profile} />
       </div>
-      <div className="flex items-center justify-center border [border-color:var(--profile-border)] [background-color:var(--profile-surface)] py-8">
-        <Avatar profile={profile} sizeClass="size-32 sm:size-40" square />
-      </div>
+      {!profile.anonymous && (
+        <div className="flex items-center justify-center border [border-color:var(--profile-border)] [background-color:var(--profile-chip)] p-8">
+          <Avatar profile={profile} sizeClass="size-44 sm:size-48" />
+        </div>
+      )}
     </header>
   );
 }
@@ -243,13 +334,12 @@ function NegativeStripHeader({ profile }: { profile: PublicProfileIdentity }) {
   return (
     <header className="my-8 border-y-[10px] [border-color:var(--profile-border)] [background-color:var(--profile-surface)] sm:my-10">
       <div aria-hidden="true" className="h-3 bg-[repeating-linear-gradient(90deg,transparent_0_18px,var(--profile-border)_18px_28px)]" />
-      <div className="grid items-center gap-5 border-y [border-color:var(--profile-border)] px-4 py-7 sm:grid-cols-[84px_minmax(0,1fr)_auto] sm:px-7">
-        <Avatar profile={profile} sizeClass="size-20" square />
-        <div className="min-w-0">
-          <Name profile={profile} compact />
-          <ProfileCopy profile={profile} />
-        </div>
-        <div className="sm:max-w-64"><Specialties specialties={profile.specialties} /></div>
+      <div className={profile.anonymous
+        ? "border-y [border-color:var(--profile-border)] px-5 py-9 sm:px-8"
+        : "grid items-center gap-7 border-y [border-color:var(--profile-border)] px-5 py-8 sm:grid-cols-[128px_minmax(0,1fr)] sm:px-8"}
+      >
+        <Avatar profile={profile} sizeClass="size-32" />
+        <div className="min-w-0"><ProfileDetails profile={profile} compact /></div>
       </div>
       <div aria-hidden="true" className="h-3 bg-[repeating-linear-gradient(90deg,transparent_0_18px,var(--profile-border)_18px_28px)]" />
     </header>
@@ -258,15 +348,16 @@ function NegativeStripHeader({ profile }: { profile: PublicProfileIdentity }) {
 
 function EditorialGridHeader({ profile }: { profile: PublicProfileIdentity }) {
   return (
-    <header className="grid gap-6 py-10 sm:grid-cols-[64px_minmax(0,1fr)_180px] sm:items-end sm:py-16">
+    <header className={profile.anonymous
+      ? "grid gap-5 py-11 sm:grid-cols-[64px_minmax(0,1fr)] sm:py-16"
+      : "grid gap-6 py-10 sm:grid-cols-[64px_minmax(0,1fr)] sm:py-16 lg:grid-cols-[64px_minmax(0,1fr)_260px] lg:items-end"}
+    >
       <p aria-hidden="true" className="font-mono text-4xl text-[var(--profile-border)] sm:self-start">01</p>
       <div className="min-w-0 border-l [border-color:var(--profile-border)] pl-5 sm:pl-8">
-        <p className="mb-4 text-[9px] uppercase tracking-[0.34em] text-[var(--profile-muted)]">Photographer index</p>
-        <Name profile={profile} />
-        <ProfileCopy profile={profile} />
-        <div className="mt-5"><Specialties specialties={profile.specialties} /></div>
+        <p className="mb-4 text-[9px] uppercase tracking-[0.28em] text-[var(--profile-muted)]">Photographer index</p>
+        <ProfileDetails profile={profile} />
       </div>
-      <Avatar profile={profile} sizeClass="size-32 justify-self-start sm:size-44 sm:justify-self-end" square />
+      {!profile.anonymous && <Avatar profile={profile} sizeClass="size-44 justify-self-start lg:size-52 lg:justify-self-end" />}
     </header>
   );
 }
@@ -274,13 +365,14 @@ function EditorialGridHeader({ profile }: { profile: PublicProfileIdentity }) {
 function DarkroomCardHeader({ profile }: { profile: PublicProfileIdentity }) {
   return (
     <header className="flex justify-center py-10 sm:py-16">
-      <div className="grid w-full max-w-3xl gap-7 border [border-color:var(--profile-border)] [background-color:var(--profile-surface)] p-6 sm:grid-cols-[176px_minmax(0,1fr)] sm:items-center sm:p-9">
-        <Avatar profile={profile} sizeClass="size-36 sm:size-44" />
+      <div className={profile.anonymous
+        ? "w-full max-w-3xl border [border-color:var(--profile-border)] [background-color:var(--profile-surface)] p-7 sm:p-10"
+        : "grid w-full max-w-4xl gap-8 border [border-color:var(--profile-border)] [background-color:var(--profile-surface)] p-6 sm:grid-cols-[260px_minmax(0,1fr)] sm:items-center sm:p-9"}
+      >
+        <Avatar profile={profile} sizeClass="size-44 sm:size-52" />
         <div className="min-w-0">
-          <p className="mb-3 font-mono text-[9px] uppercase tracking-[0.28em] text-[var(--profile-muted)]">Darkroom record</p>
-          <Name profile={profile} compact />
-          <ProfileCopy profile={profile} />
-          <div className="mt-4"><Specialties specialties={profile.specialties} /></div>
+          <p className="mb-3 font-mono text-[9px] uppercase tracking-[0.24em] text-[var(--profile-muted)]">Darkroom record</p>
+          <ProfileDetails profile={profile} compact />
         </div>
       </div>
     </header>
@@ -289,61 +381,69 @@ function DarkroomCardHeader({ profile }: { profile: PublicProfileIdentity }) {
 
 function DiptychHeader({ profile }: { profile: PublicProfileIdentity }) {
   return (
-    <header className="grid py-9 sm:grid-cols-2 sm:py-14">
-      <div className="flex min-h-64 items-center justify-center border [border-color:var(--profile-border)] [background-color:var(--profile-surface)] p-8">
-        <Avatar profile={profile} sizeClass="size-40 sm:size-48" square />
-      </div>
-      <div className="flex min-h-64 min-w-0 flex-col justify-center border border-t-0 [border-color:var(--profile-border)] p-7 sm:border-l-0 sm:border-t sm:p-10">
-        <p className="mb-3 text-[9px] uppercase tracking-[0.3em] text-[var(--profile-muted)]">Profile / selected work</p>
-        <Name profile={profile} />
-        <ProfileCopy profile={profile} />
-        <div className="mt-5"><Specialties specialties={profile.specialties} /></div>
+    <header className={profile.anonymous ? "py-10 sm:py-14" : "grid py-9 sm:grid-cols-2 sm:py-14"}>
+      {!profile.anonymous && (
+        <div className="flex min-h-72 items-center justify-center border [border-color:var(--profile-border)] [background-color:var(--profile-chip)] p-8">
+          <Avatar profile={profile} sizeClass="size-48 lg:size-56" />
+        </div>
+      )}
+      <div className={`flex min-h-64 min-w-0 flex-col justify-center border [border-color:var(--profile-border)] p-7 sm:p-10 ${profile.anonymous ? "" : "border-t-0 sm:border-l-0 sm:border-t"}`}>
+        <p className="mb-3 text-[9px] uppercase tracking-[0.25em] text-[var(--profile-muted)]">Profile / selected work</p>
+        <ProfileDetails profile={profile} />
       </div>
     </header>
   );
 }
 
+function SafeArea({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <div className={`relative z-10 ${className}`} data-profile-safe-area="true">{children}</div>;
+}
+
 function DecorationFrame({ children, decoration }: { children: ReactNode; decoration: ProfileDecoration }) {
   if (decoration === "none") {
-    return <div className="border-b [border-color:var(--profile-border)]">{children}</div>;
+    return <SafeArea className="border-b [border-color:var(--profile-border)]">{children}</SafeArea>;
   }
   if (decoration === "film-frame") {
-    return <div className="my-4 border-[3px] border-double [border-color:var(--profile-border)] px-4 sm:px-6"><span className="sr-only">Film frame</span>{children}</div>;
+    return <SafeArea className="my-4 border-[3px] border-double [border-color:var(--profile-border)] px-4 sm:px-7"><span className="sr-only">Film frame</span>{children}</SafeArea>;
   }
   if (decoration === "contact-marks") {
     return (
-      <div className="relative border-b [border-color:var(--profile-border)] px-3 sm:px-5">
-        <span className="absolute left-0 top-3 font-mono text-[8px] text-[var(--profile-muted)]">01A</span>
-        <span className="absolute bottom-3 right-0 font-mono text-[8px] text-[var(--profile-muted)]">36</span>
-        <span className="sr-only">Contact marks</span>{children}
+      <div className="relative border-b [border-color:var(--profile-border)] px-7 sm:px-10">
+        <span aria-hidden="true" className="pointer-events-none absolute left-2 top-3 font-mono text-[8px] text-[var(--profile-muted)]">01A</span>
+        <span aria-hidden="true" className="pointer-events-none absolute bottom-3 right-2 font-mono text-[8px] text-[var(--profile-muted)]">36</span>
+        <span className="sr-only">Contact marks</span><SafeArea>{children}</SafeArea>
       </div>
     );
   }
   if (decoration === "viewfinder") {
     return (
-      <div className="relative border-b [border-color:var(--profile-border)] px-4 before:absolute before:left-0 before:top-4 before:size-6 before:border-l before:border-t before:[border-color:var(--profile-muted)] after:absolute after:bottom-4 after:right-0 after:size-6 after:border-b after:border-r after:[border-color:var(--profile-muted)] sm:px-6">
-        <span className="sr-only">Viewfinder</span>{children}
+      <div className="relative border-b [border-color:var(--profile-border)] px-7 before:pointer-events-none before:absolute before:left-1 before:top-4 before:size-7 before:border-l before:border-t before:[border-color:var(--profile-muted)] after:pointer-events-none after:absolute after:bottom-4 after:right-1 after:size-7 after:border-b after:border-r after:[border-color:var(--profile-muted)] sm:px-10">
+        <span className="sr-only">Viewfinder</span><SafeArea>{children}</SafeArea>
       </div>
     );
   }
   if (decoration === "sprocket") {
     return (
-      <div className="my-4 border-y-8 border-dotted [border-color:var(--profile-border)] px-3 sm:px-5">
-        <span className="sr-only">Sprocket holes</span>{children}
+      <div className="my-4 border-y-8 border-dotted [border-color:var(--profile-border)] px-4 sm:px-7">
+        <span className="sr-only">Sprocket holes</span><SafeArea>{children}</SafeArea>
       </div>
     );
   }
   if (decoration === "archival-stamp") {
     return (
-      <div className="relative border-b [border-color:var(--profile-border)] px-3 sm:px-5">
-        <span aria-hidden="true" className="absolute right-3 top-5 z-10 -rotate-6 border [border-color:var(--profile-muted)] px-2 py-1 font-mono text-[8px] uppercase tracking-[0.2em] text-[var(--profile-muted)]">PPC archive</span>
-        <span className="sr-only">Archival stamp</span>{children}
+      <div className="border-b [border-color:var(--profile-border)] px-4 sm:px-7">
+        <span className="sr-only">Archival stamp</span>
+        <SafeArea>{children}</SafeArea>
+        <div aria-hidden="true" className="relative z-10 mb-4 flex justify-end">
+          <span className="-rotate-2 border [border-color:var(--profile-border)] [background-color:var(--profile-chip)] px-3 py-2 font-mono text-[8px] uppercase tracking-[0.18em] text-[var(--profile-ink)]">PPC archive / catalogued</span>
+        </div>
       </div>
     );
   }
   return (
-    <div className="border-b [border-color:var(--profile-border)] bg-[linear-gradient(to_right,var(--profile-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--profile-border)_1px,transparent_1px)] bg-[size:32px_32px] px-3 sm:px-5">
-      <span className="sr-only">Grid lines</span>{children}
+    <div className="border-b [border-color:var(--profile-border)] bg-[linear-gradient(to_right,var(--profile-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--profile-border)_1px,transparent_1px)] bg-[size:32px_32px] p-3 sm:p-5">
+      <span className="sr-only">Grid lines</span>
+      <SafeArea className="border [border-color:var(--profile-border)] [background-color:var(--profile-surface)] px-4 sm:px-7">{children}</SafeArea>
     </div>
   );
 }
@@ -375,7 +475,9 @@ export default function ProfileTemplateRenderer({ profile }: { profile: PublicPr
   return (
     <section
       aria-label={`${DECORATION_LABELS[profile.decoration]} profile header`}
+      className="text-[var(--profile-ink)]"
       data-profile-palette={profile.palette}
+      data-profile-template={profile.template}
       style={PROFILE_PALETTE_CLASSES[profile.palette]}
     >
       <span className="sr-only">{PALETTE_LABELS[profile.palette]} profile palette</span>

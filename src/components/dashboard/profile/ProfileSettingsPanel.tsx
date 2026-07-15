@@ -213,7 +213,20 @@ export default function ProfileSettingsPanel({ fallbackDisplayName }: Props) {
   }
 
   const normalized = normalizeProfileResponse(data, fallbackDisplayName);
-  const editorKey = `${normalized.profile.enabled}:${normalized.profile.anonymousId ?? "named"}:${normalized.profile.avatarUrl ?? "none"}:${normalized.profile.username}:${normalized.profile.decoration}:${normalized.profile.palette}`;
+  const editorKey = [
+    normalized.profile.enabled,
+    normalized.profile.anonymousId ?? "named",
+    normalized.profile.avatarUrl ?? "none",
+    normalized.profile.username,
+    normalized.profile.template,
+    normalized.profile.decoration,
+    normalized.profile.palette,
+    normalized.profile.avatarShape,
+    normalized.profile.avatarPositionX,
+    normalized.profile.avatarPositionY,
+    normalized.profile.avatarZoom,
+    normalized.profile.socialStyle,
+  ].join(":");
   return (
     <ProfileSettingsEditor
       key={editorKey}

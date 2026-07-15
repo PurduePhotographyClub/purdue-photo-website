@@ -66,12 +66,17 @@ test("public profile rendering shows the selected template content and safe soci
   const html = renderToStaticMarkup(createElement(ProfileTemplateRenderer, {
     profile: {
       anonymous: false,
+      avatarPositionX: 72,
+      avatarPositionY: 24,
+      avatarShape: "rounded",
       avatarUrl: "/api/profiles/avatar/public-avatar?v=1",
+      avatarZoom: 180,
       bio: "Street and travel photographer.",
       decoration: "film-frame",
       displayName: "Jane Portfolio",
       nameStyle: "editorial",
       palette: "cyanotype",
+      socialStyle: "labels",
       socials: [{
         icon: "instagram",
         platform: "instagram",
@@ -92,18 +97,28 @@ test("public profile rendering shows the selected template content and safe soci
   assert.match(html, /target="_blank"/);
   assert.match(html, /rel="noopener noreferrer"/);
   assert.match(html, /Cyanotype profile palette/);
+  assert.match(html, /data-profile-avatar="true"/);
+  assert.match(html, /object-position:72% 24%/);
+  assert.match(html, /scale\(1\.8\)/);
+  assert.match(html, /data-profile-social-style="labels"/);
+  assert.match(html, /data-profile-role-tag="true"/);
 });
 
 test("anonymous public rendering is image-portfolio-only and never emits supplied identity", () => {
   const html = renderToStaticMarkup(createElement(ProfileTemplateRenderer, {
     profile: {
       anonymous: true,
+      avatarPositionX: 10,
+      avatarPositionY: 90,
+      avatarShape: "square",
       avatarUrl: "/api/profiles/avatar/private-avatar?v=secret",
+      avatarZoom: 225,
       bio: "Private biography",
       decoration: "viewfinder",
       displayName: "Private Display Name",
       nameStyle: "bold-print",
       palette: "amber",
+      socialStyle: "labels",
       socials: [{
         icon: "mail",
         platform: "email",
@@ -122,4 +137,5 @@ test("anonymous public rendering is image-portfolio-only and never emits supplie
     /Private Display Name|Private biography|private@example\.com|private-avatar|private-member|>Street</,
   );
   assert.doesNotMatch(html, /<img|Profile social links|Photography roles/);
+  assert.doesNotMatch(html, /data-profile-avatar|<svg/);
 });
