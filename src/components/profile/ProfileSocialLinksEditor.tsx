@@ -153,8 +153,8 @@ export default function ProfileSocialLinksEditor({
         <ul className="mt-4 grid gap-2 sm:grid-cols-2">
           {socials.map((social) => (
             <li key={social.platform} className="flex min-w-0 items-center gap-3 border border-neutral-800 bg-neutral-950/50 p-3">
-              <span className="flex size-10 shrink-0 items-center justify-center border border-neutral-800 text-neutral-400">
-                <ProfileSocialIcon platform={social.icon} />
+              <span className="flex size-14 shrink-0 items-center justify-center border border-neutral-800 text-neutral-300">
+                <ProfileSocialIcon platform={social.icon} size={28} />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-[10px] uppercase tracking-[0.14em] text-neutral-400">{LABELS[social.platform]}</span>

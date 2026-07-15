@@ -5,10 +5,8 @@ import AccessUpsellPanel from "@/components/dashboard/AccessUpsellPanel";
 import ProfileFormFields from "@/components/profile/ProfileFormFields";
 import { fetchApi, fetchFreshJson, readErrorMessage } from "@/lib/http";
 import { prepareProfileAvatarImage } from "@/lib/profile-image";
+import { announceProfileLinkUpdate } from "@/lib/profile-link-cache";
 import {
-  PROFILE_SOCIAL_PLATFORMS,
-  PROFILE_SPECIALTIES,
-  PROFILE_TEMPLATES,
   getPublicProfileHref,
   getProfileUsernameValidationError,
   normalizeProfileResponse,
@@ -84,6 +82,12 @@ function ProfileSettingsEditor({
         setError(await readErrorMessage(response, "Unable to save your profile."));
         return;
       }
+      try {
+        const saved = normalizeProfileResponse(await response.json(), profile.displayName);
+        announceProfileLinkUpdate(getPublicProfileHref(saved.profile));
+      } catch {
+        // Saving succeeded; the normal refresh below will reconcile the editor.
+      }
       await refreshProfileAfterMutation(
         onReload,
         onSuccessChange,
@@ -151,12 +155,9 @@ function ProfileSettingsEditor({
 
       <div className="flex flex-col gap-4 border border-neutral-800 bg-neutral-950/60 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <div>
-          <p className="text-sm text-neutral-200">Make the page feel like yours.</p>
+          <p className="text-sm text-neutral-200">Your profile</p>
           <p className="mt-1 max-w-2xl text-xs leading-5 text-neutral-500">
-            Set your Display name, Profile URL, Bio, Social links, Photography roles, and layout. Use Enable public profile when it is ready. Anonymous profile swaps your name for PPC Member.
-          </p>
-          <p className="mt-2 text-[9px] uppercase tracking-[0.15em] text-neutral-600">
-            {PROFILE_SOCIAL_PLATFORMS.length} social options · {PROFILE_SPECIALTIES.length} roles · {PROFILE_TEMPLATES.length} layouts
+            Add a photo, a short bio, and the links you actually use. Publish whenever you are ready.
           </p>
         </div>
         {publicProfileHref && (
@@ -212,7 +213,7 @@ export default function ProfileSettingsPanel({ fallbackDisplayName }: Props) {
   }
 
   const normalized = normalizeProfileResponse(data, fallbackDisplayName);
-  const editorKey = `${normalized.profile.enabled}:${normalized.profile.anonymousId ?? "named"}:${normalized.profile.avatarUrl ?? "none"}:${normalized.profile.username}:${normalized.profile.decoration}`;
+  const editorKey = `${normalized.profile.enabled}:${normalized.profile.anonymousId ?? "named"}:${normalized.profile.avatarUrl ?? "none"}:${normalized.profile.username}:${normalized.profile.decoration}:${normalized.profile.palette}`;
   return (
     <ProfileSettingsEditor
       key={editorKey}

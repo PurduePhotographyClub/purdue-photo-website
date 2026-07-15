@@ -17,6 +17,9 @@ const NAME_STYLE_LABELS: Record<ProfileNameStyle, string> = {
   "film-credit": "Film credit",
   editorial: "Editorial",
   "bold-print": "Bold print",
+  condensed: "Condensed",
+  typewriter: "Typewriter",
+  "small-caps": "Small caps",
 };
 
 const NAME_STYLE_CLASSES: Record<ProfileNameStyle, string> = {
@@ -24,7 +27,17 @@ const NAME_STYLE_CLASSES: Record<ProfileNameStyle, string> = {
   "film-credit": "font-mono font-bold uppercase tracking-[0.14em]",
   editorial: "italic tracking-[0.02em]",
   "bold-print": "font-bold tracking-[0.01em]",
+  condensed: "font-sans font-semibold uppercase tracking-[-0.03em]",
+  typewriter: "font-mono tracking-[0.08em]",
+  "small-caps": "font-serif uppercase tracking-[0.18em]",
 };
+
+const SERIF_NAME_STYLES = new Set<ProfileNameStyle>([
+  "classic",
+  "editorial",
+  "bold-print",
+  "small-caps",
+]);
 
 interface Props {
   access?: {
@@ -101,7 +114,9 @@ export default function ProfileFormFields({
                 aria-describedby={`${idPrefix}-publishing-help`}
                 checked={profile.enabled}
                 disabled={profile.enabled ? !canDisable : !canEnable}
-                onChange={(event) => update("enabled", event.target.checked)}
+                onChange={(event) => onChange(event.target.checked
+                  ? { ...profile, enabled: true }
+                  : { ...profile, anonymous: false, anonymousId: null, enabled: false })}
                 className="size-4 accent-white disabled:cursor-not-allowed"
               />
               Enable public profile
@@ -115,9 +130,9 @@ export default function ProfileFormFields({
 
         <section className="border border-neutral-800 bg-white/[0.015] p-4 sm:p-5" aria-labelledby={`${idPrefix}-identity-heading`}>
           <h2 id={`${idPrefix}-identity-heading`} className="text-sm tracking-wide text-neutral-100">Identity</h2>
-          <div className="mt-4 grid gap-5 md:grid-cols-[120px_minmax(0,1fr)]">
+          <div className="mt-4 grid gap-5 md:grid-cols-[144px_minmax(0,1fr)]">
             <div>
-              <div className="flex size-24 items-center justify-center overflow-hidden rounded-full border border-neutral-700 bg-neutral-900 text-neutral-600">
+              <div className="flex size-28 items-center justify-center overflow-hidden rounded-full border border-neutral-700 bg-neutral-900 text-neutral-600">
                 {avatarPreviewUrl || profile.avatarUrl ? (
                   <img src={avatarPreviewUrl || profile.avatarUrl || ""} alt={`${profile.displayName || "Member"} portrait`} className="size-full object-cover" />
                 ) : (
@@ -150,7 +165,7 @@ export default function ProfileFormFields({
                         <input type="radio" name={`${idPrefix}-name-style`} checked={profile.nameStyle === style} onChange={() => update("nameStyle", style)} className="accent-white" />
                         {NAME_STYLE_LABELS[style]}
                       </span>
-                      <span className={`mt-2 block truncate text-sm text-neutral-100 ${NAME_STYLE_CLASSES[style]}`} style={style === "film-credit" ? undefined : { fontFamily: "'Playfair Display', serif" }}>
+                      <span className={`mt-2 block truncate text-sm text-neutral-100 ${NAME_STYLE_CLASSES[style]}`} style={SERIF_NAME_STYLES.has(style) ? { fontFamily: "'Playfair Display', serif" } : undefined}>
                         {profile.displayName || "Member name"}
                       </span>
                     </label>
@@ -194,10 +209,16 @@ export default function ProfileFormFields({
             <p className="mt-1 text-xs leading-5 text-neutral-500">Choose the kinds of work you want listed.</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {PROFILE_SPECIALTIES.map((specialty) => (
-                <label key={specialty} className={`flex min-h-11 cursor-pointer items-center border px-3 text-[10px] uppercase tracking-wider ${profile.specialties.includes(specialty) ? "border-white bg-white/[0.055] text-white" : "border-neutral-800 text-neutral-500 hover:border-neutral-600"}`}>
-                  <input type="checkbox" checked={profile.specialties.includes(specialty)} onChange={() => toggleSpecialty(specialty)} className="sr-only" />
+                <button
+                  key={specialty}
+                  type="button"
+                  aria-pressed={profile.specialties.includes(specialty)}
+                  disabled={disabled}
+                  onClick={() => toggleSpecialty(specialty)}
+                  className={`flex min-h-11 items-center border px-3 text-[10px] uppercase tracking-wider disabled:cursor-not-allowed disabled:opacity-50 ${profile.specialties.includes(specialty) ? "border-white bg-white/[0.055] text-white" : "border-neutral-800 text-neutral-500 hover:border-neutral-600"}`}
+                >
                   {specialty}
-                </label>
+                </button>
               ))}
             </div>
           </fieldset>
@@ -206,13 +227,14 @@ export default function ProfileFormFields({
         {showMemberControls && (
           <section className="border border-neutral-800 bg-white/[0.015] p-4 sm:p-5" aria-labelledby={`${idPrefix}-privacy-heading`}>
             <h2 id={`${idPrefix}-privacy-heading`} className="text-sm tracking-wide text-neutral-100">Privacy</h2>
-            <label className="mt-3 flex min-h-11 cursor-pointer items-start gap-3 border border-neutral-800 p-3">
-              <input type="checkbox" role="switch" checked={profile.anonymous} onChange={(event) => update("anonymous", event.target.checked)} className="mt-1 size-4 accent-white" />
+            <label className={`mt-3 flex min-h-11 items-start gap-3 border border-neutral-800 p-3 ${profile.enabled ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}>
+              <input type="checkbox" role="switch" checked={profile.anonymous} disabled={!profile.enabled} onChange={(event) => update("anonymous", event.target.checked)} className="mt-1 size-4 accent-white disabled:cursor-not-allowed" />
               <span>
                 <span className="block text-[10px] uppercase tracking-[0.15em] text-neutral-300">Anonymous profile</span>
                 <span className="mt-1 block max-w-3xl text-xs leading-5 text-neutral-500">
                   Your public page and gallery use PPC Member instead of your name. Camera and lens details are hidden; titles, captions, and tags stay visible. Photos uploaded anonymously remain excluded from your profile.
                 </span>
+                {!profile.enabled && <span className="mt-1 block text-[10px] text-neutral-600">Enable your public profile first.</span>}
               </span>
             </label>
             {profile.anonymous && (

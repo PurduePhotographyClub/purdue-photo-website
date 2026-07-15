@@ -39,8 +39,14 @@ test("inactive members render locked profile fields while retaining the disable 
   assert.match(html, /Print index/);
   assert.match(html, /Split frame/);
   assert.match(html, /Negative strip/);
+  assert.match(html, /Editorial grid/);
+  assert.match(html, /Darkroom card/);
+  assert.match(html, /Diptych/);
+  assert.match(html, /Color palette/);
+  assert.match(html, /Cyanotype/);
   assert.match(html, /Add social/);
   assert.match(html, /Up to 512px and 200KB\./);
+  assert.match(html, /aria-pressed="false"/);
 });
 
 test("an unpublished inactive member cannot enable or edit profile fields", () => {
@@ -65,6 +71,7 @@ test("public profile rendering shows the selected template content and safe soci
       decoration: "film-frame",
       displayName: "Jane Portfolio",
       nameStyle: "editorial",
+      palette: "cyanotype",
       socials: [{
         icon: "instagram",
         platform: "instagram",
@@ -84,6 +91,7 @@ test("public profile rendering shows the selected template content and safe soci
   assert.match(html, /href="https:\/\/www\.instagram\.com\/jane\/"/);
   assert.match(html, /target="_blank"/);
   assert.match(html, /rel="noopener noreferrer"/);
+  assert.match(html, /Cyanotype profile palette/);
 });
 
 test("anonymous public rendering is image-portfolio-only and never emits supplied identity", () => {
@@ -95,6 +103,7 @@ test("anonymous public rendering is image-portfolio-only and never emits supplie
       decoration: "viewfinder",
       displayName: "Private Display Name",
       nameStyle: "bold-print",
+      palette: "amber",
       socials: [{
         icon: "mail",
         platform: "email",

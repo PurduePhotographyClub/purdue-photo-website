@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   PROFILE_DECORATIONS,
   PROFILE_NAME_STYLES,
+  PROFILE_PALETTES,
   PROFILE_SOCIAL_PLATFORMS,
   PROFILE_SPECIALTIES,
   PROFILE_TEMPLATES,
@@ -14,12 +15,45 @@ import {
   normalizeProfileSocialValue,
   normalizeProfileResponse,
   refreshProfileAfterMutation,
+  toProfileUpdate,
 } from "../src/lib/profile-model.ts";
 
-test("profile editor choices match the fixed server contract", () => {
-  assert.deepEqual(PROFILE_TEMPLATES, ["contact-sheet", "print-index", "split-frame", "negative-strip"]);
-  assert.deepEqual(PROFILE_DECORATIONS, ["none", "film-frame", "contact-marks", "viewfinder"]);
-  assert.deepEqual(PROFILE_NAME_STYLES, ["classic", "film-credit", "editorial", "bold-print"]);
+test("profile editor choices match the expanded fixed server contract", () => {
+  assert.deepEqual(PROFILE_TEMPLATES, [
+    "contact-sheet",
+    "print-index",
+    "split-frame",
+    "negative-strip",
+    "editorial-grid",
+    "darkroom-card",
+    "diptych",
+  ]);
+  assert.deepEqual(PROFILE_DECORATIONS, [
+    "none",
+    "film-frame",
+    "contact-marks",
+    "viewfinder",
+    "sprocket",
+    "archival-stamp",
+    "grid-lines",
+  ]);
+  assert.deepEqual(PROFILE_NAME_STYLES, [
+    "classic",
+    "film-credit",
+    "editorial",
+    "bold-print",
+    "condensed",
+    "typewriter",
+    "small-caps",
+  ]);
+  assert.deepEqual(PROFILE_PALETTES, [
+    "monochrome",
+    "amber",
+    "cyanotype",
+    "forest",
+    "burgundy",
+    "violet",
+  ]);
   assert.deepEqual(PROFILE_SOCIAL_PLATFORMS, ["instagram", "discord", "vsco", "website", "email"]);
   assert.deepEqual(PROFILE_SPECIALTIES, [
     "Street",
@@ -49,6 +83,7 @@ test("new profile drafts are disabled without mutating response data", () => {
     displayName: "Member Name",
     enabled: false,
     nameStyle: "classic",
+    palette: "monochrome",
     socials: [],
     specialties: [],
     template: "contact-sheet",
@@ -68,6 +103,16 @@ test("new profile drafts are disabled without mutating response data", () => {
   normalized.profile.specialties.push("Street");
   assert.deepEqual(source.profile.socials, [{ platform: "email", value: "jane@example.com" }]);
   assert.deepEqual(source.profile.specialties, ["Travel"]);
+});
+
+test("profile palettes are normalized and included in updates", () => {
+  const fallback = normalizeProfileResponse({
+    profile: { displayName: "Jane", palette: "unsafe-css" },
+  }, "Fallback").profile;
+  assert.equal(fallback.palette, "monochrome");
+
+  const profile = { ...createEmptyProfileDraft("Jane"), palette: "cyanotype" };
+  assert.equal(toProfileUpdate(profile).palette, "cyanotype");
 });
 
 test("public profile links switch to the opaque id only while anonymous mode is active", () => {
@@ -96,6 +141,7 @@ test("malformed stored choices fall back to safe profile values", () => {
       enabled: true,
       decoration: "script-injection",
       nameStyle: "script-injection",
+      palette: "script-injection",
       socials: [{ platform: "unknown", value: "javascript:alert(1)" }],
       specialties: ["Admin", "Street"],
       template: "unknown-template",
@@ -105,6 +151,7 @@ test("malformed stored choices fall back to safe profile values", () => {
 
   assert.equal(normalized.profile.decoration, "none");
   assert.equal(normalized.profile.nameStyle, "classic");
+  assert.equal(normalized.profile.palette, "monochrome");
   assert.equal(normalized.profile.template, "contact-sheet");
   assert.deepEqual(normalized.profile.socials, []);
   assert.deepEqual(normalized.profile.specialties, ["Street"]);

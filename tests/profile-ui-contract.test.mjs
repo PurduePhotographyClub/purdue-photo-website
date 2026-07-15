@@ -7,6 +7,7 @@ const [
   profileSettingsSource,
   profileFieldsSource,
   profileSocialsSource,
+  profileSocialIconSource,
   profileAppearanceSource,
   publicProfileSource,
   profileRendererSource,
@@ -14,16 +15,19 @@ const [
   profileRouteSource,
   adminMembersSource,
   adminEditorSource,
+  adminProfileDialogSource,
   adminRouteSource,
   gallerySource,
   homeSource,
   middlewareSource,
   headerSource,
+  profileLinkCacheSource,
 ] = await Promise.all([
   readFile(new URL("../src/components/dashboard/SettingsPanel.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/dashboard/profile/ProfileSettingsPanel.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/profile/ProfileFormFields.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/profile/ProfileSocialLinksEditor.tsx", import.meta.url), "utf8"),
+  readFile(new URL("../src/components/profile/ProfileSocialIcon.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/profile/ProfileAppearancePicker.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/profile/PublicProfile.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/profile/ProfileTemplateRenderer.tsx", import.meta.url), "utf8"),
@@ -31,11 +35,13 @@ const [
   readFile(new URL("../src/pages/profile/[username].astro", import.meta.url), "utf8"),
   readFile(new URL("../src/components/dashboard/admin/AdminMembers.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/dashboard/admin/AdminMemberProfileEditor.tsx", import.meta.url), "utf8"),
+  readFile(new URL("../src/components/dashboard/admin/AdminMemberProfileDialog.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/pages/dashboard/admin/members/[id]/profile.astro", import.meta.url), "utf8"),
   readFile(new URL("../src/components/Gallery.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/Home.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/middleware.ts", import.meta.url), "utf8"),
   readFile(new URL("../src/components/Header.tsx", import.meta.url), "utf8"),
+  readFile(new URL("../src/lib/profile-link-cache.ts", import.meta.url), "utf8"),
 ]);
 
 test("settings includes an accessible first-class Profile tab and membership lock", () => {
@@ -46,8 +52,10 @@ test("settings includes an accessible first-class Profile tab and membership loc
   assert.match(settingsSource, /aria-selected/);
   assert.match(settingsSource, /ArrowRight/);
   assert.match(settingsSource, /ArrowLeft/);
-  assert.match(profileSettingsSource, /Enable public profile/);
-  assert.match(profileSettingsSource, /Anonymous profile/);
+  assert.match(profileFieldsSource, /Enable public profile/);
+  assert.match(profileFieldsSource, /Anonymous profile/);
+  assert.doesNotMatch(profileSettingsSource, /Anonymous profile swaps your name for PPC Member\./);
+  assert.doesNotMatch(profileSettingsSource, /social options.*roles.*layouts/);
   assert.match(profileSettingsSource, /Save profile/);
   assert.match(profileSettingsSource, /View profile/);
   assert.match(profileSettingsSource, /getPublicProfileHref/);
@@ -73,34 +81,49 @@ test("profile editor exposes every fixed field and uses immutable update pattern
     "Layout and details",
   ]) {
     assert.match(
-      `${profileSettingsSource}\n${profileFieldsSource}\n${profileAppearanceSource}`,
+      `${profileSettingsSource}\n${profileFieldsSource}\n${profileSocialsSource}\n${profileAppearanceSource}`,
       new RegExp(label, "i"),
     );
   }
-  assert.match(profileSettingsSource, /PROFILE_SOCIAL_PLATFORMS/);
-  assert.match(profileSettingsSource, /PROFILE_SPECIALTIES/);
-  assert.match(profileSettingsSource, /PROFILE_TEMPLATES/);
   assert.doesNotMatch(profileSettingsSource, /\.push\(/);
   assert.doesNotMatch(profileSettingsSource, /dangerouslySetInnerHTML/);
   assert.match(profileFieldsSource, /cursor-not-allowed/);
   assert.match(profileFieldsSource, /ProfileSocialLinksEditor/);
   assert.match(profileFieldsSource, /ProfileAppearancePicker/);
   assert.match(profileFieldsSource, /Up to 512px and 200KB\./);
+  assert.match(profileFieldsSource, /size-28/);
+  assert.match(profileFieldsSource, /type="button"/);
+  assert.match(profileFieldsSource, /aria-pressed/);
+  assert.doesNotMatch(profileFieldsSource, /<input type="checkbox" checked=\{profile\.specialties/);
   assert.match(profileSocialsSource, /ModalDialog/);
   assert.match(profileSocialsSource, /Add social/);
   assert.match(profileSocialsSource, /Remove/);
   assert.match(profileAppearanceSource, /PROFILE_DECORATIONS/);
   assert.match(profileAppearanceSource, /negative-strip/);
   assert.match(profileAppearanceSource, /split-frame/);
+  assert.match(profileAppearanceSource, /editorial-grid/);
+  assert.match(profileAppearanceSource, /darkroom-card/);
+  assert.match(profileAppearanceSource, /diptych/);
+  assert.match(profileAppearanceSource, /PROFILE_PALETTES/);
+  assert.match(profileAppearanceSource, /Color palette/);
+  assert.match(profileRendererSource, /size-14/);
+  assert.match(profileRendererSource, /size=\{28\}/);
+  assert.match(profileSocialsSource, /size-14/);
+  assert.match(profileSocialsSource, /size=\{28\}/);
+  assert.match(profileSocialIconSource, /size = 18/);
 });
 
-test("public profiles render four responsive templates from one aggregate paginated API", () => {
+test("public profiles render seven responsive templates from one aggregate paginated API", () => {
   assert.match(profileRouteSource, /PublicProfile/);
   assert.match(profileRouteSource, /robots="noindex, nofollow, noimageindex, noarchive"/);
   assert.match(profileRendererSource, /ContactSheetHeader/);
   assert.match(profileRendererSource, /PrintIndexHeader/);
   assert.match(profileRendererSource, /SplitFrameHeader/);
   assert.match(profileRendererSource, /NegativeStripHeader/);
+  assert.match(profileRendererSource, /EditorialGridHeader/);
+  assert.match(profileRendererSource, /DarkroomCardHeader/);
+  assert.match(profileRendererSource, /DiptychHeader/);
+  assert.match(profileRendererSource, /PROFILE_PALETTE_CLASSES/);
   assert.match(publicProfileSource, /\/api\/profiles\//);
   assert.match(publicProfileSource, /per_page=15/);
   assert.match(publicProfileSource, /PPC Member profile/);
@@ -137,7 +160,7 @@ test("signed-in header exposes the account destinations from one accessible menu
   assert.match(headerSource, /aria-haspopup="menu"/);
   assert.match(headerSource, /role="menu"/);
   assert.match(headerSource, /View profile/);
-  assert.match(headerSource, /Profile settings/);
+  assert.doesNotMatch(headerSource, /Profile settings/);
   assert.match(headerSource, /Dashboard/);
   assert.match(headerSource, /Sign out/);
   assert.match(headerSource, /getPublicProfileHref/);
@@ -145,17 +168,27 @@ test("signed-in header exposes the account destinations from one accessible menu
   assert.doesNotMatch(headerSource, /profileRequestStartedRef/);
   assert.match(headerSource, /new AbortController\(\)/);
   assert.match(headerSource, /signal:\s*controller\.signal/);
+  assert.match(headerSource, /readProfileLinkCache/);
+  assert.match(headerSource, /updateProfileLinkCache/);
+  assert.match(profileLinkCacheSource, /writeProfileLinkCache/);
+  assert.match(headerSource, /PROFILE_LINK_CACHE_UPDATED_EVENT/);
+  assert.match(profileLinkCacheSource, /sessionStorage|StorageLike/);
+  assert.match(profileLinkCacheSource, /PROFILE_LINK_CACHE_TTL_MS/);
 });
 
-test("member list links only enabled profiles to a dedicated responsive staff editor", () => {
+test("member list opens enabled profiles in a responsive staff editor dialog", () => {
   assert.match(adminMembersSource, /profileEnabled/);
   assert.match(adminMembersSource, /profileUsername/);
   assert.match(adminMembersSource, /Edit profile/);
-  assert.match(adminMembersSource, /\/dashboard\/admin\/members\//);
-  assert.match(
-    adminMembersSource,
-    /href=\{`\/dashboard\/admin\/members\/[\s\S]*?className="[^"]*min-h-11/,
-  );
+  assert.match(adminMembersSource, /profileTarget/);
+  assert.match(adminMembersSource, /AdminMemberProfileDialog/);
+  assert.doesNotMatch(adminMembersSource, /href=\{`\/dashboard\/admin\/members\//);
+  assert.match(adminProfileDialogSource, /ModalDialog/);
+  assert.match(adminProfileDialogSource, /AdminMemberProfileEditor/);
+  assert.match(adminProfileDialogSource, /max-h-\[calc\(100dvh/);
+  assert.match(adminProfileDialogSource, /overflow-y-auto/);
+  assert.match(adminProfileDialogSource, /tabIndex=\{-1\}/);
+  assert.match(adminProfileDialogSource, /autoFocus/);
   assert.match(adminEditorSource, /\/api\/admin\/members\//);
   assert.match(adminEditorSource, /ProfileFormFields/);
   assert.match(adminEditorSource, /max-w-/);

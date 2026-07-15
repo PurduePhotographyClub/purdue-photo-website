@@ -8,6 +8,13 @@ import {
 import { Menu, X, Instagram, Mail, ExternalLink, UserCircle, LogIn, UserPlus } from "lucide-react";
 import { authClient } from "../lib/auth-client";
 import { fetchApi } from "../lib/http";
+import {
+  clearProfileLinkCache,
+  getProfileLinkStorage,
+  PROFILE_LINK_CACHE_UPDATED_EVENT,
+  readProfileLinkCache,
+  updateProfileLinkCache,
+} from "../lib/profile-link-cache";
 import { getPublicProfileHref, normalizeProfileResponse } from "../lib/profile-model";
 import LiveEventBar, { useCurrentLiveEvents } from "./LiveEventBar";
 
@@ -70,6 +77,7 @@ export default function Header() {
   const currentPath = useSyncExternalStore(subscribeToPathChanges, getCurrentPath, () => "/");
   const { data: session } = authClient.useSession();
   const isSignedIn = Boolean(session);
+  const currentUserId = typeof session?.user?.id === "string" ? session.user.id : null;
   const currentEvents = useCurrentLiveEvents();
   const showLiveEventBar = currentEvents.length > 0 && !menuOpen && !dashboardOpen;
 
@@ -129,7 +137,31 @@ export default function Header() {
   }, [dashboardOpen, menuOpen]);
 
   useEffect(() => {
-    if (!dashboardOpen || !isSignedIn) return;
+    if (!currentUserId) {
+      setPublicProfileHref(null);
+      return;
+    }
+
+    const storage = getProfileLinkStorage(window);
+    const cached = storage ? readProfileLinkCache(storage, currentUserId) : null;
+    setPublicProfileHref(cached?.hit ? cached.href : null);
+
+    const handleProfileLinkUpdate = (event: Event) => {
+      const href = (event as CustomEvent<{ href?: unknown }>).detail?.href;
+      setPublicProfileHref(updateProfileLinkCache(storage, currentUserId, href));
+    };
+    window.addEventListener(PROFILE_LINK_CACHE_UPDATED_EVENT, handleProfileLinkUpdate);
+    return () => window.removeEventListener(PROFILE_LINK_CACHE_UPDATED_EVENT, handleProfileLinkUpdate);
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (!dashboardOpen || !currentUserId) return;
+    const storage = getProfileLinkStorage(window);
+    const cached = storage ? readProfileLinkCache(storage, currentUserId) : null;
+    if (cached?.hit) {
+      setPublicProfileHref(cached.href);
+      return;
+    }
     const controller = new AbortController();
 
     void (async () => {
@@ -143,14 +175,15 @@ export default function Header() {
           return;
         }
         const normalized = normalizeProfileResponse(await response.json(), "PPC member");
-        setPublicProfileHref(getPublicProfileHref(normalized.profile));
+        const href = getPublicProfileHref(normalized.profile);
+        setPublicProfileHref(updateProfileLinkCache(storage, currentUserId, href));
       } catch {
         if (!controller.signal.aborted) setPublicProfileHref(null);
       }
     })();
 
     return () => controller.abort();
-  }, [dashboardOpen, isSignedIn]);
+  }, [currentUserId, dashboardOpen]);
 
   useEffect(() => {
     if (!dashboardOpen || !isSignedIn) return;
@@ -190,6 +223,8 @@ export default function Header() {
 
   const handleSignOut = async () => {
     setDashboardOpen(false);
+    const storage = getProfileLinkStorage(window);
+    if (currentUserId && storage) clearProfileLinkCache(storage, currentUserId);
     try {
       await authClient.signOut({
         fetchOptions: {
@@ -360,16 +395,6 @@ export default function Header() {
                 <span aria-hidden="true" className="text-neutral-700 transition-colors group-hover:text-neutral-500">/</span>
               </a>
             )}
-            <a
-              href="/dashboard/settings?tab=profile"
-              role="menuitem"
-              tabIndex={-1}
-              onClick={() => setDashboardOpen(false)}
-              className={`${compactMenuLinkBase} ${linkInactive}`}
-            >
-              Profile settings
-              <span aria-hidden="true" className="text-neutral-700 transition-colors group-hover:text-neutral-500">/</span>
-            </a>
             <a
               href="/dashboard"
               role="menuitem"

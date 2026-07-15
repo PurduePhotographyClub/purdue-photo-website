@@ -10,6 +10,7 @@ import {
   readJson
 } from "@/lib/http";
 import { createKeyedStateSetter, keyedStateReducer } from "@/lib/reducer-state";
+import AdminMemberProfileDialog from "./AdminMemberProfileDialog";
 interface Member {
   id: string;
   name: string;
@@ -78,6 +79,7 @@ interface AdminMembersState {
   selectedKeyId: string;
   assignLoading: boolean;
   keysLoading: boolean;
+  profileTarget: Member | null;
 }
 
 const initialAdminMembersState: AdminMembersState = {
@@ -97,6 +99,7 @@ const initialAdminMembersState: AdminMembersState = {
   selectedKeyId: "",
   assignLoading: false,
   keysLoading: false,
+  profileTarget: null,
 };
 
 interface MemberFiltersProps {
@@ -147,6 +150,7 @@ interface MembersTableProps {
   filtered: Member[];
   onAssignKey: (member: Member) => void;
   onDeleteRequest: (member: Member) => void;
+  onEditProfile: (member: Member) => void;
   onResetTier: (member: Member) => void;
   onRoleChange: (id: string, role: string) => void;
   onSuspendRequest: (member: Member) => void;
@@ -159,6 +163,7 @@ function MembersTable({
   filtered,
   onAssignKey,
   onDeleteRequest,
+  onEditProfile,
   onResetTier,
   onRoleChange,
   onSuspendRequest,
@@ -186,6 +191,7 @@ function MembersTable({
               member={member}
               onAssignKey={onAssignKey}
               onDeleteRequest={onDeleteRequest}
+              onEditProfile={onEditProfile}
               onResetTier={onResetTier}
               onRoleChange={onRoleChange}
               onSuspendRequest={onSuspendRequest}
@@ -211,6 +217,7 @@ function MemberRow({
   member,
   onAssignKey,
   onDeleteRequest,
+  onEditProfile,
   onResetTier,
   onRoleChange,
   onSuspendRequest,
@@ -285,12 +292,13 @@ function MemberRow({
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           {canEditProfile && (
-            <a
-              href={`/dashboard/admin/members/${encodeURIComponent(member.id)}/profile`}
+            <button
+              type="button"
+              onClick={() => onEditProfile(member)}
               className="flex min-h-11 items-center gap-1 text-[9px] uppercase tracking-wider text-cyan-400 transition-colors hover:text-cyan-300"
             >
               Edit profile
-            </a>
+            </button>
           )}
           {canEditMember ? (
             isStaffAccount ? (
@@ -551,6 +559,7 @@ export default function AdminMembers() {
     selectedKeyId,
     assignLoading,
     keysLoading,
+    profileTarget,
   } = state;
   const setError = createKeyedStateSetter(dispatchState, "error");
   const setSuccess = createKeyedStateSetter(dispatchState, "success");
@@ -568,6 +577,7 @@ export default function AdminMembers() {
   const setSelectedKeyId = createKeyedStateSetter(dispatchState, "selectedKeyId");
   const setAssignLoading = createKeyedStateSetter(dispatchState, "assignLoading");
   const setKeysLoading = createKeyedStateSetter(dispatchState, "keysLoading");
+  const setProfileTarget = createKeyedStateSetter(dispatchState, "profileTarget");
 
   const { data: sessionData } = authClient.useSession();
   const currentUserId = sessionData?.user?.id;
@@ -777,6 +787,7 @@ export default function AdminMembers() {
         filtered={filtered}
         onAssignKey={openAssignKey}
         onDeleteRequest={setDeleteTarget}
+        onEditProfile={setProfileTarget}
         onResetTier={resetTier}
         onRoleChange={updateRole}
         onSuspendRequest={setSuspendTarget}
@@ -818,6 +829,14 @@ export default function AdminMembers() {
           onSelectedKeyChange={setSelectedKeyId}
           selectedKeyId={selectedKeyId}
           target={assignTarget}
+        />
+      )}
+
+      {profileTarget && (
+        <AdminMemberProfileDialog
+          memberId={profileTarget.id}
+          memberName={profileTarget.name}
+          onClose={() => setProfileTarget(null)}
         />
       )}
     </div>
