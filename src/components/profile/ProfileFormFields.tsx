@@ -1,5 +1,4 @@
-import type { ChangeEvent } from "react";
-import { Camera, KeyRound, Trash2 } from "lucide-react";
+import { KeyRound } from "lucide-react";
 import {
   PROFILE_NAME_STYLES,
   PROFILE_SPECIALTIES,
@@ -8,6 +7,7 @@ import {
   type ProfileSpecialty,
 } from "@/lib/profile-model";
 import ProfileAppearancePicker from "./ProfileAppearancePicker";
+import ProfileAvatarControls from "./ProfileAvatarControls";
 import ProfileSocialLinksEditor from "./ProfileSocialLinksEditor";
 
 const INPUT_CLASS = "min-h-11 w-full border border-neutral-800 bg-neutral-950/60 px-3 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-neutral-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50";
@@ -85,12 +85,6 @@ export default function ProfileFormFields({
     );
   };
 
-  const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) onAvatarChange?.(file);
-    event.target.value = "";
-  };
-
   return (
     <div className="space-y-3">
       {showMemberControls && (
@@ -130,27 +124,17 @@ export default function ProfileFormFields({
 
         <section className="border border-neutral-800 bg-white/[0.015] p-4 sm:p-5" aria-labelledby={`${idPrefix}-identity-heading`}>
           <h2 id={`${idPrefix}-identity-heading`} className="text-sm tracking-wide text-neutral-100">Identity</h2>
-          <div className="mt-4 grid gap-5 md:grid-cols-[144px_minmax(0,1fr)]">
-            <div>
-              <div className="flex size-28 items-center justify-center overflow-hidden rounded-full border border-neutral-700 bg-neutral-900 text-neutral-600">
-                {avatarPreviewUrl || profile.avatarUrl ? (
-                  <img src={avatarPreviewUrl || profile.avatarUrl || ""} alt={`${profile.displayName || "Member"} portrait`} className="size-full object-cover" />
-                ) : (
-                  <Camera aria-hidden="true" size={24} />
-                )}
-              </div>
-              <label className={`mt-2 inline-flex min-h-11 items-center border border-neutral-700 px-3 text-[9px] uppercase tracking-[0.14em] text-neutral-300 ${disabled || avatarBusy ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:border-neutral-500"}`}>
-                <input type="file" accept="image/jpeg,.jpg,.jpeg" disabled={disabled || avatarBusy} onChange={handleAvatarChange} className="sr-only" />
-                {avatarBusy ? "Optimizing" : "Change picture"}
-              </label>
-              {profile.avatarUrl && onAvatarRemove && (
-                <button type="button" disabled={avatarBusy} onClick={onAvatarRemove} className="mt-1 flex min-h-11 items-center gap-2 text-[9px] uppercase tracking-wider text-red-400 disabled:opacity-50">
-                  <Trash2 aria-hidden="true" size={13} /> Remove
-                </button>
-              )}
-              <p className="mt-1 text-[9px] leading-4 text-neutral-600">JPG only. Up to 512px and 200KB.</p>
-            </div>
-
+          <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(320px,0.9fr)_minmax(0,1.1fr)]">
+            <ProfileAvatarControls
+              avatarBusy={avatarBusy}
+              avatarPreviewUrl={avatarPreviewUrl}
+              disabled={disabled}
+              idPrefix={idPrefix}
+              onAvatarChange={onAvatarChange}
+              onAvatarRemove={onAvatarRemove}
+              onChange={onChange}
+              profile={profile}
+            />
             <div className="min-w-0 space-y-4">
               <label className="block space-y-1.5">
                 <span className="text-[10px] uppercase tracking-wider text-neutral-500">Display name</span>

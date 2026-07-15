@@ -1,10 +1,14 @@
 import {
+  PROFILE_AVATAR_SHAPES,
   PROFILE_DECORATIONS,
   PROFILE_PALETTES,
+  PROFILE_SOCIAL_STYLES,
   PROFILE_TEMPLATES,
+  type ProfileAvatarShape,
   type ProfileDecoration,
   type ProfileDraft,
   type ProfilePalette,
+  type ProfileSocialStyle,
   type ProfileTemplate,
 } from "@/lib/profile-model";
 
@@ -35,6 +39,18 @@ const PALETTE_LABELS: Record<ProfilePalette, { description: string; label: strin
   forest: { description: "Muted botanical green.", label: "Forest" },
   burgundy: { description: "Deep red print tones.", label: "Burgundy" },
   violet: { description: "Soft ultraviolet accents.", label: "Violet" },
+};
+
+const AVATAR_SHAPE_LABELS: Record<ProfileAvatarShape, { description: string; label: string }> = {
+  auto: { description: "Let each layout choose its natural crop.", label: "Match layout" },
+  circle: { description: "A classic circular portrait.", label: "Circle" },
+  rounded: { description: "A softer editorial frame.", label: "Soft corners" },
+  square: { description: "A sharp print-style crop.", label: "Square" },
+};
+
+const SOCIAL_STYLE_LABELS: Record<ProfileSocialStyle, { description: string; label: string }> = {
+  tiles: { description: "Large icon tiles with a compact footprint.", label: "Icon tiles" },
+  labels: { description: "Icons with readable service names.", label: "Named links" },
 };
 
 const PALETTE_SWATCHES: Record<ProfilePalette, { accent: string; border: string; surface: string }> = {
@@ -103,6 +119,30 @@ function PalettePreview({ palette }: { palette: ProfilePalette }) {
   );
 }
 
+function AvatarShapePreview({ shape }: { shape: ProfileAvatarShape }) {
+  const shapeClass = shape === "square"
+    ? "rounded-none"
+    : shape === "rounded"
+      ? "rounded-[18%]"
+      : "rounded-full";
+  return (
+    <span className="flex h-12 items-center justify-center border border-neutral-800 bg-neutral-950">
+      <i className={`block size-7 border border-neutral-500 bg-neutral-700 ${shapeClass}`} />
+      {shape === "auto" && <em className="ml-2 font-mono text-[7px] not-italic uppercase tracking-wider text-neutral-500">Auto</em>}
+    </span>
+  );
+}
+
+function SocialStylePreview({ style }: { style: ProfileSocialStyle }) {
+  return (
+    <span className="flex h-12 items-center justify-center gap-2 border border-neutral-800 bg-neutral-950 px-2">
+      <i className="flex size-8 shrink-0 items-center justify-center border border-neutral-600 bg-neutral-800 text-[9px] not-italic text-neutral-300">◎</i>
+      {style === "labels" && <em className="truncate text-[8px] not-italic uppercase tracking-wider text-neutral-500">Instagram</em>}
+      {style === "tiles" && <i className="flex size-8 items-center justify-center border border-neutral-600 bg-neutral-800 text-[9px] not-italic text-neutral-300">↗</i>}
+    </span>
+  );
+}
+
 export default function ProfileAppearancePicker({ idPrefix, onChange, profile }: Props) {
   return (
     <section aria-labelledby={`${idPrefix}-appearance-heading`} className="border border-neutral-800 bg-white/[0.015] p-4 sm:p-5">
@@ -154,6 +194,40 @@ export default function ProfileAppearancePicker({ idPrefix, onChange, profile }:
           ))}
         </div>
       </fieldset>
+
+      <div className="mt-5 grid gap-5 lg:grid-cols-2">
+        <fieldset>
+          <legend className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Portrait shape</legend>
+          <p className="mt-1 text-[10px] leading-4 text-neutral-600">Use one crop shape everywhere, or let the layout decide.</p>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            {PROFILE_AVATAR_SHAPES.map((avatarShape) => (
+              <label key={avatarShape} className={`cursor-pointer border p-2.5 transition-colors ${profile.avatarShape === avatarShape ? "border-white bg-white/[0.055]" : "border-neutral-800 hover:border-neutral-600"}`}>
+                <AvatarShapePreview shape={avatarShape} />
+                <span className="mt-2 flex items-start gap-2">
+                  <input type="radio" name={`${idPrefix}-avatar-shape`} checked={profile.avatarShape === avatarShape} onChange={() => onChange({ ...profile, avatarShape })} className="mt-0.5 accent-white" />
+                  <span><span className="block text-[10px] text-neutral-300">{AVATAR_SHAPE_LABELS[avatarShape].label}</span><span className="sr-only">{AVATAR_SHAPE_LABELS[avatarShape].description}</span></span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Social link style</legend>
+          <p className="mt-1 text-[10px] leading-4 text-neutral-600">Choose large icons or links with their service names.</p>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            {PROFILE_SOCIAL_STYLES.map((socialStyle) => (
+              <label key={socialStyle} className={`cursor-pointer border p-2.5 transition-colors ${profile.socialStyle === socialStyle ? "border-white bg-white/[0.055]" : "border-neutral-800 hover:border-neutral-600"}`}>
+                <SocialStylePreview style={socialStyle} />
+                <span className="mt-2 flex items-start gap-2">
+                  <input type="radio" name={`${idPrefix}-social-style`} checked={profile.socialStyle === socialStyle} onChange={() => onChange({ ...profile, socialStyle })} className="mt-0.5 accent-white" />
+                  <span><span className="block text-[10px] text-neutral-300">{SOCIAL_STYLE_LABELS[socialStyle].label}</span><span className="sr-only">{SOCIAL_STYLE_LABELS[socialStyle].description}</span></span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      </div>
     </section>
   );
 }

@@ -6,6 +6,7 @@ const [
   settingsSource,
   profileSettingsSource,
   profileFieldsSource,
+  profileAvatarSource,
   profileSocialsSource,
   profileSocialIconSource,
   profileAppearanceSource,
@@ -26,6 +27,7 @@ const [
   readFile(new URL("../src/components/dashboard/SettingsPanel.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/dashboard/profile/ProfileSettingsPanel.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/profile/ProfileFormFields.tsx", import.meta.url), "utf8"),
+  readFile(new URL("../src/components/profile/ProfileAvatarControls.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/profile/ProfileSocialLinksEditor.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/profile/ProfileSocialIcon.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/profile/ProfileAppearancePicker.tsx", import.meta.url), "utf8"),
@@ -90,8 +92,12 @@ test("profile editor exposes every fixed field and uses immutable update pattern
   assert.match(profileFieldsSource, /cursor-not-allowed/);
   assert.match(profileFieldsSource, /ProfileSocialLinksEditor/);
   assert.match(profileFieldsSource, /ProfileAppearancePicker/);
-  assert.match(profileFieldsSource, /Up to 512px and 200KB\./);
-  assert.match(profileFieldsSource, /size-28/);
+  assert.match(profileFieldsSource, /ProfileAvatarControls/);
+  assert.match(profileAvatarSource, /Up to 512px and 200KB\./);
+  assert.match(profileAvatarSource, /Portrait framing/);
+  assert.match(profileAvatarSource, /Zoom/);
+  assert.match(profileAvatarSource, /Horizontal focus/);
+  assert.match(profileAvatarSource, /Vertical focus/);
   assert.match(profileFieldsSource, /type="button"/);
   assert.match(profileFieldsSource, /aria-pressed/);
   assert.doesNotMatch(profileFieldsSource, /<input type="checkbox" checked=\{profile\.specialties/);
@@ -106,8 +112,12 @@ test("profile editor exposes every fixed field and uses immutable update pattern
   assert.match(profileAppearanceSource, /diptych/);
   assert.match(profileAppearanceSource, /PROFILE_PALETTES/);
   assert.match(profileAppearanceSource, /Color palette/);
-  assert.match(profileRendererSource, /size-14/);
-  assert.match(profileRendererSource, /size=\{28\}/);
+  assert.match(profileAppearanceSource, /Portrait shape/);
+  assert.match(profileAppearanceSource, /Social link style/);
+  assert.match(profileRendererSource, /data-profile-safe-area/);
+  assert.match(profileRendererSource, /data-profile-social-style/);
+  assert.match(profileRendererSource, /data-profile-role-tag/);
+  assert.match(profileRendererSource, /size=\{32\}/);
   assert.match(profileSocialsSource, /size-14/);
   assert.match(profileSocialsSource, /size=\{28\}/);
   assert.match(profileSocialIconSource, /size = 18/);
@@ -123,6 +133,8 @@ test("public profiles render seven responsive templates from one aggregate pagin
   assert.match(profileRendererSource, /EditorialGridHeader/);
   assert.match(profileRendererSource, /DarkroomCardHeader/);
   assert.match(profileRendererSource, /DiptychHeader/);
+  assert.match(profileRendererSource, /profile\.anonymous/);
+  assert.match(profileRendererSource, /data-profile-avatar/);
   assert.match(profileRendererSource, /PROFILE_PALETTE_CLASSES/);
   assert.match(publicProfileSource, /\/api\/profiles\//);
   assert.match(publicProfileSource, /per_page=15/);
