@@ -1,6 +1,38 @@
-export const PROFILE_TEMPLATES = ["contact-sheet", "print-index", "split-frame", "negative-strip"] as const;
-export const PROFILE_DECORATIONS = ["none", "film-frame", "contact-marks", "viewfinder"] as const;
-export const PROFILE_NAME_STYLES = ["classic", "film-credit", "editorial", "bold-print"] as const;
+export const PROFILE_TEMPLATES = [
+  "contact-sheet",
+  "print-index",
+  "split-frame",
+  "negative-strip",
+  "editorial-grid",
+  "darkroom-card",
+  "diptych",
+] as const;
+export const PROFILE_DECORATIONS = [
+  "none",
+  "film-frame",
+  "contact-marks",
+  "viewfinder",
+  "sprocket",
+  "archival-stamp",
+  "grid-lines",
+] as const;
+export const PROFILE_NAME_STYLES = [
+  "classic",
+  "film-credit",
+  "editorial",
+  "bold-print",
+  "condensed",
+  "typewriter",
+  "small-caps",
+] as const;
+export const PROFILE_PALETTES = [
+  "monochrome",
+  "amber",
+  "cyanotype",
+  "forest",
+  "burgundy",
+  "violet",
+] as const;
 export const PROFILE_SOCIAL_PLATFORMS = ["instagram", "discord", "vsco", "website", "email"] as const;
 export const PROFILE_SOCIAL_ICONS = ["instagram", "discord", "vsco", "globe", "mail"] as const;
 export const PROFILE_SPECIALTIES = [
@@ -21,6 +53,7 @@ export const PROFILE_SPECIALTIES = [
 export type ProfileTemplate = (typeof PROFILE_TEMPLATES)[number];
 export type ProfileDecoration = (typeof PROFILE_DECORATIONS)[number];
 export type ProfileNameStyle = (typeof PROFILE_NAME_STYLES)[number];
+export type ProfilePalette = (typeof PROFILE_PALETTES)[number];
 export type ProfileSocialPlatform = (typeof PROFILE_SOCIAL_PLATFORMS)[number];
 export type ProfileSocialIconName = (typeof PROFILE_SOCIAL_ICONS)[number];
 export type ProfileSpecialty = (typeof PROFILE_SPECIALTIES)[number];
@@ -41,6 +74,7 @@ export interface ProfileDraft {
   displayName: string;
   enabled: boolean;
   nameStyle: ProfileNameStyle;
+  palette: ProfilePalette;
   socials: ProfileSocial[];
   specialties: ProfileSpecialty[];
   template: ProfileTemplate;
@@ -102,6 +136,7 @@ export function createEmptyProfileDraft(displayName: string): ProfileDraft {
     displayName: displayName.trim(),
     enabled: false,
     nameStyle: "classic",
+    palette: "monochrome",
     socials: [],
     specialties: [],
     template: "contact-sheet",
@@ -292,6 +327,9 @@ export function normalizeProfileResponse(
       nameStyle: includesValue(PROFILE_NAME_STYLES, rawProfile.nameStyle)
         ? rawProfile.nameStyle
         : fallback.nameStyle,
+      palette: includesValue(PROFILE_PALETTES, rawProfile.palette)
+        ? rawProfile.palette
+        : fallback.palette,
       socials: normalizeSocials(rawProfile.socials),
       specialties: normalizeSpecialties(rawProfile.specialties),
       template: includesValue(PROFILE_TEMPLATES, rawProfile.template)
@@ -311,6 +349,7 @@ export function toProfileUpdate(
     decoration: profile.decoration,
     displayName: profile.displayName.trim(),
     nameStyle: profile.nameStyle,
+    palette: profile.palette,
     socials: profile.socials.map((social) => ({ ...social })),
     specialties: [...profile.specialties],
     template: profile.template,

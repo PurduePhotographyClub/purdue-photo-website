@@ -125,7 +125,7 @@ function AdminMemberProfileForm({
   };
 
   return (
-    <form onSubmit={saveProfile} className="max-w-4xl space-y-5">
+    <form onSubmit={saveProfile} className="mx-auto w-full max-w-6xl space-y-5">
       <div className="border-l border-amber-600/60 pl-4">
         <p className="text-xs leading-5 text-neutral-400">
           Staff can edit the content of an enabled profile. Only the member can change publishing or anonymous mode.
@@ -164,11 +164,11 @@ export default function AdminMemberProfileEditor({
   const [success, setSuccess] = useState("");
 
   if (isLoading && !data) {
-    return <div role="status" className="max-w-4xl border border-neutral-800 p-6 text-xs text-neutral-500">Loading member profile</div>;
+    return <div role="status" className="mx-auto w-full max-w-6xl border border-neutral-800 p-6 text-xs text-neutral-500">Loading member profile</div>;
   }
   if (error || !data) {
     return (
-      <div className="max-w-4xl border border-neutral-800 p-6">
+      <div className="mx-auto w-full max-w-6xl border border-neutral-800 p-6">
         <p role="alert" className="text-xs text-red-400">This member does not have an enabled profile, or it cannot be edited.</p>
         <button type="button" onClick={() => void mutate()} className="mt-4 min-h-11 border border-neutral-700 px-4 text-[10px] uppercase tracking-wider text-neutral-300">Try again</button>
       </div>
@@ -176,7 +176,7 @@ export default function AdminMemberProfileEditor({
   }
 
   const normalized = normalizeProfileResponse(data, fallbackDisplayName).profile;
-  const editorKey = `${normalized.avatarUrl ?? "none"}:${normalized.username}:${normalized.template}`;
+  const editorKey = `${normalized.avatarUrl ?? "none"}:${normalized.username}:${normalized.template}:${normalized.decoration}:${normalized.palette}`;
   return (
     <AdminMemberProfileForm
       key={editorKey}

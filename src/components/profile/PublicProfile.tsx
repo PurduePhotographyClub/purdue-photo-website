@@ -115,6 +115,7 @@ function normalizePublicProfilePayload(value: unknown): PublicProfilePayload {
       decoration: normalized.decoration,
       displayName: anonymous ? "PPC Member" : normalized.displayName,
       nameStyle: anonymous ? "classic" : normalized.nameStyle,
+      palette: normalized.palette,
       socials: anonymous ? [] : normalized.socials,
       specialties: anonymous ? [] : normalized.specialties,
       template,
