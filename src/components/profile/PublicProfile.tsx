@@ -132,6 +132,7 @@ function normalizePublicProfilePayload(value: unknown): PublicProfilePayload {
 export default function PublicProfile({ identifier }: Props) {
   const [page, setPage] = useState(1);
   const [selectedTag, setSelectedTag] = useState("All");
+  const [unfilteredPhotoCount, setUnfilteredPhotoCount] = useState<number | null>(null);
   const tagQuery = selectedTag === "All" ? "" : `&tag=${encodeURIComponent(selectedTag)}`;
   const endpoint = `/api/profiles/${encodeURIComponent(identifier)}?page=${page}&per_page=15${tagQuery}`;
   const { data, error, isLoading, mutate } = useSWR<unknown>(
@@ -157,9 +158,17 @@ export default function PublicProfile({ identifier }: Props) {
 
   if (!payload) {
     return (
-      <main aria-label="Loading member profile" className="mx-auto min-h-[60dvh] max-w-7xl animate-pulse px-4 py-10 sm:px-6 lg:px-8">
-        <div className="h-52 border-b border-neutral-800 bg-white/[0.02]" />
-        <div className="mt-10 columns-1 gap-2 sm:columns-2 lg:columns-3">
+      <main aria-label="Loading member profile" className="mx-auto min-h-[60dvh] max-w-7xl animate-pulse px-4 pb-16 pt-8 sm:px-6 sm:pt-10 lg:px-8">
+        <div className="grid gap-7 border-b border-neutral-800 pb-9 md:grid-cols-[160px_minmax(0,1fr)] md:gap-9 lg:grid-cols-[176px_minmax(0,1fr)]">
+          <div className="aspect-square w-32 bg-neutral-900 sm:w-40 lg:w-44" />
+          <div className="min-w-0 space-y-4">
+            <div className="h-3 w-36 bg-neutral-900" />
+            <div className="h-10 max-w-lg bg-neutral-900" />
+            <div className="h-7 max-w-sm bg-neutral-900" />
+            <div className="h-16 max-w-2xl bg-neutral-900" />
+          </div>
+        </div>
+        <div className="mt-8 columns-1 gap-2 sm:columns-2 lg:columns-3">
           {Array.from({ length: 6 }).map((_, index) => <div key={index} className="mb-2 aspect-square break-inside-avoid bg-neutral-900" />)}
         </div>
       </main>
@@ -169,7 +178,7 @@ export default function PublicProfile({ identifier }: Props) {
   return (
     <main className="mx-auto min-h-[60dvh] max-w-7xl px-4 sm:px-6 lg:px-8">
       <span className="sr-only">{payload.profile.anonymous ? anonymousLabel : "Member photographer profile"}</span>
-      <ProfileTemplateRenderer profile={payload.profile}>
+      <ProfileTemplateRenderer photoCount={unfilteredPhotoCount ?? payload.meta.total} profile={payload.profile}>
         <ProfileGallery
           availableTags={payload.availableTags}
           loading={isLoading}
@@ -178,6 +187,9 @@ export default function PublicProfile({ identifier }: Props) {
           onPageChange={setPage}
           onRetry={() => void mutate()}
           onTagChange={(tag) => {
+            if (tag !== "All" && selectedTag === "All" && unfilteredPhotoCount === null) {
+              setUnfilteredPhotoCount(payload.meta.total);
+            }
             setSelectedTag(tag);
             setPage(1);
           }}
