@@ -1,4 +1,3 @@
-import { Camera } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 import {
   getProfileAvatarImageStyle,
@@ -131,17 +130,15 @@ function getAvatarShapeClass(profile: PublicProfileIdentity) {
 
 function Avatar({
   profile,
-  sizeClass,
 }: {
   profile: PublicProfileIdentity;
-  sizeClass: string;
 }) {
   if (profile.anonymous) return null;
   const resolvedShape = resolveProfileAvatarShape(profile);
 
   return (
     <div
-      className={`relative flex shrink-0 items-center justify-center overflow-hidden border [border-color:var(--profile-border)] [background-color:var(--profile-chip)] text-[var(--profile-muted)] ${getAvatarShapeClass(profile)} ${sizeClass}`}
+      className={`relative aspect-square w-32 shrink-0 overflow-hidden border [border-color:var(--profile-border)] [background-color:var(--profile-chip)] sm:w-40 lg:w-44 ${getAvatarShapeClass(profile)}`}
       data-profile-avatar="true"
       data-profile-avatar-shape={resolvedShape}
     >
@@ -150,11 +147,22 @@ function Avatar({
           src={profile.avatarUrl}
           alt={`${profile.displayName || "Member"} portrait`}
           className="size-full object-cover"
+          decoding="async"
           draggable={false}
+          height={512}
+          sizes="(min-width: 1024px) 176px, (min-width: 640px) 160px, 128px"
           style={getProfileAvatarImageStyle(profile)}
+          width={512}
         />
       ) : (
-        <Camera aria-hidden="true" size={32} />
+        <img
+          src="/ppc-logo.webp"
+          alt="Purdue Photography Club logo"
+          className="size-full object-contain p-5 opacity-75 sm:p-6"
+          data-profile-avatar-fallback="true"
+          height={256}
+          width={256}
+        />
       )}
     </div>
   );
@@ -215,38 +223,33 @@ function SocialLinks({
   if (links.length === 0) return null;
 
   return (
-    <div
-      className={`min-w-0 ${centered ? "flex flex-col items-center" : ""}`}
+    <nav
+      aria-label="Profile social links"
+      className={`flex min-w-0 flex-wrap items-center gap-2 ${centered ? "justify-center" : ""}`}
       data-profile-meta-group="socials"
+      data-profile-social-style={style}
     >
-      <p className="mb-2 text-[9px] uppercase tracking-[0.18em] text-[var(--profile-muted)]">Social links</p>
-      <nav
-        aria-label="Profile social links"
-        className={`flex flex-wrap items-center gap-2 ${centered ? "justify-center" : ""}`}
-        data-profile-social-style={style}
-      >
-        {links.map((social) => {
-          const external = social.platform !== "email";
-          const label = getSocialLabel(social.platform);
-          return (
-            <a
-              key={social.platform}
-              href={social.href}
-              target={external ? "_blank" : undefined}
-              rel={external ? "noopener noreferrer" : undefined}
-              aria-label={label}
-              title={label}
-              className={style === "labels"
-                ? "inline-flex min-h-11 max-w-full items-center gap-2.5 border [border-color:var(--profile-border)] [background-color:var(--profile-chip)] px-3 py-2 text-[11px] text-[var(--profile-ink)] transition-colors hover:[border-color:var(--profile-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--profile-accent)]"
-                : "flex size-12 items-center justify-center border [border-color:var(--profile-border)] [background-color:var(--profile-chip)] text-[var(--profile-ink)] transition-colors hover:[border-color:var(--profile-accent)] hover:text-[var(--profile-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--profile-accent)]"}
-            >
-              <ProfileSocialIcon platform={social.icon} size={22} />
-              {style === "labels" && <span className="truncate">{label}</span>}
-            </a>
-          );
-        })}
-      </nav>
-    </div>
+      {links.map((social) => {
+        const external = social.platform !== "email";
+        const label = getSocialLabel(social.platform);
+        return (
+          <a
+            key={social.platform}
+            href={social.href}
+            target={external ? "_blank" : undefined}
+            rel={external ? "noopener noreferrer" : undefined}
+            aria-label={label}
+            title={label}
+            className={style === "labels"
+              ? "inline-flex min-h-11 max-w-full items-center gap-2.5 border [border-color:var(--profile-border)] [background-color:var(--profile-chip)] px-3 py-2 text-[11px] text-[var(--profile-ink)] transition-colors hover:[border-color:var(--profile-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--profile-accent)]"
+              : "flex size-11 items-center justify-center border [border-color:var(--profile-border)] [background-color:var(--profile-chip)] text-[var(--profile-ink)] transition-colors hover:[border-color:var(--profile-accent)] hover:text-[var(--profile-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--profile-accent)]"}
+          >
+            <ProfileSocialIcon platform={social.icon} size={20} />
+            {style === "labels" && <span className="truncate">{label}</span>}
+          </a>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -254,15 +257,15 @@ function Specialties({ specialties, centered = false }: { specialties: ProfileSp
   if (specialties.length === 0) return null;
   return (
     <div
-      className={`min-w-0 ${centered ? "flex flex-col items-center" : "flex-1 basis-64"}`}
+      className={`min-w-0 ${centered ? "flex flex-col items-center" : ""}`}
       data-profile-meta-group="photography"
     >
-      <p className="mb-2 text-[9px] uppercase tracking-[0.18em] text-[var(--profile-muted)]">Photography types</p>
-      <div aria-label="Photography types" className={`flex flex-wrap gap-2 ${centered ? "justify-center" : ""}`}>
+      <p className="mb-2.5 text-[9px] uppercase tracking-[0.18em] text-[var(--profile-muted)]">Photography types</p>
+      <div aria-label="Photography types" className={`flex flex-wrap gap-1.5 ${centered ? "justify-center" : ""}`}>
         {specialties.map((specialty) => (
           <span
             key={specialty}
-            className="border [border-color:var(--profile-border)] px-2.5 py-1.5 text-[9px] font-medium uppercase tracking-[0.12em] text-[var(--profile-ink)]"
+            className="border [border-color:var(--profile-border)] [background-color:var(--profile-chip)] px-2.5 py-1.5 text-[9px] font-medium uppercase tracking-[0.1em] text-[var(--profile-ink)]"
             data-profile-role-tag="true"
           >
             {specialty}
@@ -273,135 +276,227 @@ function Specialties({ specialties, centered = false }: { specialties: ProfileSp
   );
 }
 
-function ProfileDetails({ profile, centered = false, compact = false }: { profile: PublicProfileIdentity; centered?: boolean; compact?: boolean }) {
-  const hasMeta = profile.specialties.length > 0 || profile.socials.length > 0;
-
+function ProfileIdentity({ profile, centered = false }: { profile: PublicProfileIdentity; centered?: boolean }) {
   return (
-    <div className={`min-w-0 ${centered ? "text-center" : ""}`} data-profile-identity-group="true">
-      <Name profile={profile} centered={centered} compact={compact} />
-      {profile.bio && (
-        <p className={`mt-4 max-w-[70ch] whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-6 text-[var(--profile-ink)] sm:text-[15px] sm:leading-7 ${centered ? "mx-auto" : ""}`}>
-          {profile.bio}
-        </p>
+    <div className={`mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[10px] ${centered ? "justify-center" : ""}`}>
+      {profile.username && (
+        <span className="text-[var(--profile-muted)]" data-profile-username="true">
+          @{profile.username}
+        </span>
       )}
-      {hasMeta && (
-        <div className={`mt-6 flex gap-x-8 gap-y-5 border-t [border-color:var(--profile-border)] pt-5 ${centered ? "flex-col items-center" : "flex-wrap items-start"}`}>
-          <Specialties specialties={profile.specialties} centered={centered} />
-          <SocialLinks socials={profile.socials} style={profile.socialStyle} centered={centered} />
-        </div>
-      )}
+      <span
+        className="inline-flex min-h-7 items-center gap-2 border [border-color:var(--profile-border)] px-2.5 py-1 uppercase tracking-[0.11em] text-[var(--profile-ink)]"
+        data-profile-membership="true"
+      >
+        <span aria-hidden="true" className="size-1.5 [background-color:var(--profile-accent)]" />
+        Purdue Photography Club member
+      </span>
     </div>
   );
 }
 
-function ContactSheetHeader({ profile }: { profile: PublicProfileIdentity }) {
+function ProfileStatistics({
+  centered = false,
+  photoCount,
+  profile,
+}: {
+  centered?: boolean;
+  photoCount: number;
+  profile: PublicProfileIdentity;
+}) {
+  const statistics = profile.anonymous
+    ? [{ label: "Photographs", value: photoCount }]
+    : [
+        { label: "Photographs", value: photoCount },
+        { label: "Focus areas", value: profile.specialties.length },
+        { label: "Profile links", value: profile.socials.length },
+      ];
+
   return (
-    <header className={profile.anonymous
-      ? "py-10 sm:py-14"
-      : "grid gap-6 py-9 sm:gap-8 sm:py-12 lg:grid-cols-[176px_minmax(0,1fr)] lg:items-center lg:gap-10"}
+    <dl
+      className={`grid border-y [border-color:var(--profile-border)] ${profile.anonymous ? "grid-cols-1" : "grid-cols-3"}`}
+      data-profile-statistics="true"
     >
-      <Avatar profile={profile} sizeClass="size-36 sm:size-44" />
-      <div className="min-w-0">
-        <p className="mb-3 text-[10px] uppercase tracking-[0.24em] text-[var(--profile-muted)]">Member mini-portfolio</p>
-        <ProfileDetails profile={profile} />
-      </div>
-    </header>
+      {statistics.map((statistic, index) => (
+        <div
+          key={statistic.label}
+          className={`min-w-0 py-3.5 ${centered ? "px-3" : "pr-3"} ${index > 0 ? "border-l [border-color:var(--profile-border)] pl-3 sm:pl-4" : ""}`}
+          data-profile-stat="true"
+        >
+          <dt className="text-[8px] uppercase tracking-[0.14em] text-[var(--profile-muted)]">{statistic.label}</dt>
+          <dd className="mt-1 text-base leading-none text-[var(--profile-ink)] sm:text-lg">{statistic.value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
-function PrintIndexHeader({ profile }: { profile: PublicProfileIdentity }) {
+function ProfileActions({ profile, centered = false }: { profile: PublicProfileIdentity; centered?: boolean }) {
   return (
-    <header className="mx-auto flex max-w-3xl flex-col items-center py-10 text-center sm:py-14">
-      <Avatar profile={profile} sizeClass="size-32 sm:size-40" />
-      <p className={`${profile.anonymous ? "" : "mt-6"} text-[9px] uppercase tracking-[0.25em] text-[var(--profile-muted)]`}>Purdue Photography Club</p>
-      <div className="mt-3 min-w-0 max-w-full"><ProfileDetails profile={profile} centered /></div>
-    </header>
+    <div
+      className={`flex flex-wrap items-center gap-2 ${centered ? "justify-center" : ""}`}
+      data-profile-actions="true"
+    >
+      <a
+        href="#profile-gallery"
+        className="inline-flex min-h-11 items-center justify-center border [border-color:var(--profile-accent)] [background-color:var(--profile-accent)] px-4 text-[10px] uppercase tracking-[0.13em] [color:var(--profile-surface)] transition-colors hover:opacity-85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--profile-accent)]"
+      >
+        View gallery
+      </a>
+      <SocialLinks socials={profile.socials} style={profile.socialStyle} centered={centered} />
+    </div>
   );
 }
 
-function SplitFrameHeader({ profile }: { profile: PublicProfileIdentity }) {
+function ProfileDetails({
+  centered = false,
+  compact = false,
+  photoCount,
+  profile,
+}: {
+  centered?: boolean;
+  compact?: boolean;
+  photoCount: number;
+  profile: PublicProfileIdentity;
+}) {
+
+  return (
+    <div className={`min-w-0 ${centered ? "text-center" : ""}`} data-profile-identity-group="true">
+      <Name profile={profile} centered={centered} compact={compact} />
+      <ProfileIdentity profile={profile} centered={centered} />
+      {profile.specialties.length > 0 && (
+        <div className="mt-5">
+          <Specialties specialties={profile.specialties} centered={centered} />
+        </div>
+      )}
+      {profile.bio && (
+        <p
+          className={`mt-5 max-w-[68ch] whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-6 text-[var(--profile-ink)] sm:text-[15px] sm:leading-7 ${centered ? "mx-auto" : ""}`}
+          data-profile-bio="true"
+        >
+          {profile.bio}
+        </p>
+      )}
+      <div className="mt-6"><ProfileStatistics centered={centered} photoCount={photoCount} profile={profile} /></div>
+      <div className="mt-5"><ProfileActions profile={profile} centered={centered} /></div>
+    </div>
+  );
+}
+
+interface ProfileHeaderProps {
+  photoCount: number;
+  profile: PublicProfileIdentity;
+}
+
+function ContactSheetHeader({ photoCount, profile }: ProfileHeaderProps) {
   return (
     <header className={profile.anonymous
       ? "py-9 sm:py-12"
-      : "grid overflow-hidden py-7 md:grid-cols-[minmax(0,1fr)_248px] md:py-9"}
+      : "grid gap-7 py-8 sm:py-10 md:grid-cols-[160px_minmax(0,1fr)] md:items-start md:gap-9 lg:grid-cols-[176px_minmax(0,1fr)] lg:gap-11"}
+      data-profile-header="true"
     >
-      <div className="order-2 flex min-w-0 flex-col justify-center border-x border-b [border-color:var(--profile-border)] px-4 py-9 sm:px-8 md:order-1 md:border-x-0 md:border-y">
-        <p className="mb-3 text-[9px] uppercase tracking-[0.25em] text-[var(--profile-muted)]">Selected work</p>
-        <ProfileDetails profile={profile} />
+      <Avatar profile={profile} />
+      <div className="min-w-0">
+        <p className="mb-3 text-[10px] uppercase tracking-[0.24em] text-[var(--profile-muted)]">Member mini-portfolio</p>
+        <ProfileDetails photoCount={photoCount} profile={profile} />
       </div>
-      {!profile.anonymous && (
-        <div className="order-1 flex items-center justify-center border [border-color:var(--profile-border)] [background-color:var(--profile-chip)] p-7 md:order-2 md:border-l-0">
-          <Avatar profile={profile} sizeClass="size-40 md:size-44" />
-        </div>
-      )}
     </header>
   );
 }
 
-function NegativeStripHeader({ profile }: { profile: PublicProfileIdentity }) {
+function PrintIndexHeader({ photoCount, profile }: ProfileHeaderProps) {
   return (
-    <header className="my-5 border-y-[10px] [border-color:var(--profile-border)] [background-color:var(--profile-surface)] sm:my-7">
-      <div aria-hidden="true" className="h-3 bg-[repeating-linear-gradient(90deg,transparent_0_18px,var(--profile-border)_18px_28px)]" />
-      <div className={profile.anonymous
-        ? "border-y [border-color:var(--profile-border)] px-5 py-9 sm:px-8"
-        : "grid items-center gap-6 border-y [border-color:var(--profile-border)] px-5 py-7 sm:grid-cols-[128px_minmax(0,1fr)] sm:gap-8 sm:px-8"}
-      >
-        <Avatar profile={profile} sizeClass="size-32" />
-        <div className="min-w-0"><ProfileDetails profile={profile} compact /></div>
-      </div>
-      <div aria-hidden="true" className="h-3 bg-[repeating-linear-gradient(90deg,transparent_0_18px,var(--profile-border)_18px_28px)]" />
+    <header className="mx-auto flex max-w-4xl flex-col items-center py-9 text-center sm:py-12" data-profile-header="true">
+      <Avatar profile={profile} />
+      <p className={`${profile.anonymous ? "" : "mt-6"} text-[9px] uppercase tracking-[0.25em] text-[var(--profile-muted)]`}>Purdue Photography Club</p>
+      <div className="mt-3 min-w-0 max-w-full"><ProfileDetails photoCount={photoCount} profile={profile} centered /></div>
     </header>
   );
 }
 
-function EditorialGridHeader({ profile }: { profile: PublicProfileIdentity }) {
+function SplitFrameHeader({ photoCount, profile }: ProfileHeaderProps) {
   return (
     <header className={profile.anonymous
-      ? "grid gap-5 py-10 sm:grid-cols-[56px_minmax(0,1fr)] sm:py-14"
-      : "grid gap-6 py-9 sm:grid-cols-[56px_minmax(0,1fr)] sm:py-14 lg:grid-cols-[56px_minmax(0,1fr)_220px] lg:items-center"}
+      ? "py-9 sm:py-12"
+      : "grid gap-7 py-8 sm:py-10 md:grid-cols-[minmax(0,1fr)_160px] md:items-start md:gap-9 lg:grid-cols-[minmax(0,1fr)_176px] lg:gap-11"}
+      data-profile-header="true"
     >
-      <p aria-hidden="true" className="order-1 hidden font-mono text-4xl text-[var(--profile-border)] sm:block sm:self-start">01</p>
-      <div className="order-2 min-w-0 border-l [border-color:var(--profile-border)] pl-5 sm:pl-8">
-        <p className="mb-4 text-[9px] uppercase tracking-[0.28em] text-[var(--profile-muted)]">Photographer index</p>
-        <ProfileDetails profile={profile} />
+      <div className="order-2 min-w-0 md:order-1">
+        <p className="mb-3 text-[9px] uppercase tracking-[0.25em] text-[var(--profile-muted)]">Selected work</p>
+        <ProfileDetails photoCount={photoCount} profile={profile} />
       </div>
       {!profile.anonymous && (
-        <div className="order-1 col-span-full flex justify-center sm:order-3 sm:justify-start sm:pl-[88px] lg:col-span-1 lg:justify-end lg:pl-0">
-          <Avatar profile={profile} sizeClass="size-40 lg:size-48" />
+        <div className="order-1 md:order-2 md:justify-self-end">
+          <Avatar profile={profile} />
         </div>
       )}
     </header>
   );
 }
 
-function DarkroomCardHeader({ profile }: { profile: PublicProfileIdentity }) {
+function NegativeStripHeader({ photoCount, profile }: ProfileHeaderProps) {
   return (
-    <header className="flex justify-center py-10 sm:py-16">
+    <header className="my-5 border-y-8 [border-color:var(--profile-border)] [background-color:var(--profile-surface)] sm:my-7" data-profile-header="true">
+      <div aria-hidden="true" className="h-2.5 bg-[repeating-linear-gradient(90deg,transparent_0_18px,var(--profile-border)_18px_28px)]" />
       <div className={profile.anonymous
-        ? "w-full max-w-3xl border [border-color:var(--profile-border)] [background-color:var(--profile-surface)] p-7 sm:p-10"
-        : "grid w-full max-w-4xl gap-7 border [border-color:var(--profile-border)] [background-color:var(--profile-surface)] p-6 md:grid-cols-[220px_minmax(0,1fr)] md:items-center md:p-8"}
+        ? "border-y [border-color:var(--profile-border)] px-5 py-8 sm:px-8"
+        : "grid gap-7 border-y [border-color:var(--profile-border)] px-5 py-7 sm:px-8 md:grid-cols-[160px_minmax(0,1fr)] md:items-start md:gap-9"}
       >
-        <Avatar profile={profile} sizeClass="size-40 md:size-48" />
-        <div className="min-w-0">
-          <p className="mb-3 font-mono text-[9px] uppercase tracking-[0.24em] text-[var(--profile-muted)]">Darkroom record</p>
-          <ProfileDetails profile={profile} compact />
+        <Avatar profile={profile} />
+        <div className="min-w-0"><ProfileDetails photoCount={photoCount} profile={profile} compact /></div>
+      </div>
+      <div aria-hidden="true" className="h-2.5 bg-[repeating-linear-gradient(90deg,transparent_0_18px,var(--profile-border)_18px_28px)]" />
+    </header>
+  );
+}
+
+function EditorialGridHeader({ photoCount, profile }: ProfileHeaderProps) {
+  return (
+    <header className={profile.anonymous
+      ? "py-9 sm:py-12"
+      : "grid gap-7 py-8 sm:py-10 md:grid-cols-[minmax(0,1fr)_160px] md:items-start md:gap-9 lg:grid-cols-[minmax(0,1fr)_176px] lg:gap-11"}
+      data-profile-header="true"
+    >
+      <div className="order-2 min-w-0 border-t [border-color:var(--profile-border)] pt-5 md:order-1 md:border-l md:border-t-0 md:pl-7 md:pt-0 lg:pl-9">
+        <p className="mb-4 text-[9px] uppercase tracking-[0.28em] text-[var(--profile-muted)]">Photographer index</p>
+        <ProfileDetails photoCount={photoCount} profile={profile} />
+      </div>
+      {!profile.anonymous && (
+        <div className="order-1 md:order-2 md:justify-self-end">
+          <Avatar profile={profile} />
         </div>
+      )}
+    </header>
+  );
+}
+
+function DarkroomCardHeader({ photoCount, profile }: ProfileHeaderProps) {
+  return (
+    <header className={profile.anonymous
+      ? "my-6 border-y [border-color:var(--profile-border)] [background-color:var(--profile-chip)] px-5 py-8 sm:px-8 sm:py-10"
+      : "my-6 grid gap-7 border-y [border-color:var(--profile-border)] [background-color:var(--profile-chip)] px-5 py-7 sm:px-8 md:grid-cols-[160px_minmax(0,1fr)] md:items-start md:gap-9 lg:grid-cols-[176px_minmax(0,1fr)]"}
+      data-profile-header="true"
+    >
+      <Avatar profile={profile} />
+      <div className="min-w-0">
+        <p className="mb-3 font-mono text-[9px] uppercase tracking-[0.24em] text-[var(--profile-muted)]">Darkroom record</p>
+        <ProfileDetails photoCount={photoCount} profile={profile} compact />
       </div>
     </header>
   );
 }
 
-function DiptychHeader({ profile }: { profile: PublicProfileIdentity }) {
+function DiptychHeader({ photoCount, profile }: ProfileHeaderProps) {
   return (
-    <header className={profile.anonymous ? "py-9 sm:py-12" : "grid py-8 md:grid-cols-[minmax(220px,0.8fr)_minmax(0,1.2fr)] md:py-12"}>
-      {!profile.anonymous && (
-        <div className="flex min-h-60 items-center justify-center border [border-color:var(--profile-border)] [background-color:var(--profile-chip)] p-7">
-          <Avatar profile={profile} sizeClass="size-44 lg:size-52" />
-        </div>
-      )}
-      <div className={`flex min-h-60 min-w-0 flex-col justify-center border [border-color:var(--profile-border)] p-7 sm:p-9 ${profile.anonymous ? "" : "border-t-0 md:border-l-0 md:border-t"}`}>
+    <header className={profile.anonymous
+      ? "py-9 sm:py-12"
+      : "grid gap-7 py-8 sm:py-10 md:grid-cols-[160px_minmax(0,1fr)] md:items-start md:gap-9 lg:grid-cols-[176px_minmax(0,1fr)] lg:gap-11"}
+      data-profile-header="true"
+    >
+      <Avatar profile={profile} />
+      <div className="min-w-0 border-t [border-color:var(--profile-border)] pt-5 md:border-l md:border-t-0 md:pl-7 md:pt-0 lg:pl-9">
         <p className="mb-3 text-[9px] uppercase tracking-[0.25em] text-[var(--profile-muted)]">Profile / selected work</p>
-        <ProfileDetails profile={profile} />
+        <ProfileDetails photoCount={photoCount} profile={profile} />
       </div>
     </header>
   );
@@ -460,21 +555,23 @@ function DecorationFrame({ children, decoration }: { children: ReactNode; decora
   );
 }
 
-function TemplateHeader({ profile }: { profile: PublicProfileIdentity }) {
-  if (profile.template === "print-index") return <PrintIndexHeader profile={profile} />;
-  if (profile.template === "split-frame") return <SplitFrameHeader profile={profile} />;
-  if (profile.template === "negative-strip") return <NegativeStripHeader profile={profile} />;
-  if (profile.template === "editorial-grid") return <EditorialGridHeader profile={profile} />;
-  if (profile.template === "darkroom-card") return <DarkroomCardHeader profile={profile} />;
-  if (profile.template === "diptych") return <DiptychHeader profile={profile} />;
-  return <ContactSheetHeader profile={profile} />;
+function TemplateHeader({ photoCount, profile }: ProfileHeaderProps) {
+  if (profile.template === "print-index") return <PrintIndexHeader photoCount={photoCount} profile={profile} />;
+  if (profile.template === "split-frame") return <SplitFrameHeader photoCount={photoCount} profile={profile} />;
+  if (profile.template === "negative-strip") return <NegativeStripHeader photoCount={photoCount} profile={profile} />;
+  if (profile.template === "editorial-grid") return <EditorialGridHeader photoCount={photoCount} profile={profile} />;
+  if (profile.template === "darkroom-card") return <DarkroomCardHeader photoCount={photoCount} profile={profile} />;
+  if (profile.template === "diptych") return <DiptychHeader photoCount={photoCount} profile={profile} />;
+  return <ContactSheetHeader photoCount={photoCount} profile={profile} />;
 }
 
 export default function ProfileTemplateRenderer({
   children,
+  photoCount = 0,
   profile,
 }: {
   children?: ReactNode;
+  photoCount?: number;
   profile: PublicProfileIdentity;
 }) {
   const visibleProfile: PublicProfileIdentity = profile.anonymous
@@ -501,7 +598,7 @@ export default function ProfileTemplateRenderer({
     >
       <span className="sr-only">{PALETTE_LABELS[profile.palette]} profile palette</span>
       <DecorationFrame decoration={profile.decoration}>
-        <TemplateHeader profile={visibleProfile} />
+        <TemplateHeader photoCount={photoCount} profile={visibleProfile} />
       </DecorationFrame>
       {children}
     </section>

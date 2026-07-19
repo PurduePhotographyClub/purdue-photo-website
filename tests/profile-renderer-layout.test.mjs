@@ -88,6 +88,49 @@ test("the selected profile presentation wraps the gallery in one mini-portfolio 
   }
 });
 
+test("every profile template keeps the polished identity hierarchy and gallery action", () => {
+  for (const template of PROFILE_TEMPLATES) {
+    const html = renderToStaticMarkup(createElement(ProfileTemplateRenderer, {
+      photoCount: 24,
+      profile: createProfile({ template }),
+    }));
+    const context = `${template}: profile hierarchy`;
+    const usernameIndex = html.indexOf('data-profile-username="true"');
+    const membershipIndex = html.indexOf('data-profile-membership="true"');
+    const specialtiesIndex = html.indexOf('data-profile-meta-group="photography"');
+    const bioIndex = html.indexOf('data-profile-bio="true"');
+    const statisticsIndex = html.indexOf('data-profile-statistics="true"');
+    const actionsIndex = html.indexOf('data-profile-actions="true"');
+
+    assert.match(html, /data-profile-header="true"/, context);
+    assert.match(html, /@alexandria-member/, context);
+    assert.match(html, /Purdue Photography Club member/, context);
+    assert.match(html, />Photographs<.*>24</, context);
+    assert.match(html, /href="#profile-gallery"/, context);
+    assert.ok(usernameIndex >= 0, context);
+    assert.ok(usernameIndex < membershipIndex, context);
+    assert.ok(membershipIndex < specialtiesIndex, context);
+    assert.ok(specialtiesIndex < bioIndex, context);
+    assert.ok(bioIndex < statisticsIndex, context);
+    assert.ok(statisticsIndex < actionsIndex, context);
+  }
+});
+
+test("the profile portrait is square, intrinsic, and uses the club fallback image", () => {
+  const html = renderToStaticMarkup(createElement(ProfileTemplateRenderer, {
+    photoCount: 0,
+    profile: createProfile({ avatarShape: "rounded", avatarUrl: null }),
+  }));
+  const avatar = html.match(/<div[^>]+data-profile-avatar="true"[^>]*>[\s\S]*?<\/div>/)?.[0] ?? "";
+
+  assert.match(avatar, /aspect-square/);
+  assert.match(avatar, /data-profile-avatar-fallback="true"/);
+  assert.match(avatar, /src="\/ppc-logo\.webp"/);
+  assert.match(avatar, /width="256"/);
+  assert.match(avatar, /height="256"/);
+  assert.match(avatar, /object-contain/);
+});
+
 test("orthogonal portrait, role-tag, and social styles render across every template", () => {
   const squareLayouts = new Set([
     "split-frame",

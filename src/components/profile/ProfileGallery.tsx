@@ -43,16 +43,6 @@ interface Props {
   template: ProfileTemplate;
 }
 
-const GALLERY_INTRO_CLASSES: Record<ProfileTemplate, string> = {
-  "contact-sheet": "flex flex-col gap-5 border-b [border-color:var(--profile-border)] pb-6 sm:flex-row sm:items-end sm:justify-between",
-  "print-index": "flex flex-col items-center gap-5 border-b [border-color:var(--profile-border)] pb-6 text-center",
-  "split-frame": "grid gap-5 border-b [border-color:var(--profile-border)] pb-6 sm:grid-cols-2 sm:items-end",
-  "negative-strip": "flex flex-col gap-5 border-b [border-color:var(--profile-border)] pb-6 sm:flex-row sm:items-end sm:justify-between",
-  "editorial-grid": "grid gap-5 border-b [border-color:var(--profile-border)] pb-6 sm:grid-cols-[56px_minmax(0,1fr)_minmax(0,1fr)] sm:items-end",
-  "darkroom-card": "flex flex-col gap-5 border-b [border-color:var(--profile-border)] pb-6 sm:flex-row sm:items-end sm:justify-between",
-  diptych: "grid gap-5 border-b [border-color:var(--profile-border)] pb-6 sm:grid-cols-2 sm:items-end",
-};
-
 function getVisiblePages(page: number, totalPages: number) {
   return Array.from(new Set([1, page - 1, page, page + 1, totalPages]))
     .filter((value) => value >= 1 && value <= totalPages)
@@ -96,21 +86,21 @@ export default function ProfileGallery({
 
   return (
     <section
+      id="profile-gallery"
       aria-labelledby="profile-gallery-heading"
-      className="pb-12 pt-7 [background-color:var(--profile-surface)] sm:pb-16 sm:pt-8"
+      className="scroll-mt-24 pb-12 pt-7 [background-color:var(--profile-surface)] sm:pb-16 sm:pt-9"
       data-profile-gallery="true"
       data-profile-gallery-layout={template}
     >
-      <div className={GALLERY_INTRO_CLASSES[template]}>
-        {template === "editorial-grid" && (
-          <p aria-hidden="true" className="hidden font-mono text-3xl text-[var(--profile-border)] sm:block">02</p>
-        )}
-        <div>
-          <p className="text-[9px] uppercase tracking-[0.24em] text-[var(--profile-muted)]">Mini-portfolio</p>
-          <h2 id="profile-gallery-heading" className="mt-2 text-2xl tracking-[0.04em] text-[var(--profile-ink)]" style={{ fontFamily: "'Playfair Display', serif" }}>Gallery</h2>
+      <div className="flex flex-col gap-4 border-b [border-color:var(--profile-border)] pb-5 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+        <div className="min-w-0">
+          <h2 id="profile-gallery-heading" className="text-2xl tracking-[0.04em] text-[var(--profile-ink)] sm:text-[1.75rem]" style={{ fontFamily: "'Playfair Display', serif" }}>Selected photographs</h2>
+          <p className="mt-1.5 text-[9px] uppercase tracking-[0.15em] text-[var(--profile-muted)]">
+            {meta.total} {meta.total === 1 ? "public image" : "public images"}
+          </p>
         </div>
         {showFilters && (
-          <div aria-label="Filter profile gallery by tag" className={`flex max-w-full gap-2 overflow-x-auto pb-1 sm:flex-wrap ${template === "print-index" ? "justify-center" : "sm:justify-end"}`}>
+          <div aria-label="Filter profile gallery by tag" className="flex max-w-full gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:justify-end">
             {["All", ...availableTags].map((tag) => (
               <button
                 key={tag}
@@ -126,8 +116,14 @@ export default function ProfileGallery({
         )}
       </div>
 
-      <div ref={resultsRef} tabIndex={-1} className="scroll-mt-24 pt-6 outline-none">
-        <p role="status" aria-live="polite" className="mb-4 text-center text-[9px] uppercase tracking-[0.2em] text-[var(--profile-muted)]">
+      <div ref={resultsRef} tabIndex={-1} className="scroll-mt-24 pt-5 outline-none sm:pt-6">
+        <p
+          role="status"
+          aria-live="polite"
+          className={loading || meta.totalPages > 1
+            ? "mb-4 text-center text-[9px] uppercase tracking-[0.2em] text-[var(--profile-muted)]"
+            : "sr-only"}
+        >
           {loading ? "Loading photographs" : `Page ${meta.page} of ${meta.totalPages}`}
         </p>
 

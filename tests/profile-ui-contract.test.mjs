@@ -122,7 +122,7 @@ test("profile editor exposes every fixed field and uses immutable update pattern
   assert.match(profileRendererSource, /data-profile-meta-group/);
   assert.match(profileRendererSource, /data-profile-social-style/);
   assert.match(profileRendererSource, /data-profile-role-tag/);
-  assert.match(profileRendererSource, /size=\{22\}/);
+  assert.match(profileRendererSource, /size=\{20\}/);
   assert.match(profileSocialsSource, /size-14/);
   assert.match(profileSocialsSource, /size=\{28\}/);
   assert.match(profileSocialIconSource, /size = 18/);
@@ -140,9 +140,23 @@ test("public profiles render seven responsive templates from one aggregate pagin
   assert.match(profileRendererSource, /DiptychHeader/);
   assert.match(profileRendererSource, /profile\.anonymous/);
   assert.match(profileRendererSource, /data-profile-avatar/);
+  assert.match(profileRendererSource, /data-profile-avatar-fallback/);
+  assert.match(profileRendererSource, /data-profile-membership/);
+  assert.match(profileRendererSource, /data-profile-statistics/);
+  assert.match(profileRendererSource, /data-profile-actions/);
+  assert.match(profileRendererSource, /href="#profile-gallery"/);
   assert.match(profileRendererSource, /PROFILE_PALETTE_CLASSES/);
   assert.match(publicProfileSource, /\/api\/profiles\//);
   assert.match(publicProfileSource, /per_page=15/);
+  assert.match(publicProfileSource, /unfilteredPhotoCount/);
+  assert.match(
+    publicProfileSource,
+    /tag !== "All"[\s\S]{0,180}selectedTag === "All"[\s\S]{0,180}payload\.meta\.total/,
+  );
+  assert.match(
+    publicProfileSource,
+    /photoCount=\{unfilteredPhotoCount \?\? payload\.meta\.total\}/,
+  );
   assert.match(publicProfileSource, /PPC Member profile/);
   assert.match(publicProfileSource, /<ProfileTemplateRenderer[\s\S]*<ProfileGallery[\s\S]*<\/ProfileTemplateRenderer>/);
   assert.match(publicProfileSource, /createdAt:\s*readNullableText\(value\.createdAt\)/);
@@ -152,7 +166,8 @@ test("public profiles render seven responsive templates from one aggregate pagin
   assert.match(profileGallerySource, /min-h-11/);
   assert.match(profileGallerySource, /sm:columns-2/);
   assert.match(profileGallerySource, /lg:columns-3/);
-  assert.match(profileGallerySource, /Mini-portfolio/);
+  assert.match(profileGallerySource, /Selected photographs/);
+  assert.match(profileGallerySource, /id="profile-gallery"/);
   assert.match(profileGallerySource, /data-profile-gallery-layout/);
   assert.match(profileGallerySource, /var\(--profile-surface\)/);
   assert.match(profileGallerySource, /\[border-color:var\(--profile-border\)\]/);
