@@ -12,6 +12,7 @@ const [
   profileAppearanceSource,
   publicProfileSource,
   profileRendererSource,
+  profileStatisticsSource,
   profileGallerySource,
   profileRouteSource,
   adminMembersSource,
@@ -33,6 +34,7 @@ const [
   readFile(new URL("../src/components/profile/ProfileAppearancePicker.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/profile/PublicProfile.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/profile/ProfileTemplateRenderer.tsx", import.meta.url), "utf8"),
+  readFile(new URL("../src/lib/profile-statistics.ts", import.meta.url), "utf8"),
   readFile(new URL("../src/components/profile/ProfileGallery.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/pages/profile/[username].astro", import.meta.url), "utf8"),
   readFile(new URL("../src/components/dashboard/admin/AdminMembers.tsx", import.meta.url), "utf8"),
@@ -115,9 +117,11 @@ test("profile editor exposes every fixed field and uses immutable update pattern
   assert.match(profileAppearanceSource, /Portrait shape/);
   assert.match(profileAppearanceSource, /Social link style/);
   assert.match(profileAppearanceSource, /Mini-portfolio appearance/);
-  assert.match(profileAppearanceSource, /continue through the gallery/);
+  assert.match(profileAppearanceSource, /header/);
+  assert.match(profileAppearanceSource, /resolveProfileDecoration/);
   assert.match(profileRendererSource, /data-profile-safe-area/);
-  assert.match(profileRendererSource, /data-profile-surface/);
+  assert.match(profileRendererSource, /data-profile-header-surface/);
+  assert.match(profileRendererSource, /data-profile-gallery-surface/);
   assert.match(profileRendererSource, /data-profile-identity-group/);
   assert.match(profileRendererSource, /data-profile-meta-group/);
   assert.match(profileRendererSource, /data-profile-social-style/);
@@ -141,22 +145,18 @@ test("public profiles render seven responsive templates from one aggregate pagin
   assert.match(profileRendererSource, /profile\.anonymous/);
   assert.match(profileRendererSource, /data-profile-avatar/);
   assert.match(profileRendererSource, /data-profile-avatar-fallback/);
-  assert.match(profileRendererSource, /data-profile-membership/);
   assert.match(profileRendererSource, /data-profile-statistics/);
   assert.match(profileRendererSource, /data-profile-actions/);
-  assert.match(profileRendererSource, /href="#profile-gallery"/);
+  assert.doesNotMatch(profileRendererSource, /data-profile-membership/);
+  assert.doesNotMatch(profileRendererSource, /href="#profile-gallery"/);
+  assert.doesNotMatch(profileRendererSource, /View gallery/);
   assert.match(profileRendererSource, /PROFILE_PALETTE_CLASSES/);
   assert.match(publicProfileSource, /\/api\/profiles\//);
   assert.match(publicProfileSource, /per_page=15/);
-  assert.match(publicProfileSource, /unfilteredPhotoCount/);
-  assert.match(
-    publicProfileSource,
-    /tag !== "All"[\s\S]{0,180}selectedTag === "All"[\s\S]{0,180}payload\.meta\.total/,
-  );
-  assert.match(
-    publicProfileSource,
-    /photoCount=\{unfilteredPhotoCount \?\? payload\.meta\.total\}/,
-  );
+  assert.match(profileStatisticsSource, /competitionTopThreePlacements/);
+  assert.match(profileStatisticsSource, /clubTenureMonths/);
+  assert.match(publicProfileSource, /statistics=\{payload\.statistics\}/);
+  assert.doesNotMatch(publicProfileSource, /unfilteredPhotoCount/);
   assert.match(publicProfileSource, /PPC Member profile/);
   assert.match(publicProfileSource, /<ProfileTemplateRenderer[\s\S]*<ProfileGallery[\s\S]*<\/ProfileTemplateRenderer>/);
   assert.match(publicProfileSource, /createdAt:\s*readNullableText\(value\.createdAt\)/);

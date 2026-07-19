@@ -4,6 +4,8 @@ import {
   PROFILE_PALETTES,
   PROFILE_SOCIAL_STYLES,
   PROFILE_TEMPLATES,
+  getCompatibleProfileDecorations,
+  resolveProfileDecoration,
   type ProfileAvatarShape,
   type ProfileDecoration,
   type ProfileDraft,
@@ -144,10 +146,13 @@ function SocialStylePreview({ style }: { style: ProfileSocialStyle }) {
 }
 
 export default function ProfileAppearancePicker({ idPrefix, onChange, profile }: Props) {
+  const compatibleDecorations = getCompatibleProfileDecorations(profile.template);
+  const resolvedDecoration = resolveProfileDecoration(profile);
+
   return (
     <section aria-labelledby={`${idPrefix}-appearance-heading`} className="border border-neutral-800 bg-white/[0.015] p-4 sm:p-5">
       <h2 id={`${idPrefix}-appearance-heading`} className="text-sm tracking-wide text-neutral-100">Mini-portfolio appearance</h2>
-      <p className="mt-1 max-w-3xl text-xs leading-5 text-neutral-500">Choose an introduction layout, then let its palette and details continue through the gallery.</p>
+      <p className="mt-1 max-w-3xl text-xs leading-5 text-neutral-500">Choose a compatible introduction layout and decoration. Color palettes stay within the profile header so photographs keep a neutral gallery backdrop.</p>
 
       <fieldset className="mt-4">
         <legend className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Layout</legend>
@@ -156,7 +161,20 @@ export default function ProfileAppearancePicker({ idPrefix, onChange, profile }:
             <label key={template} className={`cursor-pointer border p-3 transition-colors ${profile.template === template ? "border-white bg-white/[0.055]" : "border-neutral-800 hover:border-neutral-600"}`}>
               <LayoutPreview template={template} />
               <span className="mt-3 flex items-start gap-2.5">
-                <input type="radio" name={`${idPrefix}-template`} checked={profile.template === template} onChange={() => onChange({ ...profile, template })} className="mt-0.5 accent-white" />
+                <input
+                  type="radio"
+                  name={`${idPrefix}-template`}
+                  checked={profile.template === template}
+                  onChange={() => onChange({
+                    ...profile,
+                    decoration: resolveProfileDecoration({
+                      decoration: profile.decoration,
+                      template,
+                    }),
+                    template,
+                  })}
+                  className="mt-0.5 accent-white"
+                />
                 <span><span className="block text-xs text-neutral-200">{TEMPLATE_LABELS[template].label}</span><span className="mt-0.5 block text-[10px] leading-4 text-neutral-500">{TEMPLATE_LABELS[template].description}</span></span>
               </span>
             </label>
@@ -167,11 +185,11 @@ export default function ProfileAppearancePicker({ idPrefix, onChange, profile }:
       <fieldset className="mt-5">
         <legend className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Decoration</legend>
         <div className="mt-2 grid grid-cols-2 gap-2 lg:grid-cols-4">
-          {PROFILE_DECORATIONS.map((decoration) => (
-            <label key={decoration} className={`cursor-pointer border p-2.5 transition-colors ${profile.decoration === decoration ? "border-white bg-white/[0.055]" : "border-neutral-800 hover:border-neutral-600"}`}>
+          {compatibleDecorations.map((decoration) => (
+            <label key={decoration} className={`cursor-pointer border p-2.5 transition-colors ${resolvedDecoration === decoration ? "border-white bg-white/[0.055]" : "border-neutral-800 hover:border-neutral-600"}`}>
               <DecorationPreview decoration={decoration} />
               <span className="mt-2 flex items-start gap-2">
-                <input type="radio" name={`${idPrefix}-decoration`} checked={profile.decoration === decoration} onChange={() => onChange({ ...profile, decoration })} className="mt-0.5 accent-white" />
+                <input type="radio" name={`${idPrefix}-decoration`} checked={resolvedDecoration === decoration} onChange={() => onChange({ ...profile, decoration })} className="mt-0.5 accent-white" />
                 <span><span className="block text-[10px] text-neutral-300">{DECORATION_LABELS[decoration].label}</span><span className="sr-only">{DECORATION_LABELS[decoration].description}</span></span>
               </span>
             </label>
@@ -181,7 +199,7 @@ export default function ProfileAppearancePicker({ idPrefix, onChange, profile }:
 
       <fieldset className="mt-5">
         <legend className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Color palette</legend>
-        <p className="mt-1 text-[10px] leading-4 text-neutral-600">Choose a fixed, readable accent for your full mini-portfolio.</p>
+        <p className="mt-1 text-[10px] leading-4 text-neutral-600">Choose a fixed, readable accent for the profile header.</p>
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
           {PROFILE_PALETTES.map((palette) => (
             <label key={palette} className={`cursor-pointer border p-2 transition-colors ${profile.palette === palette ? "border-white bg-white/[0.055]" : "border-neutral-800 hover:border-neutral-600"}`}>

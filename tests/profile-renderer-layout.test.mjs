@@ -43,6 +43,15 @@ function createProfile(overrides = {}) {
   };
 }
 
+function createStatistics(overrides = {}) {
+  return {
+    clubTenureMonths: 24,
+    competitionTopThreePlacements: 4,
+    photographs: 24,
+    ...overrides,
+  };
+}
+
 test("every core layout combination preserves identity, copy, tags, socials, and safe decoration space", () => {
   for (const template of PROFILE_TEMPLATES) {
     for (const decoration of PROFILE_DECORATIONS) {
@@ -77,26 +86,30 @@ test("the selected profile presentation wraps the gallery in one mini-portfolio 
   for (const palette of PROFILE_PALETTES) {
     const html = renderToStaticMarkup(createElement(
       ProfileTemplateRenderer,
-      { profile: createProfile({ palette }) },
+      { profile: createProfile({ palette }), statistics: createStatistics() },
       createElement("div", { "data-profile-gallery": "true" }, "Mini-portfolio gallery"),
     ));
 
     assert.match(html, new RegExp(`data-profile-palette="${palette}"`));
-    assert.match(html, /data-profile-surface="true"/);
+    assert.match(html, /data-profile-header-surface="true"/);
+    assert.match(html, /data-profile-gallery-surface="true"/);
     assert.match(html, /data-profile-gallery="true"/);
     assert.match(html, /Mini-portfolio gallery/);
+    assert.ok(
+      html.indexOf("data-profile-header-surface") < html.indexOf("data-profile-gallery-surface"),
+      `${palette}: palette surface must end before the gallery`,
+    );
   }
 });
 
-test("every profile template keeps the polished identity hierarchy and gallery action", () => {
+test("every profile template keeps the polished identity hierarchy without redundant badges or actions", () => {
   for (const template of PROFILE_TEMPLATES) {
     const html = renderToStaticMarkup(createElement(ProfileTemplateRenderer, {
-      photoCount: 24,
       profile: createProfile({ template }),
+      statistics: createStatistics(),
     }));
     const context = `${template}: profile hierarchy`;
     const usernameIndex = html.indexOf('data-profile-username="true"');
-    const membershipIndex = html.indexOf('data-profile-membership="true"');
     const specialtiesIndex = html.indexOf('data-profile-meta-group="photography"');
     const bioIndex = html.indexOf('data-profile-bio="true"');
     const statisticsIndex = html.indexOf('data-profile-statistics="true"');
@@ -104,12 +117,15 @@ test("every profile template keeps the polished identity hierarchy and gallery a
 
     assert.match(html, /data-profile-header="true"/, context);
     assert.match(html, /@alexandria-member/, context);
-    assert.match(html, /Purdue Photography Club member/, context);
     assert.match(html, />Photographs<.*>24</, context);
-    assert.match(html, /href="#profile-gallery"/, context);
+    assert.match(html, /Time in club/, context);
+    assert.match(html, />2 years</, context);
+    assert.match(html, /Top 3 finishes/, context);
+    assert.match(html, />4</, context);
+    assert.doesNotMatch(html, /Purdue Photography Club member|Focus areas|Profile links|View gallery/, context);
+    assert.doesNotMatch(html, /href="#profile-gallery"/, context);
     assert.ok(usernameIndex >= 0, context);
-    assert.ok(usernameIndex < membershipIndex, context);
-    assert.ok(membershipIndex < specialtiesIndex, context);
+    assert.ok(usernameIndex < specialtiesIndex, context);
     assert.ok(specialtiesIndex < bioIndex, context);
     assert.ok(bioIndex < statisticsIndex, context);
     assert.ok(statisticsIndex < actionsIndex, context);
@@ -124,6 +140,7 @@ test("the profile portrait is square, intrinsic, and uses the club fallback imag
   const avatar = html.match(/<div[^>]+data-profile-avatar="true"[^>]*>[\s\S]*?<\/div>/)?.[0] ?? "";
 
   assert.match(avatar, /aspect-square/);
+  assert.match(avatar, /max-w-full/);
   assert.match(avatar, /data-profile-avatar-fallback="true"/);
   assert.match(avatar, /src="\/ppc-logo\.webp"/);
   assert.match(avatar, /width="256"/);

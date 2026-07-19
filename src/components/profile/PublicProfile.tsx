@@ -3,6 +3,10 @@ import useSWR from "swr";
 import { GALLERY_TAGS, parseGalleryTags } from "@/lib/gallery-tags";
 import { fetchPublicJson, PUBLIC_API_SWR_OPTIONS } from "@/lib/http";
 import { normalizeProfileResponse } from "@/lib/profile-model";
+import {
+  normalizePublicProfileStatistics,
+  type PublicProfileStatistics,
+} from "@/lib/profile-statistics";
 import ProfileGallery, {
   type ProfileGalleryMeta,
   type ProfileGalleryPhoto,
@@ -20,6 +24,7 @@ interface PublicProfilePayload {
   meta: ProfileGalleryMeta;
   photos: ProfileGalleryPhoto[];
   profile: PublicProfileIdentity;
+  statistics: PublicProfileStatistics;
 }
 
 const EMPTY_META: ProfileGalleryMeta = {
@@ -126,13 +131,13 @@ function normalizePublicProfilePayload(value: unknown): PublicProfilePayload {
       template,
       username: anonymous ? null : normalized.username || null,
     },
+    statistics: normalizePublicProfileStatistics(response.stats, anonymous),
   };
 }
 
 export default function PublicProfile({ identifier }: Props) {
   const [page, setPage] = useState(1);
   const [selectedTag, setSelectedTag] = useState("All");
-  const [unfilteredPhotoCount, setUnfilteredPhotoCount] = useState<number | null>(null);
   const tagQuery = selectedTag === "All" ? "" : `&tag=${encodeURIComponent(selectedTag)}`;
   const endpoint = `/api/profiles/${encodeURIComponent(identifier)}?page=${page}&per_page=15${tagQuery}`;
   const { data, error, isLoading, mutate } = useSWR<unknown>(
@@ -178,7 +183,7 @@ export default function PublicProfile({ identifier }: Props) {
   return (
     <main className="mx-auto min-h-[60dvh] max-w-7xl px-4 sm:px-6 lg:px-8">
       <span className="sr-only">{payload.profile.anonymous ? anonymousLabel : "Member photographer profile"}</span>
-      <ProfileTemplateRenderer photoCount={unfilteredPhotoCount ?? payload.meta.total} profile={payload.profile}>
+      <ProfileTemplateRenderer profile={payload.profile} statistics={payload.statistics}>
         <ProfileGallery
           availableTags={payload.availableTags}
           loading={isLoading}
@@ -187,9 +192,6 @@ export default function PublicProfile({ identifier }: Props) {
           onPageChange={setPage}
           onRetry={() => void mutate()}
           onTagChange={(tag) => {
-            if (tag !== "All" && selectedTag === "All" && unfilteredPhotoCount === null) {
-              setUnfilteredPhotoCount(payload.meta.total);
-            }
             setSelectedTag(tag);
             setPage(1);
           }}

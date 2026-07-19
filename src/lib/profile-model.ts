@@ -62,6 +62,29 @@ export type ProfileSocialPlatform = (typeof PROFILE_SOCIAL_PLATFORMS)[number];
 export type ProfileSocialIconName = (typeof PROFILE_SOCIAL_ICONS)[number];
 export type ProfileSpecialty = (typeof PROFILE_SPECIALTIES)[number];
 
+const INCOMPATIBLE_PROFILE_DECORATIONS: Partial<Record<
+  ProfileTemplate,
+  ReadonlySet<ProfileDecoration>
+>> = {
+  "darkroom-card": new Set(["film-frame", "grid-lines"]),
+  "negative-strip": new Set(["film-frame", "sprocket", "grid-lines"]),
+};
+
+export function resolveProfileDecoration(
+  profile: Pick<ProfileDraft, "decoration" | "template">,
+): ProfileDecoration {
+  return INCOMPATIBLE_PROFILE_DECORATIONS[profile.template]?.has(profile.decoration)
+    ? "none"
+    : profile.decoration;
+}
+
+export function getCompatibleProfileDecorations(template: ProfileTemplate) {
+  const incompatible = INCOMPATIBLE_PROFILE_DECORATIONS[template];
+  return incompatible
+    ? PROFILE_DECORATIONS.filter((decoration) => !incompatible.has(decoration))
+    : [...PROFILE_DECORATIONS];
+}
+
 export const PROFILE_AVATAR_ZOOM_MIN = 100;
 export const PROFILE_AVATAR_ZOOM_MAX = 200;
 export const PROFILE_AVATAR_POSITION_MIN = 0;
@@ -351,6 +374,12 @@ export function normalizeProfileResponse(
   const rawProfile = isRecord(response.profile) ? response.profile : response;
   const rawPermissions = isRecord(response.permissions) ? response.permissions : {};
   const fallback = createEmptyProfileDraft(fallbackDisplayName);
+  const template = includesValue(PROFILE_TEMPLATES, rawProfile.template)
+    ? rawProfile.template
+    : fallback.template;
+  const decoration = includesValue(PROFILE_DECORATIONS, rawProfile.decoration)
+    ? rawProfile.decoration
+    : fallback.decoration;
 
   return {
     permissions: {
@@ -387,9 +416,7 @@ export function normalizeProfileResponse(
         PROFILE_AVATAR_ZOOM_MAX,
       ),
       bio: readString(rawProfile.bio),
-      decoration: includesValue(PROFILE_DECORATIONS, rawProfile.decoration)
-        ? rawProfile.decoration
-        : fallback.decoration,
+      decoration,
       displayName: readString(rawProfile.displayName, fallback.displayName) || fallback.displayName,
       enabled: rawProfile.enabled === true,
       nameStyle: includesValue(PROFILE_NAME_STYLES, rawProfile.nameStyle)
@@ -403,9 +430,7 @@ export function normalizeProfileResponse(
         : fallback.socialStyle,
       socials: normalizeSocials(rawProfile.socials),
       specialties: normalizeSpecialties(rawProfile.specialties),
-      template: includesValue(PROFILE_TEMPLATES, rawProfile.template)
-        ? rawProfile.template
-        : fallback.template,
+      template,
       username: readString(rawProfile.username).toLowerCase(),
     },
   };

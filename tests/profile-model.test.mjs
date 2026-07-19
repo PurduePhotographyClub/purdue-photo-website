@@ -17,6 +17,7 @@ import {
   normalizeProfileSocialValue,
   normalizeProfileResponse,
   refreshProfileAfterMutation,
+  resolveProfileDecoration,
   resolveProfileAvatarShape,
   toProfileUpdate,
 } from "../src/lib/profile-model.ts";
@@ -210,6 +211,42 @@ test("automatic portrait shapes match each layout while explicit choices stay fi
     );
   }
   assert.equal(resolveProfileAvatarShape({ ...profile, avatarShape: "rounded" }), "rounded");
+});
+
+test("layout-specific decorations fall back before incompatible framing reaches the profile", () => {
+  for (const decoration of ["film-frame", "sprocket", "grid-lines"]) {
+    assert.equal(
+      resolveProfileDecoration({ decoration, template: "negative-strip" }),
+      "none",
+      decoration,
+    );
+  }
+  for (const decoration of ["film-frame", "grid-lines"]) {
+    assert.equal(
+      resolveProfileDecoration({ decoration, template: "darkroom-card" }),
+      "none",
+      decoration,
+    );
+  }
+  assert.equal(
+    resolveProfileDecoration({ decoration: "contact-marks", template: "negative-strip" }),
+    "contact-marks",
+  );
+  assert.equal(
+    resolveProfileDecoration({ decoration: "grid-lines", template: "contact-sheet" }),
+    "grid-lines",
+  );
+
+  const existingProfile = normalizeProfileResponse({
+    profile: {
+      decoration: "grid-lines",
+      displayName: "Jane",
+      template: "negative-strip",
+    },
+  }, "Fallback").profile;
+  assert.equal(existingProfile.decoration, "grid-lines");
+  assert.equal(resolveProfileDecoration(existingProfile), "none");
+  assert.equal(toProfileUpdate(existingProfile).decoration, "grid-lines");
 });
 
 test("public profile links switch to the opaque id only while anonymous mode is active", () => {
