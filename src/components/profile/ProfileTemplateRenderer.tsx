@@ -135,18 +135,31 @@ function getAvatarShapeClass(profile: PublicProfileIdentity) {
 }
 
 function Avatar({
+  alignment = "start",
   profile,
+  size = "standard",
 }: {
+  alignment?: "center" | "start";
   profile: PublicProfileIdentity;
+  size?: "feature" | "standard";
 }) {
   if (profile.anonymous) return null;
   const resolvedShape = resolveProfileAvatarShape(profile);
+  const alignmentClass = alignment === "center" ? "self-center" : "self-start";
+  const sizeClass = size === "feature"
+    ? "w-32 sm:w-40 md:w-full md:max-w-none"
+    : "w-32 sm:w-40 md:w-full md:max-w-40 lg:max-w-44";
+  const responsiveSizes = size === "feature"
+    ? "(min-width: 1024px) 320px, (min-width: 768px) 240px, (min-width: 640px) 160px, 128px"
+    : "(min-width: 1024px) 176px, (min-width: 640px) 160px, 128px";
 
   return (
     <div
-      className={`relative aspect-square w-32 max-w-full shrink-0 self-start overflow-hidden border [border-color:var(--profile-border)] [background-color:var(--profile-chip)] sm:w-40 md:w-full md:max-w-40 lg:max-w-44 ${getAvatarShapeClass(profile)}`}
+      data-profile-avatar-alignment={alignment}
+      data-profile-avatar-size={size}
       data-profile-avatar="true"
       data-profile-avatar-shape={resolvedShape}
+      className={`relative aspect-square max-w-full shrink-0 overflow-hidden border [border-color:var(--profile-border)] [background-color:var(--profile-chip)] ${alignmentClass} ${sizeClass} ${getAvatarShapeClass(profile)}`}
     >
       {profile.avatarUrl ? (
         <img
@@ -156,7 +169,7 @@ function Avatar({
           decoding="async"
           draggable={false}
           height={512}
-          sizes="(min-width: 1024px) 176px, (min-width: 640px) 160px, 128px"
+          sizes={responsiveSizes}
           style={getProfileAvatarImageStyle(profile)}
           width={512}
         />
@@ -405,7 +418,7 @@ function ContactSheetHeader({ profile, statistics }: ProfileHeaderProps) {
 function PrintIndexHeader({ profile, statistics }: ProfileHeaderProps) {
   return (
     <header className="mx-auto flex max-w-4xl flex-col items-center py-9 text-center sm:py-12" data-profile-header="true">
-      <Avatar profile={profile} />
+      <Avatar alignment="center" profile={profile} />
       <p className={`${profile.anonymous ? "" : "mt-6"} text-[9px] uppercase tracking-[0.25em] text-[var(--profile-muted)]`}>Purdue Photography Club</p>
       <div className="mt-3 min-w-0 max-w-full"><ProfileDetails profile={profile} statistics={statistics} centered /></div>
     </header>
@@ -416,7 +429,7 @@ function SplitFrameHeader({ profile, statistics }: ProfileHeaderProps) {
   return (
     <header className={profile.anonymous
       ? "py-9 sm:py-12"
-      : "grid gap-7 py-8 sm:py-10 md:grid-cols-[minmax(0,1fr)_160px] md:items-start md:gap-9 lg:grid-cols-[minmax(0,1fr)_176px] lg:gap-11"}
+      : "grid gap-7 py-8 sm:py-10 md:grid-cols-[minmax(0,1fr)_240px] md:items-start md:gap-9 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-11"}
       data-profile-header="true"
     >
       <div className="order-2 min-w-0 md:order-1">
@@ -424,8 +437,8 @@ function SplitFrameHeader({ profile, statistics }: ProfileHeaderProps) {
         <ProfileDetails profile={profile} statistics={statistics} />
       </div>
       {!profile.anonymous && (
-        <div className="order-1 md:order-2 md:justify-self-end">
-          <Avatar profile={profile} />
+        <div data-profile-avatar-slot="feature" className="order-1 w-full md:order-2">
+          <Avatar profile={profile} size="feature" />
         </div>
       )}
     </header>
@@ -452,7 +465,7 @@ function EditorialGridHeader({ profile, statistics }: ProfileHeaderProps) {
   return (
     <header className={profile.anonymous
       ? "py-9 sm:py-12"
-      : "grid gap-7 py-8 sm:py-10 md:grid-cols-[minmax(0,1fr)_160px] md:items-start md:gap-9 lg:grid-cols-[minmax(0,1fr)_176px] lg:gap-11"}
+      : "grid gap-7 py-8 sm:py-10 md:grid-cols-[minmax(0,1fr)_240px] md:items-start md:gap-9 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-11"}
       data-profile-header="true"
     >
       <div className="order-2 min-w-0 border-t [border-color:var(--profile-border)] pt-5 md:order-1 md:border-l md:border-t-0 md:pl-7 md:pt-0 lg:pl-9">
@@ -460,8 +473,8 @@ function EditorialGridHeader({ profile, statistics }: ProfileHeaderProps) {
         <ProfileDetails profile={profile} statistics={statistics} />
       </div>
       {!profile.anonymous && (
-        <div className="order-1 md:order-2 md:justify-self-end">
-          <Avatar profile={profile} />
+        <div data-profile-avatar-slot="feature" className="order-1 w-full md:order-2">
+          <Avatar profile={profile} size="feature" />
         </div>
       )}
     </header>
@@ -501,19 +514,34 @@ function DiptychHeader({ profile, statistics }: ProfileHeaderProps) {
 }
 
 function SafeArea({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`relative z-10 ${className}`} data-profile-safe-area="true">{children}</div>;
+  return (
+    <div
+      data-profile-header-surface="true"
+      data-profile-safe-area="true"
+      className={`relative z-10 [background-color:var(--profile-surface)] ${className}`}
+    >
+      {children}
+    </div>
+  );
 }
 
 function DecorationFrame({ children, decoration }: { children: ReactNode; decoration: ProfileDecoration }) {
   if (decoration === "none") {
-    return <SafeArea className="border-b [border-color:var(--profile-border)]">{children}</SafeArea>;
+    return <div data-profile-decoration-frame="none"><SafeArea className="border-b [border-color:var(--profile-border)]">{children}</SafeArea></div>;
   }
   if (decoration === "film-frame") {
-    return <SafeArea className="my-4 border-[3px] border-double [border-color:var(--profile-border)] px-4 sm:px-7"><span className="sr-only">Film frame</span>{children}</SafeArea>;
+    return (
+      <div
+        data-profile-decoration-frame="film-frame"
+        className="my-4 border-[3px] border-double [border-color:var(--profile-border)]"
+      >
+        <SafeArea className="px-4 sm:px-7"><span className="sr-only">Film frame</span>{children}</SafeArea>
+      </div>
+    );
   }
   if (decoration === "contact-marks") {
     return (
-      <div className="relative border-b [border-color:var(--profile-border)] px-7 sm:px-10">
+      <div data-profile-decoration-frame="contact-marks" className="relative border-b [border-color:var(--profile-border)] px-7 sm:px-10">
         <span aria-hidden="true" className="pointer-events-none absolute left-2 top-3 font-mono text-[8px] text-[var(--profile-muted)]">01A</span>
         <span aria-hidden="true" className="pointer-events-none absolute bottom-3 right-2 font-mono text-[8px] text-[var(--profile-muted)]">36</span>
         <span className="sr-only">Contact marks</span><SafeArea>{children}</SafeArea>
@@ -522,21 +550,21 @@ function DecorationFrame({ children, decoration }: { children: ReactNode; decora
   }
   if (decoration === "viewfinder") {
     return (
-      <div className="relative border-b [border-color:var(--profile-border)] px-7 before:pointer-events-none before:absolute before:left-1 before:top-4 before:size-7 before:border-l before:border-t before:[border-color:var(--profile-muted)] after:pointer-events-none after:absolute after:bottom-4 after:right-1 after:size-7 after:border-b after:border-r after:[border-color:var(--profile-muted)] sm:px-10">
+      <div data-profile-decoration-frame="viewfinder" className="relative border-b [border-color:var(--profile-border)] px-7 before:pointer-events-none before:absolute before:left-1 before:top-4 before:size-7 before:border-l before:border-t before:[border-color:var(--profile-muted)] after:pointer-events-none after:absolute after:bottom-4 after:right-1 after:size-7 after:border-b after:border-r after:[border-color:var(--profile-muted)] sm:px-10">
         <span className="sr-only">Viewfinder</span><SafeArea>{children}</SafeArea>
       </div>
     );
   }
   if (decoration === "sprocket") {
     return (
-      <div className="my-4 border-y-8 border-dotted [border-color:var(--profile-border)] px-4 sm:px-7">
+      <div data-profile-decoration-frame="sprocket" className="my-4 border-y-8 border-dotted [border-color:var(--profile-border)] px-4 sm:px-7">
         <span className="sr-only">Sprocket holes</span><SafeArea>{children}</SafeArea>
       </div>
     );
   }
   if (decoration === "archival-stamp") {
     return (
-      <div className="border-b [border-color:var(--profile-border)] px-4 sm:px-7">
+      <div data-profile-decoration-frame="archival-stamp" className="border-b [border-color:var(--profile-border)] px-4 sm:px-7">
         <span className="sr-only">Archival stamp</span>
         <SafeArea>{children}</SafeArea>
         <div aria-hidden="true" className="relative z-10 mb-4 flex justify-end">
@@ -546,7 +574,7 @@ function DecorationFrame({ children, decoration }: { children: ReactNode; decora
     );
   }
   return (
-    <div className="border-b [border-color:var(--profile-border)] bg-[linear-gradient(to_right,var(--profile-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--profile-border)_1px,transparent_1px)] bg-[size:32px_32px] p-3 sm:p-5">
+    <div data-profile-decoration-frame="grid-lines" className="border-b [border-color:var(--profile-border)] bg-[linear-gradient(to_right,var(--profile-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--profile-border)_1px,transparent_1px)] bg-[size:32px_32px] p-3 sm:p-5">
       <span className="sr-only">Grid lines</span>
       <SafeArea className="border [border-color:var(--profile-border)] [background-color:var(--profile-surface)] px-4 sm:px-7">{children}</SafeArea>
     </div>
@@ -594,9 +622,9 @@ export default function ProfileTemplateRenderer({
       data-profile-template={profile.template}
     >
       <div
-        className="relative overflow-hidden [background-color:var(--profile-surface)] text-[var(--profile-ink)]"
-        data-profile-header-surface="true"
+        className="relative overflow-hidden bg-neutral-950 text-[var(--profile-ink)]"
         data-profile-palette={profile.palette}
+        data-profile-palette-scope="true"
         style={PROFILE_PALETTE_CLASSES[profile.palette]}
       >
         <span className="sr-only">{PALETTE_LABELS[profile.palette]} profile palette</span>

@@ -163,19 +163,66 @@ export default function PublicProfile({ identifier }: Props) {
 
   if (!payload) {
     return (
-      <main aria-label="Loading member profile" className="mx-auto min-h-[60dvh] max-w-7xl animate-pulse px-4 pb-16 pt-8 sm:px-6 sm:pt-10 lg:px-8">
-        <div className="grid gap-7 border-b border-neutral-800 pb-9 md:grid-cols-[160px_minmax(0,1fr)] md:gap-9 lg:grid-cols-[176px_minmax(0,1fr)]">
-          <div className="aspect-square w-32 bg-neutral-900 sm:w-40 lg:w-44" />
-          <div className="min-w-0 space-y-4">
-            <div className="h-3 w-36 bg-neutral-900" />
-            <div className="h-10 max-w-lg bg-neutral-900" />
-            <div className="h-7 max-w-sm bg-neutral-900" />
-            <div className="h-16 max-w-2xl bg-neutral-900" />
+      <main aria-label="Loading member profile" className="mx-auto min-h-[60dvh] max-w-7xl px-4 sm:px-6 lg:px-8">
+        <section
+          aria-hidden="true"
+          className="animate-pulse border-b border-neutral-800"
+          data-profile-loading-header="true"
+        >
+          <div className="grid gap-7 py-8 sm:py-10 md:grid-cols-[176px_minmax(0,1fr)] md:items-start md:gap-9 lg:gap-11">
+            <div
+              className="aspect-square w-32 justify-self-center rounded-full bg-neutral-900 sm:w-40 md:w-44 md:justify-self-start"
+              data-profile-loading-avatar="true"
+            />
+            <div className="min-w-0">
+              <div className="h-2.5 w-32 bg-neutral-900" />
+              <div className="mt-4 h-9 max-w-lg bg-neutral-900 sm:h-11" />
+              <div className="mt-3 h-3 w-28 bg-neutral-900" />
+              <div className="mt-5 flex gap-2">
+                <div className="h-7 w-20 bg-neutral-900" />
+                <div className="h-7 w-24 bg-neutral-900" />
+                <div className="h-7 w-16 bg-neutral-900" />
+              </div>
+              <div className="mt-5 space-y-2.5">
+                <div className="h-3 max-w-2xl bg-neutral-900" />
+                <div className="h-3 max-w-xl bg-neutral-900" />
+              </div>
+              <div
+                className="mt-6 grid grid-cols-1 border-y border-neutral-800 sm:grid-cols-3"
+                data-profile-loading-statistics="true"
+              >
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className={`py-4 ${index > 0 ? "border-t border-neutral-800 sm:border-l sm:border-t-0 sm:pl-4" : "sm:pr-4"}`}
+                  >
+                    <div className="h-2 w-20 max-w-full bg-neutral-900" />
+                    <div className="mt-2 h-5 w-14 max-w-full bg-neutral-900" />
+                  </div>
+                ))}
+              </div>
+              <div className="mt-5 size-11 bg-neutral-900" />
+            </div>
           </div>
-        </div>
-        <div className="mt-8 columns-1 gap-2 sm:columns-2 lg:columns-3">
-          {Array.from({ length: 6 }).map((_, index) => <div key={index} className="mb-2 aspect-square break-inside-avoid bg-neutral-900" />)}
-        </div>
+        </section>
+        <section
+          aria-hidden="true"
+          className="animate-pulse pb-12 pt-7 sm:pb-16 sm:pt-9"
+          data-profile-loading-gallery="true"
+        >
+          <div className="border-b border-neutral-800 pb-5">
+            <div className="h-8 w-64 max-w-full bg-neutral-900" />
+            <div className="mt-2 h-2.5 w-24 bg-neutral-900" />
+          </div>
+          <div className="mt-6 columns-1 gap-2 sm:columns-2 lg:columns-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div
+                key={index}
+                className={`mb-2 break-inside-avoid bg-neutral-900 ${index % 3 === 0 ? "aspect-[3/4]" : "aspect-square"}`}
+              />
+            ))}
+          </div>
+        </section>
       </main>
     );
   }

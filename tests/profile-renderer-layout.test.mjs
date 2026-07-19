@@ -148,6 +148,42 @@ test("the profile portrait is square, intrinsic, and uses the club fallback imag
   assert.match(avatar, /object-contain/);
 });
 
+test("the vertical profile template centers its portrait independently of the default avatar alignment", () => {
+  const html = renderToStaticMarkup(createElement(ProfileTemplateRenderer, {
+    profile: createProfile({ template: "print-index" }),
+  }));
+
+  assert.match(html, /data-profile-avatar-alignment="center"/);
+  assert.match(html, /data-profile-avatar="true"[^>]*class="[^"]*self-center/);
+});
+
+test("split and editorial templates reserve a feature-sized portrait column", () => {
+  for (const template of ["split-frame", "editorial-grid"]) {
+    const html = renderToStaticMarkup(createElement(ProfileTemplateRenderer, {
+      profile: createProfile({ template }),
+    }));
+
+    assert.match(html, /data-profile-avatar-size="feature"/, template);
+    assert.match(html, /data-profile-avatar-slot="feature"[^>]*class="[^"]*w-full/, template);
+    assert.match(html, /md:grid-cols-\[minmax\(0,1fr\)_240px\]/, template);
+    assert.match(html, /lg:grid-cols-\[minmax\(0,1fr\)_320px\]/, template);
+    assert.match(html, /md:max-w-none/, template);
+  }
+});
+
+test("the selected palette surface stays inside the decoration boundary", () => {
+  const html = renderToStaticMarkup(createElement(ProfileTemplateRenderer, {
+    profile: createProfile({ decoration: "film-frame", palette: "violet" }),
+  }));
+  const decorationIndex = html.indexOf('data-profile-decoration-frame="film-frame"');
+  const surfaceIndex = html.indexOf('data-profile-header-surface="true"');
+
+  assert.match(html, /data-profile-palette-scope="true"/);
+  assert.ok(decorationIndex >= 0);
+  assert.ok(decorationIndex < surfaceIndex);
+  assert.match(html, /data-profile-header-surface="true"[^>]*class="[^"]*\[background-color:var\(--profile-surface\)\]/);
+});
+
 test("orthogonal portrait, role-tag, and social styles render across every template", () => {
   const squareLayouts = new Set([
     "split-frame",
