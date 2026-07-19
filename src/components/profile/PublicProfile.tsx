@@ -165,7 +165,7 @@ export default function PublicProfile({ identifier }: Props) {
 
   if (!payload) {
     return (
-      <main aria-label="Loading member profile" className="mx-auto min-h-[60dvh] max-w-7xl px-4 sm:px-6 lg:px-8">
+      <main aria-label="Loading member profile" className="mx-auto min-h-[60dvh] max-w-7xl px-4 pt-6 sm:pt-8 sm:px-6 lg:px-8">
         <section
           aria-hidden="true"
           className="animate-pulse border-b border-neutral-800"
@@ -230,7 +230,7 @@ export default function PublicProfile({ identifier }: Props) {
   }
 
   return (
-    <main className="mx-auto min-h-[60dvh] max-w-7xl px-4 sm:px-6 lg:px-8">
+    <main className="mx-auto min-h-[60dvh] max-w-7xl px-4 pt-6 sm:pt-8 sm:px-6 lg:px-8">
       <span className="sr-only">{payload.profile.anonymous ? anonymousLabel : "Member photographer profile"}</span>
       <ProfileTemplateRenderer profile={payload.profile} statistics={payload.statistics}>
         <ProfileGallery

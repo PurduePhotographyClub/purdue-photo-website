@@ -553,7 +553,15 @@ function SafeArea({ children, className = "" }: { children: ReactNode; className
 
 function DecorationFrame({ children, decoration }: { children: ReactNode; decoration: ProfileDecoration }) {
   if (decoration === "none") {
-    return <div data-profile-decoration-frame="none" data-profile-header-surface="true" className="overflow-hidden border-b [border-color:var(--profile-border)] [background-color:var(--profile-surface)]"><SafeArea>{children}</SafeArea></div>;
+    return (
+      <div
+        data-profile-decoration-frame="none"
+        data-profile-header-surface="true"
+        className="overflow-hidden border-b [border-color:var(--profile-border)] [background-color:var(--profile-surface)]"
+      >
+        <SafeArea className="px-4 sm:px-6 lg:px-8">{children}</SafeArea>
+      </div>
+    );
   }
   if (decoration === "film-frame") {
     return (

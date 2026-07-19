@@ -17,23 +17,23 @@ import {
 } from "@/lib/profile-model";
 
 const TEMPLATE_LABELS: Record<ProfileTemplate, { description: string; label: string }> = {
-  "contact-sheet": { description: "Portrait and intro side by side.", label: "Contact sheet" },
-  "print-index": { description: "A centered, compact introduction.", label: "Print index" },
-  "split-frame": { description: "Bold name beside a narrow portrait.", label: "Split frame" },
-  "negative-strip": { description: "A horizontal film-strip header.", label: "Negative strip" },
-  "editorial-grid": { description: "An asymmetric magazine-style introduction.", label: "Editorial grid" },
-  "darkroom-card": { description: "A focused portrait card with generous space.", label: "Darkroom card" },
-  diptych: { description: "Portrait and details in two balanced panels.", label: "Diptych" },
+  "contact-sheet": { description: "Photo next to your info.", label: "Contact sheet" },
+  "print-index": { description: "Centered photo and info.", label: "Print index" },
+  "split-frame": { description: "Info on the left, large photo on the right.", label: "Split frame" },
+  "negative-strip": { description: "Film strip style.", label: "Negative strip" },
+  "editorial-grid": { description: "Magazine style with a large photo.", label: "Editorial grid" },
+  "darkroom-card": { description: "Photo and info in a simple card.", label: "Darkroom card" },
+  diptych: { description: "Photo and info in two columns.", label: "Diptych" },
 };
 
 const DECORATION_LABELS: Record<ProfileDecoration, { description: string; label: string }> = {
-  none: { description: "Clean edges and quiet spacing.", label: "None" },
-  "film-frame": { description: "A subtle printed-film border.", label: "Film frame" },
-  "contact-marks": { description: "Contact-sheet numbers and crop marks.", label: "Contact marks" },
-  viewfinder: { description: "Fine focusing corners around the intro.", label: "Viewfinder" },
-  sprocket: { description: "Film perforations along the profile header.", label: "Sprocket holes" },
-  "archival-stamp": { description: "A restrained archive stamp in one corner.", label: "Archive stamp" },
-  "grid-lines": { description: "Fine layout lines behind the introduction.", label: "Grid lines" },
+  none: { description: "No decoration.", label: "None" },
+  "film-frame": { description: "A film border.", label: "Film frame" },
+  "contact-marks": { description: "Numbers and crop marks.", label: "Contact marks" },
+  viewfinder: { description: "Focus marks in the corners.", label: "Viewfinder" },
+  sprocket: { description: "Film holes along the header.", label: "Sprocket holes" },
+  "archival-stamp": { description: "A stamp in one corner.", label: "Archive stamp" },
+  "grid-lines": { description: "Lines behind your info.", label: "Grid lines" },
 };
 
 const PALETTE_LABELS: Record<ProfilePalette, { description: string; label: string }> = {
@@ -47,25 +47,25 @@ const PALETTE_LABELS: Record<ProfilePalette, { description: string; label: strin
 
 const PALETTE_MODE_LABELS: Record<ProfilePaletteMode, { description: string; label: string }> = {
   "accent-only": {
-    description: "Keep the header neutral and apply the selected color only to key accents.",
+    description: "Color the name, lines, and buttons.",
     label: "Accent only",
   },
   "background-accent": {
-    description: "Apply the selected palette to the header background and its accents.",
+    description: "Color the full header.",
     label: "Background + accent",
   },
 };
 
 const AVATAR_SHAPE_LABELS: Record<ProfileAvatarShape, { description: string; label: string }> = {
-  auto: { description: "Let each layout choose its natural crop.", label: "Match layout" },
-  circle: { description: "A classic circular portrait.", label: "Circle" },
-  rounded: { description: "A softer editorial frame.", label: "Soft corners" },
-  square: { description: "A sharp print-style crop.", label: "Square" },
+  auto: { description: "Use the shape made for each layout.", label: "Match layout" },
+  circle: { description: "Round picture.", label: "Circle" },
+  rounded: { description: "Square with soft corners.", label: "Soft corners" },
+  square: { description: "Square picture.", label: "Square" },
 };
 
 const SOCIAL_STYLE_LABELS: Record<ProfileSocialStyle, { description: string; label: string }> = {
-  tiles: { description: "Large icon tiles with a compact footprint.", label: "Icon tiles" },
-  labels: { description: "Icons with readable service names.", label: "Named links" },
+  tiles: { description: "Icons only.", label: "Icon tiles" },
+  labels: { description: "Icons with names.", label: "Named links" },
 };
 
 const PALETTE_SWATCHES: Record<ProfilePalette, { accent: string; border: string; surface: string }> = {
@@ -179,8 +179,8 @@ export default function ProfileAppearancePicker({ idPrefix, onChange, profile }:
 
   return (
     <section aria-labelledby={`${idPrefix}-appearance-heading`} className="border border-neutral-800 bg-white/[0.015] p-4 sm:p-5">
-      <h2 id={`${idPrefix}-appearance-heading`} className="text-sm tracking-wide text-neutral-100">Mini-portfolio appearance</h2>
-      <p className="mt-1 max-w-3xl text-xs leading-5 text-neutral-500">Choose a compatible introduction layout and decoration. Header color stops at the decoration frame so photographs keep a neutral gallery backdrop.</p>
+      <h2 id={`${idPrefix}-appearance-heading`} className="text-sm tracking-wide text-neutral-100">Profile style</h2>
+      <p className="mt-1 max-w-3xl text-xs leading-5 text-neutral-500">Choose how your profile header looks.</p>
 
       <fieldset className="mt-4">
         <legend className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Layout</legend>
@@ -226,8 +226,8 @@ export default function ProfileAppearancePicker({ idPrefix, onChange, profile }:
       </fieldset>
 
       <fieldset className="mt-5">
-        <legend className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Color application</legend>
-        <p className="mt-1 text-[10px] leading-4 text-neutral-600">Choose whether the palette colors the whole framed header or its accents only.</p>
+        <legend className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Color use</legend>
+        <p className="mt-1 text-[10px] leading-4 text-neutral-600">Use color for details only, or for the full header.</p>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           {PROFILE_PALETTE_MODES.map((paletteMode) => (
             <label key={paletteMode} className={`cursor-pointer border p-2.5 transition-colors ${profile.paletteMode === paletteMode ? "border-white bg-white/[0.055]" : "border-neutral-800 hover:border-neutral-600"}`}>
@@ -242,8 +242,8 @@ export default function ProfileAppearancePicker({ idPrefix, onChange, profile }:
       </fieldset>
 
       <fieldset className="mt-5">
-        <legend className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Color palette</legend>
-        <p className="mt-1 text-[10px] leading-4 text-neutral-600">Choose a fixed, readable accent for the profile header.</p>
+        <legend className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Color</legend>
+        <p className="mt-1 text-[10px] leading-4 text-neutral-600">Pick a color.</p>
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
           {PROFILE_PALETTES.map((palette) => (
             <label key={palette} className={`cursor-pointer border p-2 transition-colors ${profile.palette === palette ? "border-white bg-white/[0.055]" : "border-neutral-800 hover:border-neutral-600"}`}>
@@ -260,7 +260,7 @@ export default function ProfileAppearancePicker({ idPrefix, onChange, profile }:
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
         <fieldset>
           <legend className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Portrait shape</legend>
-          <p className="mt-1 text-[10px] leading-4 text-neutral-600">Use one crop shape everywhere, or let the layout decide.</p>
+          <p className="mt-1 text-[10px] leading-4 text-neutral-600">Choose a shape, or match the layout.</p>
           <div className="mt-2 grid grid-cols-2 gap-2">
             {PROFILE_AVATAR_SHAPES.map((avatarShape) => (
               <label key={avatarShape} className={`cursor-pointer border p-2.5 transition-colors ${profile.avatarShape === avatarShape ? "border-white bg-white/[0.055]" : "border-neutral-800 hover:border-neutral-600"}`}>
@@ -276,7 +276,7 @@ export default function ProfileAppearancePicker({ idPrefix, onChange, profile }:
 
         <fieldset>
           <legend className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Social link style</legend>
-          <p className="mt-1 text-[10px] leading-4 text-neutral-600">Choose large icons or links with their service names.</p>
+          <p className="mt-1 text-[10px] leading-4 text-neutral-600">Show icons only, or icons with names.</p>
           <div className="mt-2 grid grid-cols-2 gap-2">
             {PROFILE_SOCIAL_STYLES.map((socialStyle) => (
               <label key={socialStyle} className={`cursor-pointer border p-2.5 transition-colors ${profile.socialStyle === socialStyle ? "border-white bg-white/[0.055]" : "border-neutral-800 hover:border-neutral-600"}`}>

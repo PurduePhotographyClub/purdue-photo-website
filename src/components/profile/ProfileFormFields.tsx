@@ -98,8 +98,8 @@ export default function ProfileFormFields({
               </div>
               <p id={`${idPrefix}-publishing-help`} className="mt-1 text-xs leading-5 text-neutral-500">
                 {profile.enabled
-                  ? "Anyone can visit your page and browse the photos you have shared."
-                  : "Only you can see this draft. Turn it on when you are ready to share."}
+                  ? "Your profile is public."
+                  : "Your profile is private until you turn it on."}
               </p>
             </div>
             <label className="flex min-h-11 cursor-pointer items-center gap-3 border border-neutral-700 px-3 text-[10px] uppercase tracking-[0.14em] text-neutral-300">
@@ -124,7 +124,7 @@ export default function ProfileFormFields({
         <legend className="sr-only">Profile information</legend>
 
         <section className="border border-neutral-800 bg-white/[0.015] p-4 sm:p-5" aria-labelledby={`${idPrefix}-identity-heading`}>
-          <h2 id={`${idPrefix}-identity-heading`} className="text-sm tracking-wide text-neutral-100">Identity</h2>
+          <h2 id={`${idPrefix}-identity-heading`} className="text-sm tracking-wide text-neutral-100">Photo and name</h2>
           <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(320px,0.9fr)_minmax(0,1.1fr)]">
             <ProfileAvatarControls
               avatarBusy={avatarBusy}
@@ -162,7 +162,7 @@ export default function ProfileFormFields({
         </section>
 
         <section className="border border-neutral-800 bg-white/[0.015] p-4 sm:p-5" aria-labelledby={`${idPrefix}-details-heading`}>
-          <h2 id={`${idPrefix}-details-heading`} className="text-sm tracking-wide text-neutral-100">Profile details</h2>
+          <h2 id={`${idPrefix}-details-heading`} className="text-sm tracking-wide text-neutral-100">About</h2>
           <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
             <label className="block min-w-0 space-y-1.5">
               <span className="text-[10px] uppercase tracking-wider text-neutral-500">Profile URL</span>
@@ -171,7 +171,7 @@ export default function ProfileFormFields({
                 <input aria-describedby={`${idPrefix}-username-help`} value={profile.username} onChange={(event) => update("username", event.target.value.toLowerCase())} maxLength={30} autoCapitalize="none" autoCorrect="off" spellCheck={false} className={INPUT_CLASS} />
               </span>
               <span id={`${idPrefix}-username-help`} className="block text-[9px] leading-4 text-neutral-600">
-                {profile.anonymous ? "Hidden while anonymous; it returns when you switch back." : "3–30 lowercase letters, numbers, and single hyphens."}
+                {profile.anonymous ? "Hidden in anonymous mode." : "3–30 lowercase letters, numbers, and single hyphens."}
               </span>
             </label>
             <label className="block space-y-1.5">
@@ -185,11 +185,11 @@ export default function ProfileFormFields({
                 onChange={(event) => update("bio", event.target.value)}
                 maxLength={PROFILE_BIO_MAX_LENGTH}
                 rows={4}
-                placeholder="A short introduction to your work."
+                placeholder="Write a short bio."
                 className={`${INPUT_CLASS} resize-y`}
               />
               <span id={`${idPrefix}-bio-help`} className="block text-[9px] leading-4 text-neutral-600">
-                {PROFILE_BIO_MAX_LENGTH} characters maximum.
+                {PROFILE_BIO_MAX_LENGTH} character limit.
               </span>
             </label>
           </div>
@@ -205,7 +205,7 @@ export default function ProfileFormFields({
         <section className="border border-neutral-800 bg-white/[0.015] p-4 sm:p-5">
           <fieldset>
             <legend className="text-sm tracking-wide text-neutral-100">Photography types</legend>
-            <p className="mt-1 text-xs leading-5 text-neutral-500">Choose the kinds of work you want listed.</p>
+            <p className="mt-1 text-xs leading-5 text-neutral-500">Choose what you photograph.</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {PROFILE_SPECIALTIES.map((specialty) => (
                 <button
@@ -231,7 +231,7 @@ export default function ProfileFormFields({
               <span>
                 <span className="block text-[10px] uppercase tracking-[0.15em] text-neutral-300">Anonymous profile</span>
                 <span className="mt-1 block max-w-3xl text-xs leading-5 text-neutral-500">
-                  Your public page and gallery use PPC Member instead of your name. Camera and lens details are hidden; titles, captions, and tags stay visible. Photos uploaded anonymously remain excluded from your profile.
+                  Shows PPC Member instead of your name and hides camera details. Titles, captions, and tags stay visible. Photos uploaded anonymously do not appear here.
                 </span>
                 {!profile.enabled && <span className="mt-1 block text-[10px] text-neutral-600">Enable your public profile first.</span>}
               </span>
@@ -239,7 +239,7 @@ export default function ProfileFormFields({
             {profile.anonymous && (
               <div className="mt-3 flex items-start gap-3 border-l border-neutral-700 pl-3 text-[10px] leading-5 text-neutral-500">
                 <KeyRound aria-hidden="true" className="mt-0.5 shrink-0" size={14} />
-                <span>{profile.anonymousId ? `Private profile link: /profile/${profile.anonymousId}` : "A private profile link will be created when you save."}</span>
+                <span>{profile.anonymousId ? `Your private link: /profile/${profile.anonymousId}` : "Save to create a private link."}</span>
               </div>
             )}
           </section>

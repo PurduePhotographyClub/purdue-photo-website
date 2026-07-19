@@ -188,6 +188,16 @@ test("each decoration frame is the exact selected palette surface boundary", () 
   }
 });
 
+test("the plain profile frame keeps its content and portrait away from the page edge", () => {
+  const html = renderToStaticMarkup(createElement(ProfileTemplateRenderer, {
+    profile: createProfile({ decoration: "none", template: "editorial-grid" }),
+  }));
+
+  assert.match(html, /data-profile-decoration-frame="none"/);
+  assert.match(html, /data-profile-safe-area="true" class="[^"]*px-4[^"]*sm:px-6[^"]*lg:px-8/);
+  assert.match(html, /data-profile-avatar-slot="feature"/);
+});
+
 test("accent-only palettes preserve a neutral surface and apply only the chosen accent", () => {
   const fullHtml = renderToStaticMarkup(createElement(ProfileTemplateRenderer, {
     profile: createProfile({ palette: "violet", paletteMode: "background-accent" }),

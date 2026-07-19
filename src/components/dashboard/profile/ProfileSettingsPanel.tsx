@@ -151,8 +151,8 @@ function ProfileSettingsEditor({
           eyebrow="Profile locked"
           title="Active membership required"
           description={profile.enabled
-            ? "Your information is locked while membership is inactive. You can still disable the public profile below."
-            : "Renew your membership to configure and enable a member profile."}
+            ? "Renew your membership to edit this profile. You can still turn it off."
+            : "Renew your membership to edit and publish your profile."}
         />
       )}
 
@@ -160,7 +160,7 @@ function ProfileSettingsEditor({
         <div>
           <p className="text-sm text-neutral-200">Your profile</p>
           <p className="mt-1 max-w-2xl text-xs leading-5 text-neutral-500">
-            Add a photo, a short bio, and the links you actually use. Publish whenever you are ready.
+            Add your photo, bio, and links.
           </p>
         </div>
         {publicProfileHref && (
