@@ -1,5 +1,6 @@
 import { KeyRound } from "lucide-react";
 import {
+  PROFILE_BIO_MAX_LENGTH,
   PROFILE_NAME_STYLES,
   PROFILE_SPECIALTIES,
   type ProfileDraft,
@@ -174,8 +175,22 @@ export default function ProfileFormFields({
               </span>
             </label>
             <label className="block space-y-1.5">
-              <span className="flex items-center justify-between gap-4 text-[10px] uppercase tracking-wider text-neutral-500"><span>Bio</span><span>{profile.bio.length}/500</span></span>
-              <textarea value={profile.bio} onChange={(event) => update("bio", event.target.value)} maxLength={500} rows={4} placeholder="A short introduction to your work." className={`${INPUT_CLASS} resize-y`} />
+              <span className="flex items-center justify-between gap-4 text-[10px] uppercase tracking-wider text-neutral-500">
+                <span>Bio</span>
+                <span aria-live="polite">{profile.bio.length}/{PROFILE_BIO_MAX_LENGTH}</span>
+              </span>
+              <textarea
+                aria-describedby={`${idPrefix}-bio-help`}
+                value={profile.bio}
+                onChange={(event) => update("bio", event.target.value)}
+                maxLength={PROFILE_BIO_MAX_LENGTH}
+                rows={4}
+                placeholder="A short introduction to your work."
+                className={`${INPUT_CLASS} resize-y`}
+              />
+              <span id={`${idPrefix}-bio-help`} className="block text-[9px] leading-4 text-neutral-600">
+                {PROFILE_BIO_MAX_LENGTH} characters maximum.
+              </span>
             </label>
           </div>
         </section>

@@ -7,6 +7,7 @@ import { fetchApi, fetchFreshJson, readErrorMessage } from "@/lib/http";
 import { prepareProfileAvatarImage } from "@/lib/profile-image";
 import { announceProfileLinkUpdate } from "@/lib/profile-link-cache";
 import {
+  getProfileBioValidationError,
   getPublicProfileHref,
   getProfileUsernameValidationError,
   normalizeProfileResponse,
@@ -31,6 +32,8 @@ interface EditorProps {
 function getDraftValidationError(profile: ProfileDraft) {
   if (!profile.displayName.trim()) return "Display name is required.";
   if (profile.displayName.trim().length > 80) return "Display name must be 80 characters or fewer.";
+  const bioError = getProfileBioValidationError(profile.bio);
+  if (bioError) return bioError;
   if (profile.enabled || profile.username.trim()) {
     const usernameError = getProfileUsernameValidationError(profile.username);
     if (usernameError) return `Profile URL: ${usernameError}`;

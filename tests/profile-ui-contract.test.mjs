@@ -24,6 +24,7 @@ const [
   middlewareSource,
   headerSource,
   profileLinkCacheSource,
+  dashboardLayoutSource,
 ] = await Promise.all([
   readFile(new URL("../src/components/dashboard/SettingsPanel.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/dashboard/profile/ProfileSettingsPanel.tsx", import.meta.url), "utf8"),
@@ -46,6 +47,7 @@ const [
   readFile(new URL("../src/middleware.ts", import.meta.url), "utf8"),
   readFile(new URL("../src/components/Header.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/lib/profile-link-cache.ts", import.meta.url), "utf8"),
+  readFile(new URL("../src/layouts/DashboardLayout.astro", import.meta.url), "utf8"),
 ]);
 
 test("settings includes an accessible first-class Profile tab and membership lock", () => {
@@ -99,6 +101,11 @@ test("profile editor exposes every fixed field and uses immutable update pattern
   assert.match(profileAvatarSource, /Portrait framing/);
   assert.match(profileAvatarSource, /Show profile picture/);
   assert.match(profileAvatarSource, /profile\.showAvatar/);
+  assert.match(profileFieldsSource, /PROFILE_BIO_MAX_LENGTH/);
+  assert.match(profileFieldsSource, /maxLength=\{PROFILE_BIO_MAX_LENGTH\}/);
+  assert.match(profileFieldsSource, /characters maximum/);
+  assert.match(profileSettingsSource, /getProfileBioValidationError\(profile\.bio\)/);
+  assert.match(adminEditorSource, /getProfileBioValidationError\(profile\.bio\)/);
   assert.match(profileAvatarSource, /Zoom/);
   assert.match(profileAvatarSource, /Horizontal focus/);
   assert.match(profileAvatarSource, /Vertical focus/);
@@ -242,10 +249,16 @@ test("member list opens enabled profiles in a responsive staff editor dialog", (
   assert.doesNotMatch(adminMembersSource, /href=\{`\/dashboard\/admin\/members\//);
   assert.match(adminProfileDialogSource, /ModalDialog/);
   assert.match(adminProfileDialogSource, /AdminMemberProfileEditor/);
-  assert.match(adminProfileDialogSource, /max-h-\[calc\(100dvh/);
+  assert.match(adminProfileDialogSource, /max-h-dvh/);
+  assert.match(adminProfileDialogSource, /sm:max-h-\[calc\(100dvh-2rem\)\]/);
+  assert.match(adminProfileDialogSource, /overflow-hidden/);
   assert.match(adminProfileDialogSource, /overflow-y-auto/);
+  assert.match(
+    dashboardLayoutSource,
+    /min-h-0[^"\n]*overflow-y-auto[^"\n]*overscroll-y-contain/,
+  );
   assert.match(adminProfileDialogSource, /tabIndex=\{-1\}/);
-  assert.match(adminProfileDialogSource, /autoFocus/);
+  assert.doesNotMatch(adminProfileDialogSource, /autoFocus/);
   assert.match(adminEditorSource, /\/api\/admin\/members\//);
   assert.match(adminEditorSource, /ProfileFormFields/);
   assert.match(adminEditorSource, /max-w-/);
