@@ -1,6 +1,7 @@
 import {
   PROFILE_AVATAR_SHAPES,
   PROFILE_DECORATIONS,
+  PROFILE_PALETTE_MODES,
   PROFILE_PALETTES,
   PROFILE_SOCIAL_STYLES,
   PROFILE_TEMPLATES,
@@ -10,6 +11,7 @@ import {
   type ProfileDecoration,
   type ProfileDraft,
   type ProfilePalette,
+  type ProfilePaletteMode,
   type ProfileSocialStyle,
   type ProfileTemplate,
 } from "@/lib/profile-model";
@@ -41,6 +43,17 @@ const PALETTE_LABELS: Record<ProfilePalette, { description: string; label: strin
   forest: { description: "Muted botanical green.", label: "Forest" },
   burgundy: { description: "Deep red print tones.", label: "Burgundy" },
   violet: { description: "Soft ultraviolet accents.", label: "Violet" },
+};
+
+const PALETTE_MODE_LABELS: Record<ProfilePaletteMode, { description: string; label: string }> = {
+  "accent-only": {
+    description: "Keep the header neutral and apply the selected color only to key accents.",
+    label: "Accent only",
+  },
+  "background-accent": {
+    description: "Apply the selected palette to the header background and its accents.",
+    label: "Background + accent",
+  },
 };
 
 const AVATAR_SHAPE_LABELS: Record<ProfileAvatarShape, { description: string; label: string }> = {
@@ -121,6 +134,21 @@ function PalettePreview({ palette }: { palette: ProfilePalette }) {
   );
 }
 
+function PaletteModePreview({ mode, palette }: { mode: ProfilePaletteMode; palette: ProfilePalette }) {
+  const swatch = PALETTE_SWATCHES[palette];
+  const surfaceClass = mode === "background-accent" ? swatch.surface : "bg-neutral-950";
+  const borderClass = mode === "background-accent" ? swatch.border : "border-neutral-700";
+  return (
+    <span className={`flex h-12 items-center gap-2 border p-2 ${borderClass} ${surfaceClass}`}>
+      <i className={`block size-5 rounded-full ${swatch.accent}`} />
+      <i className="flex flex-1 flex-col gap-1">
+        <b className={`block h-1.5 w-2/3 ${swatch.accent}`} />
+        <b className="block h-1 w-full bg-neutral-500" />
+      </i>
+    </span>
+  );
+}
+
 function AvatarShapePreview({ shape }: { shape: ProfileAvatarShape }) {
   const shapeClass = shape === "square"
     ? "rounded-none"
@@ -152,7 +180,7 @@ export default function ProfileAppearancePicker({ idPrefix, onChange, profile }:
   return (
     <section aria-labelledby={`${idPrefix}-appearance-heading`} className="border border-neutral-800 bg-white/[0.015] p-4 sm:p-5">
       <h2 id={`${idPrefix}-appearance-heading`} className="text-sm tracking-wide text-neutral-100">Mini-portfolio appearance</h2>
-      <p className="mt-1 max-w-3xl text-xs leading-5 text-neutral-500">Choose a compatible introduction layout and decoration. Color palettes stay within the profile header so photographs keep a neutral gallery backdrop.</p>
+      <p className="mt-1 max-w-3xl text-xs leading-5 text-neutral-500">Choose a compatible introduction layout and decoration. Header color stops at the decoration frame so photographs keep a neutral gallery backdrop.</p>
 
       <fieldset className="mt-4">
         <legend className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Layout</legend>
@@ -191,6 +219,22 @@ export default function ProfileAppearancePicker({ idPrefix, onChange, profile }:
               <span className="mt-2 flex items-start gap-2">
                 <input type="radio" name={`${idPrefix}-decoration`} checked={resolvedDecoration === decoration} onChange={() => onChange({ ...profile, decoration })} className="mt-0.5 accent-white" />
                 <span><span className="block text-[10px] text-neutral-300">{DECORATION_LABELS[decoration].label}</span><span className="sr-only">{DECORATION_LABELS[decoration].description}</span></span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset className="mt-5">
+        <legend className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Color application</legend>
+        <p className="mt-1 text-[10px] leading-4 text-neutral-600">Choose whether the palette colors the whole framed header or its accents only.</p>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          {PROFILE_PALETTE_MODES.map((paletteMode) => (
+            <label key={paletteMode} className={`cursor-pointer border p-2.5 transition-colors ${profile.paletteMode === paletteMode ? "border-white bg-white/[0.055]" : "border-neutral-800 hover:border-neutral-600"}`}>
+              <PaletteModePreview mode={paletteMode} palette={profile.palette} />
+              <span className="mt-2 flex items-start gap-2">
+                <input type="radio" name={`${idPrefix}-palette-mode`} checked={profile.paletteMode === paletteMode} onChange={() => onChange({ ...profile, paletteMode })} className="mt-0.5 accent-white" />
+                <span><span className="block text-[10px] text-neutral-300">{PALETTE_MODE_LABELS[paletteMode].label}</span><span className="mt-0.5 block text-[9px] leading-4 text-neutral-600">{PALETTE_MODE_LABELS[paletteMode].description}</span></span>
               </span>
             </label>
           ))}

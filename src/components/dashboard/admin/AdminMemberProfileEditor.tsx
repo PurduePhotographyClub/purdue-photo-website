@@ -182,6 +182,8 @@ export default function AdminMemberProfileEditor({
     normalized.template,
     normalized.decoration,
     normalized.palette,
+    normalized.paletteMode,
+    normalized.showAvatar,
     normalized.avatarShape,
     normalized.avatarPositionX,
     normalized.avatarPositionY,

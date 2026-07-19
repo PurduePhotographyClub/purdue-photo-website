@@ -30,6 +30,8 @@ function createProfile(overrides = {}) {
     displayName: "Alexandria Montgomery-Santiago",
     nameStyle: "classic",
     palette: "monochrome",
+    paletteMode: "background-accent",
+    showAvatar: true,
     socialStyle: "tiles",
     socials: [
       { icon: "instagram", platform: "instagram", value: "https://instagram.com/member/" },
@@ -171,17 +173,36 @@ test("split and editorial templates reserve a feature-sized portrait column", ()
   }
 });
 
-test("the selected palette surface stays inside the decoration boundary", () => {
-  const html = renderToStaticMarkup(createElement(ProfileTemplateRenderer, {
-    profile: createProfile({ decoration: "film-frame", palette: "violet" }),
-  }));
-  const decorationIndex = html.indexOf('data-profile-decoration-frame="film-frame"');
-  const surfaceIndex = html.indexOf('data-profile-header-surface="true"');
+test("each decoration frame is the exact selected palette surface boundary", () => {
+  for (const decoration of PROFILE_DECORATIONS) {
+    const html = renderToStaticMarkup(createElement(ProfileTemplateRenderer, {
+      profile: createProfile({ decoration, palette: "violet" }),
+    }));
+    const resolvedDecoration = html.match(/data-profile-decoration="([^"]+)"/)?.[1];
+    const frame = html.match(new RegExp(`<div[^>]*data-profile-decoration-frame="${resolvedDecoration}"[^>]*>`))?.[0] ?? "";
+    const context = `${decoration} resolves to ${resolvedDecoration}`;
 
-  assert.match(html, /data-profile-palette-scope="true"/);
-  assert.ok(decorationIndex >= 0);
-  assert.ok(decorationIndex < surfaceIndex);
-  assert.match(html, /data-profile-header-surface="true"[^>]*class="[^"]*\[background-color:var\(--profile-surface\)\]/);
+    assert.match(frame, /data-profile-header-surface="true"/, context);
+    assert.match(frame, /\[background-color:var\(--profile-surface\)\]/, context);
+    assert.doesNotMatch(html, /data-profile-safe-area="true"[^>]*\[background-color:var\(--profile-surface\)\]/, context);
+  }
+});
+
+test("accent-only palettes preserve a neutral surface and apply only the chosen accent", () => {
+  const fullHtml = renderToStaticMarkup(createElement(ProfileTemplateRenderer, {
+    profile: createProfile({ palette: "violet", paletteMode: "background-accent" }),
+  }));
+  const accentHtml = renderToStaticMarkup(createElement(ProfileTemplateRenderer, {
+    profile: createProfile({ palette: "violet", paletteMode: "accent-only" }),
+  }));
+
+  assert.match(fullHtml, /data-profile-palette-mode="background-accent"/);
+  assert.match(fullHtml, /--profile-surface:#120b22/);
+  assert.match(accentHtml, /data-profile-palette-mode="accent-only"/);
+  assert.match(accentHtml, /--profile-accent:#c4b5fd/);
+  assert.match(accentHtml, /--profile-surface:#0a0a0a/);
+  assert.match(accentHtml, /--profile-border:#4a4a4a/);
+  assert.match(accentHtml, /--profile-chip:#202020/);
 });
 
 test("orthogonal portrait, role-tag, and social styles render across every template", () => {
@@ -219,5 +240,17 @@ test("anonymous profiles remove the entire portrait region in every template", (
     assert.match(html, /PPC Member/);
     assert.doesNotMatch(html, /data-profile-avatar|layout-matrix|<img|<svg/);
     assert.doesNotMatch(html, /Alexandria|biography|Profile social links|Photography types/);
+  }
+});
+
+test("profile-picture visibility removes the portrait region and keeps every layout responsive", () => {
+  for (const template of PROFILE_TEMPLATES) {
+    const html = renderToStaticMarkup(createElement(ProfileTemplateRenderer, {
+      profile: createProfile({ showAvatar: false, template }),
+    }));
+
+    assert.match(html, /data-profile-picture-visibility="hidden"/, template);
+    assert.doesNotMatch(html, /data-profile-avatar="true"/, template);
+    assert.match(html, /Alexandria Montgomery-Santiago/, template);
   }
 });

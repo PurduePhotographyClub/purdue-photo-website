@@ -60,11 +60,25 @@ export default function ProfileAvatarControls({
 
   return (
     <div className="border border-neutral-800 bg-neutral-950/50 p-4" aria-labelledby={`${idPrefix}-avatar-heading`}>
-      <div>
-        <h3 id={`${idPrefix}-avatar-heading`} className="text-xs text-neutral-200">Portrait framing</h3>
-        <p className="mt-1 text-[10px] leading-4 text-neutral-500">
-          Upload first, then zoom and move the focal point until the crop feels right.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 id={`${idPrefix}-avatar-heading`} className="text-xs text-neutral-200">Portrait framing</h3>
+          <p id={`${idPrefix}-avatar-visibility-help`} className="mt-1 text-[10px] leading-4 text-neutral-500">
+            Upload first, then zoom and move the focal point until the crop feels right.
+          </p>
+        </div>
+        <label className={`flex min-h-11 shrink-0 items-center gap-2 border border-neutral-700 px-3 text-[9px] uppercase tracking-[0.12em] text-neutral-300 ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:border-neutral-500"}`}>
+          <input
+            type="checkbox"
+            role="switch"
+            aria-describedby={`${idPrefix}-avatar-visibility-help`}
+            checked={profile.showAvatar}
+            disabled={disabled}
+            onChange={(event) => onChange({ ...profile, showAvatar: event.target.checked })}
+            className="size-4 accent-white"
+          />
+          Show profile picture
+        </label>
       </div>
 
       <div className="mt-4 grid gap-5 sm:grid-cols-[220px_minmax(0,1fr)] lg:grid-cols-1 xl:grid-cols-[220px_minmax(0,1fr)]">
@@ -113,6 +127,11 @@ export default function ProfileAvatarControls({
           {profile.anonymous && hasAvatar && (
             <p className="mt-2 text-[10px] leading-4 text-amber-200/80">
               Hidden from your anonymous public profile.
+            </p>
+          )}
+          {!profile.showAvatar && (
+            <p className="mt-2 text-[10px] leading-4 text-neutral-400">
+              Your saved picture is hidden from the public profile.
             </p>
           )}
         </div>
