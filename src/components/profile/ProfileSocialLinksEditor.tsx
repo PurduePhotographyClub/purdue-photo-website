@@ -128,7 +128,7 @@ export default function ProfileSocialLinksEditor({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id={`${idPrefix}-socials-heading`} className="text-sm tracking-wide text-neutral-100">Social links</h2>
-          <p className="mt-1 text-xs leading-5 text-neutral-500">Add only the places you want people to find you.</p>
+          <p className="mt-1 text-xs leading-5 text-neutral-500">Add links you want to show.</p>
         </div>
         <button
           type="button"

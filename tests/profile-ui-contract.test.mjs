@@ -84,7 +84,7 @@ test("profile editor exposes every fixed field and uses immutable update pattern
     "Bio",
     "Social links",
     "Photography types",
-    "Mini-portfolio appearance",
+    "Profile style",
   ]) {
     assert.match(
       `${profileSettingsSource}\n${profileFieldsSource}\n${profileSocialsSource}\n${profileAppearanceSource}`,
@@ -98,17 +98,17 @@ test("profile editor exposes every fixed field and uses immutable update pattern
   assert.match(profileFieldsSource, /ProfileAppearancePicker/);
   assert.match(profileFieldsSource, /ProfileAvatarControls/);
   assert.match(profileAvatarSource, /Up to 512px and 200KB\./);
-  assert.match(profileAvatarSource, /Portrait framing/);
+  assert.match(profileAvatarSource, /Profile picture/);
   assert.match(profileAvatarSource, /Show profile picture/);
   assert.match(profileAvatarSource, /profile\.showAvatar/);
   assert.match(profileFieldsSource, /PROFILE_BIO_MAX_LENGTH/);
   assert.match(profileFieldsSource, /maxLength=\{PROFILE_BIO_MAX_LENGTH\}/);
-  assert.match(profileFieldsSource, /characters maximum/);
+  assert.match(profileFieldsSource, /character limit/);
   assert.match(profileSettingsSource, /getProfileBioValidationError\(profile\.bio\)/);
   assert.match(adminEditorSource, /getProfileBioValidationError\(profile\.bio\)/);
   assert.match(profileAvatarSource, /Zoom/);
-  assert.match(profileAvatarSource, /Horizontal focus/);
-  assert.match(profileAvatarSource, /Vertical focus/);
+  assert.match(profileAvatarSource, /Move left \/ right/);
+  assert.match(profileAvatarSource, /Move up \/ down/);
   assert.match(profileFieldsSource, /type="button"/);
   assert.match(profileFieldsSource, /aria-pressed/);
   assert.doesNotMatch(profileFieldsSource, /<input type="checkbox" checked=\{profile\.specialties/);
@@ -122,14 +122,16 @@ test("profile editor exposes every fixed field and uses immutable update pattern
   assert.match(profileAppearanceSource, /darkroom-card/);
   assert.match(profileAppearanceSource, /diptych/);
   assert.match(profileAppearanceSource, /PROFILE_PALETTES/);
-  assert.match(profileAppearanceSource, /Color palette/);
+  assert.match(profileAppearanceSource, /Color/);
+  assert.match(profileSettingsSource, /Add your photo, bio, and links\./);
+  assert.doesNotMatch(profileSettingsSource, /links you actually use|Publish whenever you are ready/);
   assert.match(profileAppearanceSource, /PROFILE_PALETTE_MODES/);
-  assert.match(profileAppearanceSource, /Color application/);
+  assert.match(profileAppearanceSource, /Color use/);
   assert.match(profileAppearanceSource, /Accent only/);
   assert.match(profileAppearanceSource, /Background \+ accent/);
   assert.match(profileAppearanceSource, /Portrait shape/);
   assert.match(profileAppearanceSource, /Social link style/);
-  assert.match(profileAppearanceSource, /Mini-portfolio appearance/);
+  assert.match(profileAppearanceSource, /Profile style/);
   assert.match(profileAppearanceSource, /header/);
   assert.match(profileAppearanceSource, /resolveProfileDecoration/);
   assert.match(profileRendererSource, /data-profile-safe-area/);
@@ -143,6 +145,11 @@ test("profile editor exposes every fixed field and uses immutable update pattern
   assert.match(profileSocialsSource, /size-14/);
   assert.match(profileSocialsSource, /size=\{28\}/);
   assert.match(profileSocialIconSource, /size = 18/);
+});
+
+test("public profiles leave breathing room below the site navigation", () => {
+  const spacingMatches = publicProfileSource.match(/pt-6 sm:pt-8/g) ?? [];
+  assert.equal(spacingMatches.length, 2);
 });
 
 test("public profiles render seven responsive templates from one aggregate paginated API", () => {

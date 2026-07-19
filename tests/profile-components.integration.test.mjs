@@ -33,7 +33,7 @@ test("inactive members render locked profile fields while retaining the disable 
   assert.match(publishingSwitch, /checked=""/);
   assert.doesNotMatch(publishingSwitch, /disabled=""/);
   assert.match(html, /Enable public profile/);
-  assert.match(html, /Anyone can visit your page and browse the photos you have shared/);
+  assert.match(html, /Your profile is public\./);
   assert.match(html, /Anonymous profile/);
   assert.match(html, /Contact sheet/);
   assert.match(html, /Print index/);
@@ -42,11 +42,16 @@ test("inactive members render locked profile fields while retaining the disable 
   assert.match(html, /Editorial grid/);
   assert.match(html, /Darkroom card/);
   assert.match(html, /Diptych/);
-  assert.match(html, /Color palette/);
-  assert.match(html, /Color application/);
+  assert.match(html, />Color</);
+  assert.match(html, /Color use/);
   assert.match(html, /Accent only/);
   assert.match(html, /Background \+ accent/);
   assert.match(html, /Show profile picture/);
+  assert.match(html, /Profile picture/);
+  assert.match(html, /Choose what you photograph\./);
+  assert.match(html, /Use color for details only, or for the full header\./);
+  assert.match(html, /500 character limit\./);
+  assert.doesNotMatch(html, /compatible introduction layout|neutral gallery backdrop|focal point|compact footprint/i);
   assert.match(html, /Cyanotype/);
   assert.match(html, /Add social/);
   assert.match(html, /Up to 512px and 200KB\./);
@@ -63,7 +68,7 @@ test("an unpublished inactive member cannot enable or edit profile fields", () =
   const publishingSwitch = html.match(/<input[^>]+role="switch"[^>]*>/)?.[0] ?? "";
   assert.match(publishingSwitch, /disabled=""/);
   assert.match(html, /<fieldset disabled="" class="contents">/);
-  assert.match(html, /Only you can see this draft/);
+  assert.match(html, /Your profile is private until you turn it on\./);
 });
 
 test("public profile rendering shows the selected template content and safe social link", () => {

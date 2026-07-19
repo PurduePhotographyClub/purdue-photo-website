@@ -62,9 +62,9 @@ export default function ProfileAvatarControls({
     <div className="border border-neutral-800 bg-neutral-950/50 p-4" aria-labelledby={`${idPrefix}-avatar-heading`}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h3 id={`${idPrefix}-avatar-heading`} className="text-xs text-neutral-200">Portrait framing</h3>
+          <h3 id={`${idPrefix}-avatar-heading`} className="text-xs text-neutral-200">Profile picture</h3>
           <p id={`${idPrefix}-avatar-visibility-help`} className="mt-1 text-[10px] leading-4 text-neutral-500">
-            Upload first, then zoom and move the focal point until the crop feels right.
+            Upload a JPG, then adjust the crop.
           </p>
         </div>
         <label className={`flex min-h-11 shrink-0 items-center gap-2 border border-neutral-700 px-3 text-[9px] uppercase tracking-[0.12em] text-neutral-300 ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:border-neutral-500"}`}>
@@ -126,18 +126,18 @@ export default function ProfileAvatarControls({
           <p className="mt-1 text-[9px] leading-4 text-neutral-500">JPG only. Up to 512px and 200KB.</p>
           {profile.anonymous && hasAvatar && (
             <p className="mt-2 text-[10px] leading-4 text-amber-200/80">
-              Hidden from your anonymous public profile.
+              Hidden while your profile is anonymous.
             </p>
           )}
           {!profile.showAvatar && (
             <p className="mt-2 text-[10px] leading-4 text-neutral-400">
-              Your saved picture is hidden from the public profile.
+              This picture is hidden.
             </p>
           )}
         </div>
 
         <fieldset disabled={disabled || !hasAvatar} className="min-w-0 space-y-4 disabled:opacity-45">
-          <legend className="sr-only">Portrait framing controls</legend>
+          <legend className="sr-only">Profile picture controls</legend>
           <label className="block">
             <span className="flex items-center justify-between gap-3 text-[10px] uppercase tracking-wider text-neutral-400">
               <span>Zoom</span>
@@ -157,7 +157,7 @@ export default function ProfileAvatarControls({
 
           <label className="block">
             <span className="flex items-center justify-between gap-3 text-[10px] uppercase tracking-wider text-neutral-400">
-              <span>Horizontal focus</span>
+              <span>Move left / right</span>
               <output htmlFor={`${idPrefix}-avatar-position-x`} className="text-neutral-200">{profile.avatarPositionX}%</output>
             </span>
             <input
@@ -174,7 +174,7 @@ export default function ProfileAvatarControls({
 
           <label className="block">
             <span className="flex items-center justify-between gap-3 text-[10px] uppercase tracking-wider text-neutral-400">
-              <span>Vertical focus</span>
+              <span>Move up / down</span>
               <output htmlFor={`${idPrefix}-avatar-position-y`} className="text-neutral-200">{profile.avatarPositionY}%</output>
             </span>
             <input
@@ -195,7 +195,7 @@ export default function ProfileAvatarControls({
             onClick={resetFraming}
             className="inline-flex min-h-11 items-center gap-2 border border-neutral-700 px-3 text-[9px] uppercase tracking-wider text-neutral-300 hover:border-neutral-500 hover:text-white disabled:cursor-not-allowed"
           >
-            <RotateCcw aria-hidden="true" size={14} /> Center crop
+            <RotateCcw aria-hidden="true" size={14} /> Reset crop
           </button>
         </fieldset>
       </div>
