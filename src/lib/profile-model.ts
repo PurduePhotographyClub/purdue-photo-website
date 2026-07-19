@@ -34,6 +34,7 @@ export const PROFILE_PALETTES = [
   "violet",
 ] as const;
 export const PROFILE_PALETTE_MODES = ["accent-only", "background-accent"] as const;
+export const PROFILE_BIO_MAX_LENGTH = 500;
 export const PROFILE_AVATAR_SHAPES = ["auto", "circle", "rounded", "square"] as const;
 export const PROFILE_SOCIAL_STYLES = ["tiles", "labels"] as const;
 export const PROFILE_SOCIAL_PLATFORMS = ["instagram", "discord", "vsco", "website", "email"] as const;
@@ -232,6 +233,12 @@ export function getProfileUsernameValidationError(value: string) {
     return "That profile URL is reserved.";
   }
   return null;
+}
+
+export function getProfileBioValidationError(value: string) {
+  return value.length > PROFILE_BIO_MAX_LENGTH
+    ? `Bio must be ${PROFILE_BIO_MAX_LENGTH} characters or fewer.`
+    : null;
 }
 
 export function normalizeProfileUsername(value: string) {

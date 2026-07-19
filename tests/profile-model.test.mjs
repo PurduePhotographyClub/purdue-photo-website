@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   PROFILE_AVATAR_SHAPES,
+  PROFILE_BIO_MAX_LENGTH,
   PROFILE_DECORATIONS,
   PROFILE_NAME_STYLES,
   PROFILE_PALETTE_MODES,
@@ -12,6 +13,7 @@ import {
   PROFILE_SPECIALTIES,
   PROFILE_TEMPLATES,
   createEmptyProfileDraft,
+  getProfileBioValidationError,
   getProfileSocialValidationError,
   getProfileSocialHref,
   getPublicProfileHref,
@@ -24,6 +26,7 @@ import {
 } from "../src/lib/profile-model.ts";
 
 test("profile editor choices match the expanded fixed server contract", () => {
+  assert.equal(PROFILE_BIO_MAX_LENGTH, 500);
   assert.deepEqual(PROFILE_TEMPLATES, [
     "contact-sheet",
     "print-index",
@@ -78,6 +81,14 @@ test("profile editor choices match the expanded fixed server contract", () => {
     "Videography",
   ]);
   assert.equal(PROFILE_SPECIALTIES.some((role) => /\p{Extended_Pictographic}/u.test(role)), false);
+});
+
+test("profile biographies enforce the shared maximum length", () => {
+  assert.equal(getProfileBioValidationError("a".repeat(PROFILE_BIO_MAX_LENGTH)), null);
+  assert.equal(
+    getProfileBioValidationError("a".repeat(PROFILE_BIO_MAX_LENGTH + 1)),
+    `Bio must be ${PROFILE_BIO_MAX_LENGTH} characters or fewer.`,
+  );
 });
 
 test("new profile drafts are disabled without mutating response data", () => {

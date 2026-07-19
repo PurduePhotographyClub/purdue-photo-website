@@ -19,7 +19,7 @@ export default function AdminMemberProfileDialog({ memberId, memberName, onClose
           className="absolute inset-0 cursor-default"
           onMouseDown={onClose}
         />
-        <section className="relative flex max-h-[calc(100dvh-1rem)] w-full flex-col border border-neutral-700 bg-neutral-950 shadow-2xl sm:max-w-6xl">
+        <section className="relative flex max-h-dvh w-full flex-col overflow-hidden border border-neutral-700 bg-neutral-950 shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:max-w-6xl">
           <header className="flex shrink-0 items-start justify-between gap-4 border-b border-neutral-800 px-4 py-4 sm:px-6">
             <div className="min-w-0">
               <p className="text-[9px] uppercase tracking-[0.22em] text-neutral-600">Member profile</p>
@@ -30,7 +30,6 @@ export default function AdminMemberProfileDialog({ memberId, memberName, onClose
             </div>
             <button
               type="button"
-              autoFocus
               onClick={onClose}
               className="flex size-11 shrink-0 items-center justify-center text-neutral-500 hover:text-white"
               aria-label="Close member profile editor"
