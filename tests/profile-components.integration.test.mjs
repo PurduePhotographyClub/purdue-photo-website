@@ -11,7 +11,44 @@ const { default: ProfileFormFields } = await import(
 const { default: ProfileTemplateRenderer } = await import(
   "../src/components/profile/ProfileTemplateRenderer.tsx"
 );
+const { default: ProfileGallery } = await import(
+  "../src/components/profile/ProfileGallery.tsx"
+);
 const { createEmptyProfileDraft } = await import("../src/lib/profile-model.ts");
+
+function renderProfileGallery(total) {
+  return renderToStaticMarkup(createElement(ProfileGallery, {
+    availableTags: [],
+    loading: false,
+    meta: {
+      hasNextPage: false,
+      hasPreviousPage: false,
+      page: 1,
+      perPage: 15,
+      total,
+      totalPages: 1,
+    },
+    metadataHidden: false,
+    onPageChange() {},
+    onRetry() {},
+    onTagChange() {},
+    photos: [],
+    selectedTag: "All",
+    template: "contact-sheet",
+  }));
+}
+
+test("profile galleries use a simple title and posted-image count", () => {
+  const noImages = renderProfileGallery(0);
+  const oneImage = renderProfileGallery(1);
+  const manyImages = renderProfileGallery(12);
+
+  assert.match(noImages, />0 images posted</);
+  assert.match(oneImage, />Gallery</);
+  assert.match(oneImage, />1 image posted</);
+  assert.match(manyImages, />12 images posted</);
+  assert.doesNotMatch(`${oneImage}${manyImages}`, /Selected photographs|public images?/);
+});
 
 test("inactive members render locked profile fields while retaining the disable control", () => {
   const profile = {

@@ -94,9 +94,9 @@ export default function ProfileGallery({
     >
       <div className="flex flex-col gap-4 border-b [border-color:var(--profile-border)] pb-5 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
         <div className="min-w-0">
-          <h2 id="profile-gallery-heading" className="text-2xl tracking-[0.04em] text-[var(--profile-ink)] sm:text-[1.75rem]" style={{ fontFamily: "'Playfair Display', serif" }}>Selected photographs</h2>
+          <h2 id="profile-gallery-heading" className="text-2xl tracking-[0.04em] text-[var(--profile-ink)] sm:text-[1.75rem]" style={{ fontFamily: "'Playfair Display', serif" }}>Gallery</h2>
           <p className="mt-1.5 text-[9px] uppercase tracking-[0.15em] text-[var(--profile-muted)]">
-            {meta.total} {meta.total === 1 ? "public image" : "public images"}
+            {meta.total} {meta.total === 1 ? "image" : "images"} posted
           </p>
         </div>
         {showFilters && (
