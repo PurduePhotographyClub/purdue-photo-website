@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import {
   getProfileAvatarImageStyle,
   getProfileSocialHref,
+  resolveProfileDecoration,
   resolveProfileAvatarShape,
   type ProfileAvatarShape,
   type ProfileDecoration,
@@ -12,6 +13,11 @@ import {
   type ProfileSpecialty,
   type ProfileTemplate,
 } from "@/lib/profile-model";
+import {
+  createEmptyPublicProfileStatistics,
+  formatClubTenure,
+  type PublicProfileStatistics,
+} from "@/lib/profile-statistics";
 import ProfileSocialIcon from "./ProfileSocialIcon";
 
 export interface PublicProfileIdentity {
@@ -138,7 +144,7 @@ function Avatar({
 
   return (
     <div
-      className={`relative aspect-square w-32 shrink-0 overflow-hidden border [border-color:var(--profile-border)] [background-color:var(--profile-chip)] sm:w-40 lg:w-44 ${getAvatarShapeClass(profile)}`}
+      className={`relative aspect-square w-32 max-w-full shrink-0 self-start overflow-hidden border [border-color:var(--profile-border)] [background-color:var(--profile-chip)] sm:w-40 md:w-full md:max-w-40 lg:max-w-44 ${getAvatarShapeClass(profile)}`}
       data-profile-avatar="true"
       data-profile-avatar-shape={resolvedShape}
     >
@@ -277,19 +283,12 @@ function Specialties({ specialties, centered = false }: { specialties: ProfileSp
 }
 
 function ProfileIdentity({ profile, centered = false }: { profile: PublicProfileIdentity; centered?: boolean }) {
+  if (!profile.username) return null;
+
   return (
     <div className={`mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[10px] ${centered ? "justify-center" : ""}`}>
-      {profile.username && (
-        <span className="text-[var(--profile-muted)]" data-profile-username="true">
-          @{profile.username}
-        </span>
-      )}
-      <span
-        className="inline-flex min-h-7 items-center gap-2 border [border-color:var(--profile-border)] px-2.5 py-1 uppercase tracking-[0.11em] text-[var(--profile-ink)]"
-        data-profile-membership="true"
-      >
-        <span aria-hidden="true" className="size-1.5 [background-color:var(--profile-accent)]" />
-        Purdue Photography Club member
+      <span className="text-[var(--profile-muted)]" data-profile-username="true">
+        @{profile.username}
       </span>
     </div>
   );
@@ -297,30 +296,33 @@ function ProfileIdentity({ profile, centered = false }: { profile: PublicProfile
 
 function ProfileStatistics({
   centered = false,
-  photoCount,
   profile,
+  statistics,
 }: {
   centered?: boolean;
-  photoCount: number;
   profile: PublicProfileIdentity;
+  statistics: PublicProfileStatistics;
 }) {
-  const statistics = profile.anonymous
-    ? [{ label: "Photographs", value: photoCount }]
+  const items = profile.anonymous
+    ? [{ label: "Photographs", value: statistics.photographs }]
     : [
-        { label: "Photographs", value: photoCount },
-        { label: "Focus areas", value: profile.specialties.length },
-        { label: "Profile links", value: profile.socials.length },
+        { label: "Photographs", value: statistics.photographs },
+        { label: "Time in club", value: formatClubTenure(statistics.clubTenureMonths) },
+        {
+          label: "Top 3 finishes",
+          value: statistics.competitionTopThreePlacements ?? 0,
+        },
       ];
 
   return (
     <dl
-      className={`grid border-y [border-color:var(--profile-border)] ${profile.anonymous ? "grid-cols-1" : "grid-cols-3"}`}
+      className={`grid border-y [border-color:var(--profile-border)] ${profile.anonymous ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-3"}`}
       data-profile-statistics="true"
     >
-      {statistics.map((statistic, index) => (
+      {items.map((statistic, index) => (
         <div
           key={statistic.label}
-          className={`min-w-0 py-3.5 ${centered ? "px-3" : "pr-3"} ${index > 0 ? "border-l [border-color:var(--profile-border)] pl-3 sm:pl-4" : ""}`}
+          className={`min-w-0 py-3.5 ${centered ? "px-3" : "pr-3"} ${index > 0 ? "border-t [border-color:var(--profile-border)] pl-0 sm:border-l sm:border-t-0 sm:pl-4" : ""}`}
           data-profile-stat="true"
         >
           <dt className="text-[8px] uppercase tracking-[0.14em] text-[var(--profile-muted)]">{statistic.label}</dt>
@@ -332,17 +334,13 @@ function ProfileStatistics({
 }
 
 function ProfileActions({ profile, centered = false }: { profile: PublicProfileIdentity; centered?: boolean }) {
+  if (profile.socials.length === 0) return null;
+
   return (
     <div
       className={`flex flex-wrap items-center gap-2 ${centered ? "justify-center" : ""}`}
       data-profile-actions="true"
     >
-      <a
-        href="#profile-gallery"
-        className="inline-flex min-h-11 items-center justify-center border [border-color:var(--profile-accent)] [background-color:var(--profile-accent)] px-4 text-[10px] uppercase tracking-[0.13em] [color:var(--profile-surface)] transition-colors hover:opacity-85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--profile-accent)]"
-      >
-        View gallery
-      </a>
       <SocialLinks socials={profile.socials} style={profile.socialStyle} centered={centered} />
     </div>
   );
@@ -351,13 +349,13 @@ function ProfileActions({ profile, centered = false }: { profile: PublicProfileI
 function ProfileDetails({
   centered = false,
   compact = false,
-  photoCount,
   profile,
+  statistics,
 }: {
   centered?: boolean;
   compact?: boolean;
-  photoCount: number;
   profile: PublicProfileIdentity;
+  statistics: PublicProfileStatistics;
 }) {
 
   return (
@@ -377,18 +375,18 @@ function ProfileDetails({
           {profile.bio}
         </p>
       )}
-      <div className="mt-6"><ProfileStatistics centered={centered} photoCount={photoCount} profile={profile} /></div>
+      <div className="mt-6"><ProfileStatistics centered={centered} profile={profile} statistics={statistics} /></div>
       <div className="mt-5"><ProfileActions profile={profile} centered={centered} /></div>
     </div>
   );
 }
 
 interface ProfileHeaderProps {
-  photoCount: number;
   profile: PublicProfileIdentity;
+  statistics: PublicProfileStatistics;
 }
 
-function ContactSheetHeader({ photoCount, profile }: ProfileHeaderProps) {
+function ContactSheetHeader({ profile, statistics }: ProfileHeaderProps) {
   return (
     <header className={profile.anonymous
       ? "py-9 sm:py-12"
@@ -398,23 +396,23 @@ function ContactSheetHeader({ photoCount, profile }: ProfileHeaderProps) {
       <Avatar profile={profile} />
       <div className="min-w-0">
         <p className="mb-3 text-[10px] uppercase tracking-[0.24em] text-[var(--profile-muted)]">Member mini-portfolio</p>
-        <ProfileDetails photoCount={photoCount} profile={profile} />
+        <ProfileDetails profile={profile} statistics={statistics} />
       </div>
     </header>
   );
 }
 
-function PrintIndexHeader({ photoCount, profile }: ProfileHeaderProps) {
+function PrintIndexHeader({ profile, statistics }: ProfileHeaderProps) {
   return (
     <header className="mx-auto flex max-w-4xl flex-col items-center py-9 text-center sm:py-12" data-profile-header="true">
       <Avatar profile={profile} />
       <p className={`${profile.anonymous ? "" : "mt-6"} text-[9px] uppercase tracking-[0.25em] text-[var(--profile-muted)]`}>Purdue Photography Club</p>
-      <div className="mt-3 min-w-0 max-w-full"><ProfileDetails photoCount={photoCount} profile={profile} centered /></div>
+      <div className="mt-3 min-w-0 max-w-full"><ProfileDetails profile={profile} statistics={statistics} centered /></div>
     </header>
   );
 }
 
-function SplitFrameHeader({ photoCount, profile }: ProfileHeaderProps) {
+function SplitFrameHeader({ profile, statistics }: ProfileHeaderProps) {
   return (
     <header className={profile.anonymous
       ? "py-9 sm:py-12"
@@ -423,7 +421,7 @@ function SplitFrameHeader({ photoCount, profile }: ProfileHeaderProps) {
     >
       <div className="order-2 min-w-0 md:order-1">
         <p className="mb-3 text-[9px] uppercase tracking-[0.25em] text-[var(--profile-muted)]">Selected work</p>
-        <ProfileDetails photoCount={photoCount} profile={profile} />
+        <ProfileDetails profile={profile} statistics={statistics} />
       </div>
       {!profile.anonymous && (
         <div className="order-1 md:order-2 md:justify-self-end">
@@ -434,7 +432,7 @@ function SplitFrameHeader({ photoCount, profile }: ProfileHeaderProps) {
   );
 }
 
-function NegativeStripHeader({ photoCount, profile }: ProfileHeaderProps) {
+function NegativeStripHeader({ profile, statistics }: ProfileHeaderProps) {
   return (
     <header className="my-5 border-y-8 [border-color:var(--profile-border)] [background-color:var(--profile-surface)] sm:my-7" data-profile-header="true">
       <div aria-hidden="true" className="h-2.5 bg-[repeating-linear-gradient(90deg,transparent_0_18px,var(--profile-border)_18px_28px)]" />
@@ -443,14 +441,14 @@ function NegativeStripHeader({ photoCount, profile }: ProfileHeaderProps) {
         : "grid gap-7 border-y [border-color:var(--profile-border)] px-5 py-7 sm:px-8 md:grid-cols-[160px_minmax(0,1fr)] md:items-start md:gap-9"}
       >
         <Avatar profile={profile} />
-        <div className="min-w-0"><ProfileDetails photoCount={photoCount} profile={profile} compact /></div>
+        <div className="min-w-0"><ProfileDetails profile={profile} statistics={statistics} compact /></div>
       </div>
       <div aria-hidden="true" className="h-2.5 bg-[repeating-linear-gradient(90deg,transparent_0_18px,var(--profile-border)_18px_28px)]" />
     </header>
   );
 }
 
-function EditorialGridHeader({ photoCount, profile }: ProfileHeaderProps) {
+function EditorialGridHeader({ profile, statistics }: ProfileHeaderProps) {
   return (
     <header className={profile.anonymous
       ? "py-9 sm:py-12"
@@ -459,7 +457,7 @@ function EditorialGridHeader({ photoCount, profile }: ProfileHeaderProps) {
     >
       <div className="order-2 min-w-0 border-t [border-color:var(--profile-border)] pt-5 md:order-1 md:border-l md:border-t-0 md:pl-7 md:pt-0 lg:pl-9">
         <p className="mb-4 text-[9px] uppercase tracking-[0.28em] text-[var(--profile-muted)]">Photographer index</p>
-        <ProfileDetails photoCount={photoCount} profile={profile} />
+        <ProfileDetails profile={profile} statistics={statistics} />
       </div>
       {!profile.anonymous && (
         <div className="order-1 md:order-2 md:justify-self-end">
@@ -470,7 +468,7 @@ function EditorialGridHeader({ photoCount, profile }: ProfileHeaderProps) {
   );
 }
 
-function DarkroomCardHeader({ photoCount, profile }: ProfileHeaderProps) {
+function DarkroomCardHeader({ profile, statistics }: ProfileHeaderProps) {
   return (
     <header className={profile.anonymous
       ? "my-6 border-y [border-color:var(--profile-border)] [background-color:var(--profile-chip)] px-5 py-8 sm:px-8 sm:py-10"
@@ -480,13 +478,13 @@ function DarkroomCardHeader({ photoCount, profile }: ProfileHeaderProps) {
       <Avatar profile={profile} />
       <div className="min-w-0">
         <p className="mb-3 font-mono text-[9px] uppercase tracking-[0.24em] text-[var(--profile-muted)]">Darkroom record</p>
-        <ProfileDetails photoCount={photoCount} profile={profile} compact />
+        <ProfileDetails profile={profile} statistics={statistics} compact />
       </div>
     </header>
   );
 }
 
-function DiptychHeader({ photoCount, profile }: ProfileHeaderProps) {
+function DiptychHeader({ profile, statistics }: ProfileHeaderProps) {
   return (
     <header className={profile.anonymous
       ? "py-9 sm:py-12"
@@ -496,7 +494,7 @@ function DiptychHeader({ photoCount, profile }: ProfileHeaderProps) {
       <Avatar profile={profile} />
       <div className="min-w-0 border-t [border-color:var(--profile-border)] pt-5 md:border-l md:border-t-0 md:pl-7 md:pt-0 lg:pl-9">
         <p className="mb-3 text-[9px] uppercase tracking-[0.25em] text-[var(--profile-muted)]">Profile / selected work</p>
-        <ProfileDetails photoCount={photoCount} profile={profile} />
+        <ProfileDetails profile={profile} statistics={statistics} />
       </div>
     </header>
   );
@@ -555,24 +553,24 @@ function DecorationFrame({ children, decoration }: { children: ReactNode; decora
   );
 }
 
-function TemplateHeader({ photoCount, profile }: ProfileHeaderProps) {
-  if (profile.template === "print-index") return <PrintIndexHeader photoCount={photoCount} profile={profile} />;
-  if (profile.template === "split-frame") return <SplitFrameHeader photoCount={photoCount} profile={profile} />;
-  if (profile.template === "negative-strip") return <NegativeStripHeader photoCount={photoCount} profile={profile} />;
-  if (profile.template === "editorial-grid") return <EditorialGridHeader photoCount={photoCount} profile={profile} />;
-  if (profile.template === "darkroom-card") return <DarkroomCardHeader photoCount={photoCount} profile={profile} />;
-  if (profile.template === "diptych") return <DiptychHeader photoCount={photoCount} profile={profile} />;
-  return <ContactSheetHeader photoCount={photoCount} profile={profile} />;
+function TemplateHeader({ profile, statistics }: ProfileHeaderProps) {
+  if (profile.template === "print-index") return <PrintIndexHeader profile={profile} statistics={statistics} />;
+  if (profile.template === "split-frame") return <SplitFrameHeader profile={profile} statistics={statistics} />;
+  if (profile.template === "negative-strip") return <NegativeStripHeader profile={profile} statistics={statistics} />;
+  if (profile.template === "editorial-grid") return <EditorialGridHeader profile={profile} statistics={statistics} />;
+  if (profile.template === "darkroom-card") return <DarkroomCardHeader profile={profile} statistics={statistics} />;
+  if (profile.template === "diptych") return <DiptychHeader profile={profile} statistics={statistics} />;
+  return <ContactSheetHeader profile={profile} statistics={statistics} />;
 }
 
 export default function ProfileTemplateRenderer({
   children,
-  photoCount = 0,
   profile,
+  statistics = createEmptyPublicProfileStatistics(),
 }: {
   children?: ReactNode;
-  photoCount?: number;
   profile: PublicProfileIdentity;
+  statistics?: PublicProfileStatistics;
 }) {
   const visibleProfile: PublicProfileIdentity = profile.anonymous
     ? {
@@ -586,21 +584,33 @@ export default function ProfileTemplateRenderer({
         username: null,
       }
     : profile;
+  const decoration = resolveProfileDecoration(profile);
 
   return (
     <section
-      aria-label={`${DECORATION_LABELS[profile.decoration]} member mini-portfolio`}
-      className="relative isolate overflow-hidden [background-color:var(--profile-surface)] text-[var(--profile-ink)]"
-      data-profile-palette={profile.palette}
-      data-profile-surface="true"
+      aria-label={`${DECORATION_LABELS[decoration]} member mini-portfolio`}
+      className="relative isolate overflow-hidden bg-neutral-950 text-neutral-100"
+      data-profile-decoration={decoration}
       data-profile-template={profile.template}
-      style={PROFILE_PALETTE_CLASSES[profile.palette]}
     >
-      <span className="sr-only">{PALETTE_LABELS[profile.palette]} profile palette</span>
-      <DecorationFrame decoration={profile.decoration}>
-        <TemplateHeader photoCount={photoCount} profile={visibleProfile} />
-      </DecorationFrame>
-      {children}
+      <div
+        className="relative overflow-hidden [background-color:var(--profile-surface)] text-[var(--profile-ink)]"
+        data-profile-header-surface="true"
+        data-profile-palette={profile.palette}
+        style={PROFILE_PALETTE_CLASSES[profile.palette]}
+      >
+        <span className="sr-only">{PALETTE_LABELS[profile.palette]} profile palette</span>
+        <DecorationFrame decoration={decoration}>
+          <TemplateHeader profile={visibleProfile} statistics={statistics} />
+        </DecorationFrame>
+      </div>
+      <div
+        className="bg-neutral-950 text-neutral-100"
+        data-profile-gallery-surface="true"
+        style={PROFILE_PALETTE_CLASSES.monochrome}
+      >
+        {children}
+      </div>
     </section>
   );
 }
