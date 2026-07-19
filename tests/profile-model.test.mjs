@@ -5,6 +5,7 @@ import {
   PROFILE_AVATAR_SHAPES,
   PROFILE_DECORATIONS,
   PROFILE_NAME_STYLES,
+  PROFILE_PALETTE_MODES,
   PROFILE_PALETTES,
   PROFILE_SOCIAL_PLATFORMS,
   PROFILE_SOCIAL_STYLES,
@@ -58,6 +59,7 @@ test("profile editor choices match the expanded fixed server contract", () => {
     "burgundy",
     "violet",
   ]);
+  assert.deepEqual(PROFILE_PALETTE_MODES, ["accent-only", "background-accent"]);
   assert.deepEqual(PROFILE_AVATAR_SHAPES, ["auto", "circle", "rounded", "square"]);
   assert.deepEqual(PROFILE_SOCIAL_STYLES, ["tiles", "labels"]);
   assert.deepEqual(PROFILE_SOCIAL_PLATFORMS, ["instagram", "discord", "vsco", "website", "email"]);
@@ -94,6 +96,8 @@ test("new profile drafts are disabled without mutating response data", () => {
     enabled: false,
     nameStyle: "classic",
     palette: "monochrome",
+    paletteMode: "background-accent",
+    showAvatar: true,
     socialStyle: "tiles",
     socials: [],
     specialties: [],
@@ -118,12 +122,18 @@ test("new profile drafts are disabled without mutating response data", () => {
 
 test("profile palettes are normalized and included in updates", () => {
   const fallback = normalizeProfileResponse({
-    profile: { displayName: "Jane", palette: "unsafe-css" },
+    profile: { displayName: "Jane", palette: "unsafe-css", paletteMode: "transparent" },
   }, "Fallback").profile;
   assert.equal(fallback.palette, "monochrome");
+  assert.equal(fallback.paletteMode, "background-accent");
 
-  const profile = { ...createEmptyProfileDraft("Jane"), palette: "cyanotype" };
+  const profile = {
+    ...createEmptyProfileDraft("Jane"),
+    palette: "cyanotype",
+    paletteMode: "accent-only",
+  };
   assert.equal(toProfileUpdate(profile).palette, "cyanotype");
+  assert.equal(toProfileUpdate(profile).paletteMode, "accent-only");
 });
 
 test("profile presentation controls default safely and serialize as bounded values", () => {
@@ -134,6 +144,7 @@ test("profile presentation controls default safely and serialize as bounded valu
       avatarShape: "rounded",
       avatarZoom: 180,
       displayName: "Jane",
+      showAvatar: false,
       socialStyle: "labels",
     },
   }, "Fallback").profile;
@@ -143,12 +154,14 @@ test("profile presentation controls default safely and serialize as bounded valu
     avatarShape: normalized.avatarShape,
     avatarZoom: normalized.avatarZoom,
     socialStyle: normalized.socialStyle,
+    showAvatar: normalized.showAvatar,
   }, {
     avatarPositionX: 74,
     avatarPositionY: 19,
     avatarShape: "rounded",
     avatarZoom: 180,
     socialStyle: "labels",
+    showAvatar: false,
   });
   assert.deepEqual(toProfileUpdate(normalized), {
     anonymous: false,
@@ -162,6 +175,8 @@ test("profile presentation controls default safely and serialize as bounded valu
     enabled: false,
     nameStyle: "classic",
     palette: "monochrome",
+    paletteMode: "background-accent",
+    showAvatar: false,
     socialStyle: "labels",
     socials: [],
     specialties: [],

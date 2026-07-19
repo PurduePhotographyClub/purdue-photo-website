@@ -43,6 +43,10 @@ test("inactive members render locked profile fields while retaining the disable 
   assert.match(html, /Darkroom card/);
   assert.match(html, /Diptych/);
   assert.match(html, /Color palette/);
+  assert.match(html, /Color application/);
+  assert.match(html, /Accent only/);
+  assert.match(html, /Background \+ accent/);
+  assert.match(html, /Show profile picture/);
   assert.match(html, /Cyanotype/);
   assert.match(html, /Add social/);
   assert.match(html, /Up to 512px and 200KB\./);
@@ -76,6 +80,8 @@ test("public profile rendering shows the selected template content and safe soci
       displayName: "Jane Example",
       nameStyle: "editorial",
       palette: "cyanotype",
+      paletteMode: "accent-only",
+      showAvatar: true,
       socialStyle: "labels",
       socials: [{
         icon: "instagram",
@@ -122,6 +128,8 @@ test("anonymous public rendering is image-only and never emits supplied identity
       displayName: "Private Display Name",
       nameStyle: "bold-print",
       palette: "amber",
+      paletteMode: "background-accent",
+      showAvatar: true,
       socialStyle: "labels",
       socials: [{
         icon: "mail",
@@ -142,4 +150,23 @@ test("anonymous public rendering is image-only and never emits supplied identity
   );
   assert.doesNotMatch(html, /<img|Profile social links|Photography types/);
   assert.doesNotMatch(html, /data-profile-avatar|<svg/);
+});
+
+test("profiles without a picture reflow identity content without an empty portrait slot", () => {
+  for (const template of ["contact-sheet", "split-frame", "editorial-grid", "diptych"]) {
+    const html = renderToStaticMarkup(createElement(ProfileTemplateRenderer, {
+      profile: {
+        ...createEmptyProfileDraft("Jane Example"),
+        bio: "Street photographer.",
+        enabled: true,
+        showAvatar: false,
+        template,
+        username: "jane-example",
+      },
+    }));
+
+    assert.doesNotMatch(html, /data-profile-avatar="true"/, template);
+    assert.match(html, /data-profile-picture-visibility="hidden"/, template);
+    assert.match(html, /Jane Example/, template);
+  }
 });

@@ -97,6 +97,8 @@ test("profile editor exposes every fixed field and uses immutable update pattern
   assert.match(profileFieldsSource, /ProfileAvatarControls/);
   assert.match(profileAvatarSource, /Up to 512px and 200KB\./);
   assert.match(profileAvatarSource, /Portrait framing/);
+  assert.match(profileAvatarSource, /Show profile picture/);
+  assert.match(profileAvatarSource, /profile\.showAvatar/);
   assert.match(profileAvatarSource, /Zoom/);
   assert.match(profileAvatarSource, /Horizontal focus/);
   assert.match(profileAvatarSource, /Vertical focus/);
@@ -114,6 +116,10 @@ test("profile editor exposes every fixed field and uses immutable update pattern
   assert.match(profileAppearanceSource, /diptych/);
   assert.match(profileAppearanceSource, /PROFILE_PALETTES/);
   assert.match(profileAppearanceSource, /Color palette/);
+  assert.match(profileAppearanceSource, /PROFILE_PALETTE_MODES/);
+  assert.match(profileAppearanceSource, /Color application/);
+  assert.match(profileAppearanceSource, /Accent only/);
+  assert.match(profileAppearanceSource, /Background \+ accent/);
   assert.match(profileAppearanceSource, /Portrait shape/);
   assert.match(profileAppearanceSource, /Social link style/);
   assert.match(profileAppearanceSource, /Mini-portfolio appearance/);

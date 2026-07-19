@@ -33,6 +33,7 @@ export const PROFILE_PALETTES = [
   "burgundy",
   "violet",
 ] as const;
+export const PROFILE_PALETTE_MODES = ["accent-only", "background-accent"] as const;
 export const PROFILE_AVATAR_SHAPES = ["auto", "circle", "rounded", "square"] as const;
 export const PROFILE_SOCIAL_STYLES = ["tiles", "labels"] as const;
 export const PROFILE_SOCIAL_PLATFORMS = ["instagram", "discord", "vsco", "website", "email"] as const;
@@ -56,6 +57,7 @@ export type ProfileTemplate = (typeof PROFILE_TEMPLATES)[number];
 export type ProfileDecoration = (typeof PROFILE_DECORATIONS)[number];
 export type ProfileNameStyle = (typeof PROFILE_NAME_STYLES)[number];
 export type ProfilePalette = (typeof PROFILE_PALETTES)[number];
+export type ProfilePaletteMode = (typeof PROFILE_PALETTE_MODES)[number];
 export type ProfileAvatarShape = (typeof PROFILE_AVATAR_SHAPES)[number];
 export type ProfileSocialStyle = (typeof PROFILE_SOCIAL_STYLES)[number];
 export type ProfileSocialPlatform = (typeof PROFILE_SOCIAL_PLATFORMS)[number];
@@ -111,6 +113,8 @@ export interface ProfileDraft {
   enabled: boolean;
   nameStyle: ProfileNameStyle;
   palette: ProfilePalette;
+  paletteMode: ProfilePaletteMode;
+  showAvatar: boolean;
   socialStyle: ProfileSocialStyle;
   socials: ProfileSocial[];
   specialties: ProfileSpecialty[];
@@ -206,6 +210,8 @@ export function createEmptyProfileDraft(displayName: string): ProfileDraft {
     enabled: false,
     nameStyle: "classic",
     palette: "monochrome",
+    paletteMode: "background-accent",
+    showAvatar: true,
     socialStyle: "tiles",
     socials: [],
     specialties: [],
@@ -425,6 +431,12 @@ export function normalizeProfileResponse(
       palette: includesValue(PROFILE_PALETTES, rawProfile.palette)
         ? rawProfile.palette
         : fallback.palette,
+      paletteMode: includesValue(PROFILE_PALETTE_MODES, rawProfile.paletteMode)
+        ? rawProfile.paletteMode
+        : fallback.paletteMode,
+      showAvatar: typeof rawProfile.showAvatar === "boolean"
+        ? rawProfile.showAvatar
+        : fallback.showAvatar,
       socialStyle: includesValue(PROFILE_SOCIAL_STYLES, rawProfile.socialStyle)
         ? rawProfile.socialStyle
         : fallback.socialStyle,
@@ -450,6 +462,8 @@ export function toProfileUpdate(
     displayName: profile.displayName.trim(),
     nameStyle: profile.nameStyle,
     palette: profile.palette,
+    paletteMode: profile.paletteMode,
+    showAvatar: profile.showAvatar,
     socialStyle: profile.socialStyle,
     socials: profile.socials.map((social) => ({ ...social })),
     specialties: [...profile.specialties],

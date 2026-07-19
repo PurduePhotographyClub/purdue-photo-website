@@ -221,6 +221,8 @@ export default function ProfileSettingsPanel({ fallbackDisplayName }: Props) {
     normalized.profile.template,
     normalized.profile.decoration,
     normalized.profile.palette,
+    normalized.profile.paletteMode,
+    normalized.profile.showAvatar,
     normalized.profile.avatarShape,
     normalized.profile.avatarPositionX,
     normalized.profile.avatarPositionY,

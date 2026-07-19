@@ -8,6 +8,7 @@ import {
   type ProfileDecoration,
   type ProfileNameStyle,
   type ProfilePalette,
+  type ProfilePaletteMode,
   type ProfileSocial,
   type ProfileSocialStyle,
   type ProfileSpecialty,
@@ -32,6 +33,8 @@ export interface PublicProfileIdentity {
   displayName: string | null;
   nameStyle: ProfileNameStyle | null;
   palette: ProfilePalette;
+  paletteMode: ProfilePaletteMode;
+  showAvatar: boolean;
   socialStyle: ProfileSocialStyle;
   socials: ProfileSocial[];
   specialties: ProfileSpecialty[];
@@ -128,10 +131,27 @@ const PROFILE_PALETTE_CLASSES: Record<ProfilePalette, ProfilePaletteStyle> = {
   },
 };
 
+function getProfilePaletteStyle(
+  palette: ProfilePalette,
+  paletteMode: ProfilePaletteMode,
+): ProfilePaletteStyle {
+  const selectedPalette = PROFILE_PALETTE_CLASSES[palette];
+  if (paletteMode === "background-accent") return selectedPalette;
+
+  return {
+    ...PROFILE_PALETTE_CLASSES.monochrome,
+    "--profile-accent": selectedPalette["--profile-accent"],
+  };
+}
+
 function getAvatarShapeClass(profile: PublicProfileIdentity) {
   const shape = resolveProfileAvatarShape(profile);
   if (shape === "rounded") return "rounded-[14%]";
   return shape === "square" ? "rounded-none" : "rounded-full";
+}
+
+function hasVisibleAvatar(profile: PublicProfileIdentity) {
+  return !profile.anonymous && profile.showAvatar;
 }
 
 function Avatar({
@@ -143,7 +163,7 @@ function Avatar({
   profile: PublicProfileIdentity;
   size?: "feature" | "standard";
 }) {
-  if (profile.anonymous) return null;
+  if (!hasVisibleAvatar(profile)) return null;
   const resolvedShape = resolveProfileAvatarShape(profile);
   const alignmentClass = alignment === "center" ? "self-center" : "self-start";
   const sizeClass = size === "feature"
@@ -400,8 +420,9 @@ interface ProfileHeaderProps {
 }
 
 function ContactSheetHeader({ profile, statistics }: ProfileHeaderProps) {
+  const avatarVisible = hasVisibleAvatar(profile);
   return (
-    <header className={profile.anonymous
+    <header className={!avatarVisible
       ? "py-9 sm:py-12"
       : "grid gap-7 py-8 sm:py-10 md:grid-cols-[160px_minmax(0,1fr)] md:items-start md:gap-9 lg:grid-cols-[176px_minmax(0,1fr)] lg:gap-11"}
       data-profile-header="true"
@@ -416,18 +437,20 @@ function ContactSheetHeader({ profile, statistics }: ProfileHeaderProps) {
 }
 
 function PrintIndexHeader({ profile, statistics }: ProfileHeaderProps) {
+  const avatarVisible = hasVisibleAvatar(profile);
   return (
     <header className="mx-auto flex max-w-4xl flex-col items-center py-9 text-center sm:py-12" data-profile-header="true">
       <Avatar alignment="center" profile={profile} />
-      <p className={`${profile.anonymous ? "" : "mt-6"} text-[9px] uppercase tracking-[0.25em] text-[var(--profile-muted)]`}>Purdue Photography Club</p>
+      <p className={`${avatarVisible ? "mt-6" : ""} text-[9px] uppercase tracking-[0.25em] text-[var(--profile-muted)]`}>Purdue Photography Club</p>
       <div className="mt-3 min-w-0 max-w-full"><ProfileDetails profile={profile} statistics={statistics} centered /></div>
     </header>
   );
 }
 
 function SplitFrameHeader({ profile, statistics }: ProfileHeaderProps) {
+  const avatarVisible = hasVisibleAvatar(profile);
   return (
-    <header className={profile.anonymous
+    <header className={!avatarVisible
       ? "py-9 sm:py-12"
       : "grid gap-7 py-8 sm:py-10 md:grid-cols-[minmax(0,1fr)_240px] md:items-start md:gap-9 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-11"}
       data-profile-header="true"
@@ -436,7 +459,7 @@ function SplitFrameHeader({ profile, statistics }: ProfileHeaderProps) {
         <p className="mb-3 text-[9px] uppercase tracking-[0.25em] text-[var(--profile-muted)]">Selected work</p>
         <ProfileDetails profile={profile} statistics={statistics} />
       </div>
-      {!profile.anonymous && (
+      {avatarVisible && (
         <div data-profile-avatar-slot="feature" className="order-1 w-full md:order-2">
           <Avatar profile={profile} size="feature" />
         </div>
@@ -446,10 +469,11 @@ function SplitFrameHeader({ profile, statistics }: ProfileHeaderProps) {
 }
 
 function NegativeStripHeader({ profile, statistics }: ProfileHeaderProps) {
+  const avatarVisible = hasVisibleAvatar(profile);
   return (
     <header className="my-5 border-y-8 [border-color:var(--profile-border)] [background-color:var(--profile-surface)] sm:my-7" data-profile-header="true">
       <div aria-hidden="true" className="h-2.5 bg-[repeating-linear-gradient(90deg,transparent_0_18px,var(--profile-border)_18px_28px)]" />
-      <div className={profile.anonymous
+      <div className={!avatarVisible
         ? "border-y [border-color:var(--profile-border)] px-5 py-8 sm:px-8"
         : "grid gap-7 border-y [border-color:var(--profile-border)] px-5 py-7 sm:px-8 md:grid-cols-[160px_minmax(0,1fr)] md:items-start md:gap-9"}
       >
@@ -462,8 +486,9 @@ function NegativeStripHeader({ profile, statistics }: ProfileHeaderProps) {
 }
 
 function EditorialGridHeader({ profile, statistics }: ProfileHeaderProps) {
+  const avatarVisible = hasVisibleAvatar(profile);
   return (
-    <header className={profile.anonymous
+    <header className={!avatarVisible
       ? "py-9 sm:py-12"
       : "grid gap-7 py-8 sm:py-10 md:grid-cols-[minmax(0,1fr)_240px] md:items-start md:gap-9 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-11"}
       data-profile-header="true"
@@ -472,7 +497,7 @@ function EditorialGridHeader({ profile, statistics }: ProfileHeaderProps) {
         <p className="mb-4 text-[9px] uppercase tracking-[0.28em] text-[var(--profile-muted)]">Photographer index</p>
         <ProfileDetails profile={profile} statistics={statistics} />
       </div>
-      {!profile.anonymous && (
+      {avatarVisible && (
         <div data-profile-avatar-slot="feature" className="order-1 w-full md:order-2">
           <Avatar profile={profile} size="feature" />
         </div>
@@ -482,8 +507,9 @@ function EditorialGridHeader({ profile, statistics }: ProfileHeaderProps) {
 }
 
 function DarkroomCardHeader({ profile, statistics }: ProfileHeaderProps) {
+  const avatarVisible = hasVisibleAvatar(profile);
   return (
-    <header className={profile.anonymous
+    <header className={!avatarVisible
       ? "my-6 border-y [border-color:var(--profile-border)] [background-color:var(--profile-chip)] px-5 py-8 sm:px-8 sm:py-10"
       : "my-6 grid gap-7 border-y [border-color:var(--profile-border)] [background-color:var(--profile-chip)] px-5 py-7 sm:px-8 md:grid-cols-[160px_minmax(0,1fr)] md:items-start md:gap-9 lg:grid-cols-[176px_minmax(0,1fr)]"}
       data-profile-header="true"
@@ -498,8 +524,9 @@ function DarkroomCardHeader({ profile, statistics }: ProfileHeaderProps) {
 }
 
 function DiptychHeader({ profile, statistics }: ProfileHeaderProps) {
+  const avatarVisible = hasVisibleAvatar(profile);
   return (
-    <header className={profile.anonymous
+    <header className={!avatarVisible
       ? "py-9 sm:py-12"
       : "grid gap-7 py-8 sm:py-10 md:grid-cols-[160px_minmax(0,1fr)] md:items-start md:gap-9 lg:grid-cols-[176px_minmax(0,1fr)] lg:gap-11"}
       data-profile-header="true"
@@ -516,9 +543,8 @@ function DiptychHeader({ profile, statistics }: ProfileHeaderProps) {
 function SafeArea({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <div
-      data-profile-header-surface="true"
       data-profile-safe-area="true"
-      className={`relative z-10 [background-color:var(--profile-surface)] ${className}`}
+      className={`relative z-10 ${className}`}
     >
       {children}
     </div>
@@ -527,13 +553,14 @@ function SafeArea({ children, className = "" }: { children: ReactNode; className
 
 function DecorationFrame({ children, decoration }: { children: ReactNode; decoration: ProfileDecoration }) {
   if (decoration === "none") {
-    return <div data-profile-decoration-frame="none"><SafeArea className="border-b [border-color:var(--profile-border)]">{children}</SafeArea></div>;
+    return <div data-profile-decoration-frame="none" data-profile-header-surface="true" className="overflow-hidden border-b [border-color:var(--profile-border)] [background-color:var(--profile-surface)]"><SafeArea>{children}</SafeArea></div>;
   }
   if (decoration === "film-frame") {
     return (
       <div
         data-profile-decoration-frame="film-frame"
-        className="my-4 border-[3px] border-double [border-color:var(--profile-border)]"
+        data-profile-header-surface="true"
+        className="my-4 overflow-hidden border-[3px] border-double [border-color:var(--profile-border)] [background-color:var(--profile-surface)]"
       >
         <SafeArea className="px-4 sm:px-7"><span className="sr-only">Film frame</span>{children}</SafeArea>
       </div>
@@ -541,7 +568,7 @@ function DecorationFrame({ children, decoration }: { children: ReactNode; decora
   }
   if (decoration === "contact-marks") {
     return (
-      <div data-profile-decoration-frame="contact-marks" className="relative border-b [border-color:var(--profile-border)] px-7 sm:px-10">
+      <div data-profile-decoration-frame="contact-marks" data-profile-header-surface="true" className="relative overflow-hidden border-b [border-color:var(--profile-border)] [background-color:var(--profile-surface)] px-7 sm:px-10">
         <span aria-hidden="true" className="pointer-events-none absolute left-2 top-3 font-mono text-[8px] text-[var(--profile-muted)]">01A</span>
         <span aria-hidden="true" className="pointer-events-none absolute bottom-3 right-2 font-mono text-[8px] text-[var(--profile-muted)]">36</span>
         <span className="sr-only">Contact marks</span><SafeArea>{children}</SafeArea>
@@ -550,21 +577,21 @@ function DecorationFrame({ children, decoration }: { children: ReactNode; decora
   }
   if (decoration === "viewfinder") {
     return (
-      <div data-profile-decoration-frame="viewfinder" className="relative border-b [border-color:var(--profile-border)] px-7 before:pointer-events-none before:absolute before:left-1 before:top-4 before:size-7 before:border-l before:border-t before:[border-color:var(--profile-muted)] after:pointer-events-none after:absolute after:bottom-4 after:right-1 after:size-7 after:border-b after:border-r after:[border-color:var(--profile-muted)] sm:px-10">
+      <div data-profile-decoration-frame="viewfinder" data-profile-header-surface="true" className="relative overflow-hidden border-b [border-color:var(--profile-border)] [background-color:var(--profile-surface)] px-7 before:pointer-events-none before:absolute before:left-1 before:top-4 before:size-7 before:border-l before:border-t before:[border-color:var(--profile-muted)] after:pointer-events-none after:absolute after:bottom-4 after:right-1 after:size-7 after:border-b after:border-r after:[border-color:var(--profile-muted)] sm:px-10">
         <span className="sr-only">Viewfinder</span><SafeArea>{children}</SafeArea>
       </div>
     );
   }
   if (decoration === "sprocket") {
     return (
-      <div data-profile-decoration-frame="sprocket" className="my-4 border-y-8 border-dotted [border-color:var(--profile-border)] px-4 sm:px-7">
+      <div data-profile-decoration-frame="sprocket" data-profile-header-surface="true" className="my-4 overflow-hidden border-y-8 border-dotted [border-color:var(--profile-border)] [background-color:var(--profile-surface)] px-4 sm:px-7">
         <span className="sr-only">Sprocket holes</span><SafeArea>{children}</SafeArea>
       </div>
     );
   }
   if (decoration === "archival-stamp") {
     return (
-      <div data-profile-decoration-frame="archival-stamp" className="border-b [border-color:var(--profile-border)] px-4 sm:px-7">
+      <div data-profile-decoration-frame="archival-stamp" data-profile-header-surface="true" className="overflow-hidden border-b [border-color:var(--profile-border)] [background-color:var(--profile-surface)] px-4 sm:px-7">
         <span className="sr-only">Archival stamp</span>
         <SafeArea>{children}</SafeArea>
         <div aria-hidden="true" className="relative z-10 mb-4 flex justify-end">
@@ -574,9 +601,9 @@ function DecorationFrame({ children, decoration }: { children: ReactNode; decora
     );
   }
   return (
-    <div data-profile-decoration-frame="grid-lines" className="border-b [border-color:var(--profile-border)] bg-[linear-gradient(to_right,var(--profile-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--profile-border)_1px,transparent_1px)] bg-[size:32px_32px] p-3 sm:p-5">
+    <div data-profile-decoration-frame="grid-lines" data-profile-header-surface="true" className="overflow-hidden border-b [border-color:var(--profile-border)] bg-[linear-gradient(to_right,var(--profile-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--profile-border)_1px,transparent_1px)] bg-[size:32px_32px] [background-color:var(--profile-surface)] p-3 sm:p-5">
       <span className="sr-only">Grid lines</span>
-      <SafeArea className="border [border-color:var(--profile-border)] [background-color:var(--profile-surface)] px-4 sm:px-7">{children}</SafeArea>
+      <SafeArea className="border [border-color:var(--profile-border)] px-4 sm:px-7">{children}</SafeArea>
     </div>
   );
 }
@@ -607,6 +634,7 @@ export default function ProfileTemplateRenderer({
         bio: null,
         displayName: "PPC Member",
         nameStyle: "classic",
+        showAvatar: false,
         socials: [],
         specialties: [],
         username: null,
@@ -619,13 +647,15 @@ export default function ProfileTemplateRenderer({
       aria-label={`${DECORATION_LABELS[decoration]} member mini-portfolio`}
       className="relative isolate overflow-hidden bg-neutral-950 text-neutral-100"
       data-profile-decoration={decoration}
+      data-profile-picture-visibility={hasVisibleAvatar(visibleProfile) ? "visible" : "hidden"}
       data-profile-template={profile.template}
     >
       <div
         className="relative overflow-hidden bg-neutral-950 text-[var(--profile-ink)]"
         data-profile-palette={profile.palette}
+        data-profile-palette-mode={profile.paletteMode}
         data-profile-palette-scope="true"
-        style={PROFILE_PALETTE_CLASSES[profile.palette]}
+        style={getProfilePaletteStyle(profile.palette, profile.paletteMode)}
       >
         <span className="sr-only">{PALETTE_LABELS[profile.palette]} profile palette</span>
         <DecorationFrame decoration={decoration}>
