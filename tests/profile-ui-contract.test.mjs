@@ -186,7 +186,10 @@ test("public profiles render seven responsive templates from one aggregate pagin
   assert.match(profileGallerySource, /min-h-11/);
   assert.match(profileGallerySource, /sm:columns-2/);
   assert.match(profileGallerySource, /lg:columns-3/);
-  assert.match(profileGallerySource, /Selected photographs/);
+  assert.match(profileGallerySource, />Gallery</);
+  assert.match(profileGallerySource, /meta\.total === 1 \? "image" : "images"/);
+  assert.match(profileGallerySource, /\} posted/);
+  assert.doesNotMatch(profileGallerySource, /Selected photographs|public images?/);
   assert.match(profileGallerySource, /id="profile-gallery"/);
   assert.match(profileGallerySource, /data-profile-gallery-layout/);
   assert.match(profileGallerySource, /var\(--profile-surface\)/);
