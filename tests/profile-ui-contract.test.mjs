@@ -176,6 +176,17 @@ test("public profiles render seven responsive templates from one aggregate pagin
   assert.doesNotMatch(`${publicProfileSource}\n${profileRendererSource}\n${gallerySource}`, /Member portfolio/i);
 });
 
+test("profile loading skeletons preserve the responsive header and gallery rhythm", () => {
+  assert.match(publicProfileSource, /data-profile-loading-header="true"/);
+  assert.match(publicProfileSource, /data-profile-loading-avatar="true"/);
+  assert.match(publicProfileSource, /justify-self-center[^"\n]*md:justify-self-start/);
+  assert.match(publicProfileSource, /data-profile-loading-statistics="true"/);
+  assert.match(publicProfileSource, /grid-cols-1[^"\n]*sm:grid-cols-3/);
+  assert.match(publicProfileSource, /data-profile-loading-gallery="true"/);
+  assert.match(profileGallerySource, /data-profile-gallery-skeleton="true"/);
+  assert.match(profileGallerySource, /animate-pulse/);
+});
+
 test("global gallery uses API-provided profile links without nesting interactive controls", () => {
   const cardSource = gallerySource.slice(
     gallerySource.indexOf("<figure"),

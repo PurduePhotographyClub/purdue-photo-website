@@ -128,7 +128,11 @@ export default function ProfileGallery({
         </p>
 
         {loading ? (
-          <div className="columns-1 gap-2 sm:columns-2 lg:columns-3">
+          <div
+            aria-hidden="true"
+            className="animate-pulse columns-1 gap-2 sm:columns-2 lg:columns-3"
+            data-profile-gallery-skeleton="true"
+          >
             {Array.from({ length: 9 }).map((_, index) => (
               <div key={index} className={`mb-2 break-inside-avoid opacity-60 [background-color:var(--profile-chip)] ${index % 3 === 0 ? "aspect-[3/4]" : "aspect-square"}`} />
             ))}
