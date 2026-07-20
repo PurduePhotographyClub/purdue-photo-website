@@ -109,6 +109,7 @@ test("new profile drafts are disabled without mutating response data", () => {
     palette: "monochrome",
     paletteMode: "background-accent",
     showAvatar: true,
+    showInDirectory: true,
     socialStyle: "tiles",
     socials: [],
     specialties: [],
@@ -145,6 +146,20 @@ test("profile palettes are normalized and included in updates", () => {
   };
   assert.equal(toProfileUpdate(profile).palette, "cyanotype");
   assert.equal(toProfileUpdate(profile).paletteMode, "accent-only");
+});
+
+test("member directory visibility defaults on and serializes explicit opt-outs", () => {
+  const defaultProfile = normalizeProfileResponse({
+    profile: { displayName: "Jane" },
+  }, "Fallback").profile;
+  assert.equal(defaultProfile.showInDirectory, true);
+  assert.equal(toProfileUpdate(defaultProfile).showInDirectory, true);
+
+  const hiddenProfile = normalizeProfileResponse({
+    profile: { displayName: "Jane", showInDirectory: false },
+  }, "Fallback").profile;
+  assert.equal(hiddenProfile.showInDirectory, false);
+  assert.equal(toProfileUpdate(hiddenProfile).showInDirectory, false);
 });
 
 test("profile presentation controls default safely and serialize as bounded values", () => {
@@ -188,6 +203,7 @@ test("profile presentation controls default safely and serialize as bounded valu
     palette: "monochrome",
     paletteMode: "background-accent",
     showAvatar: false,
+    showInDirectory: true,
     socialStyle: "labels",
     socials: [],
     specialties: [],

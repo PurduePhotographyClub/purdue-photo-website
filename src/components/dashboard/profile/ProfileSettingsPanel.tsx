@@ -57,8 +57,10 @@ function ProfileSettingsEditor({
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [error, setError] = useState("");
   const { canDisable, canEdit, canEnable } = initial.permissions;
-  const disableOnly = !canEdit && initial.profile.enabled && !profile.enabled && canDisable;
-  const canSave = canEdit || disableOnly;
+  const disablingProfile = initial.profile.enabled && !profile.enabled && canDisable;
+  const hidingFromMembers = initial.profile.showInDirectory && !profile.showInDirectory;
+  const privacyReductionOnly = !canEdit && (disablingProfile || hidingFromMembers);
+  const canSave = canEdit || privacyReductionOnly;
   const publicProfileHref = getPublicProfileHref(profile);
 
   const saveProfile = async (event: FormEvent) => {
@@ -66,7 +68,7 @@ function ProfileSettingsEditor({
     setError("");
     onSuccessChange("");
 
-    if (!disableOnly) {
+    if (!privacyReductionOnly) {
       const validationError = getDraftValidationError(profile);
       if (validationError) {
         setError(validationError);
@@ -79,7 +81,12 @@ function ProfileSettingsEditor({
       const response = await fetchApi("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(disableOnly ? { enabled: false } : toProfileUpdate(profile)),
+        body: JSON.stringify(privacyReductionOnly
+          ? {
+            ...(disablingProfile ? { enabled: false } : {}),
+            ...(hidingFromMembers ? { showInDirectory: false } : {}),
+          }
+          : toProfileUpdate(profile)),
       });
       if (!response.ok) {
         setError(await readErrorMessage(response, "Unable to save your profile."));
@@ -94,7 +101,11 @@ function ProfileSettingsEditor({
       await refreshProfileAfterMutation(
         onReload,
         onSuccessChange,
-        disableOnly ? "Profile disabled." : "Profile saved.",
+        disablingProfile
+          ? "Profile disabled."
+          : privacyReductionOnly
+            ? "Profile hidden from Members."
+            : "Profile saved.",
       );
     } catch {
       setError("Unable to save your profile. Please try again.");
@@ -151,7 +162,7 @@ function ProfileSettingsEditor({
           eyebrow="Profile locked"
           title="Active membership required"
           description={profile.enabled
-            ? "Renew your membership to edit this profile. You can still turn it off."
+            ? "Renew your membership to edit this profile. You can still hide it from Members or turn it off."
             : "Renew your membership to edit and publish your profile."}
         />
       )}
@@ -176,7 +187,13 @@ function ProfileSettingsEditor({
       </div>
 
       <ProfileFormFields
-        access={{ avatarBusy, canDisable, canEnable, disabled: !canEdit }}
+        access={{
+          avatarBusy,
+          canChangeDirectoryVisibility: canEdit || initial.profile.showInDirectory,
+          canDisable,
+          canEnable,
+          disabled: !canEdit,
+        }}
         onAvatarChange={uploadAvatar}
         onAvatarRemove={removeAvatar}
         onChange={setProfile}
@@ -189,7 +206,7 @@ function ProfileSettingsEditor({
           {!error && success && <span className="text-green-400">{success}</span>}
         </div>
         <button type="submit" disabled={!canSave || saving || avatarBusy} className="mt-2 min-h-11 w-full bg-white px-6 text-[10px] uppercase tracking-[0.15em] text-black transition-colors hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-40 sm:mt-0 sm:w-auto">
-          {saving ? "Saving" : disableOnly ? "Disable profile" : "Save profile"}
+          {saving ? "Saving" : disablingProfile ? "Disable profile" : privacyReductionOnly ? "Save privacy" : "Save profile"}
         </button>
       </div>
     </form>
@@ -226,6 +243,7 @@ export default function ProfileSettingsPanel({ fallbackDisplayName }: Props) {
     normalized.profile.palette,
     normalized.profile.paletteMode,
     normalized.profile.showAvatar,
+    normalized.profile.showInDirectory,
     normalized.profile.avatarShape,
     normalized.profile.avatarPositionX,
     normalized.profile.avatarPositionY,

@@ -7,6 +7,7 @@ export interface GalleryPhoto {
   lens: string | null;
   imageUrl: string;
   thumbnailUrl: string;
+  profilePinPosition: number | null;
   createdAt: string;
 }
 

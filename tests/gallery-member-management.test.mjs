@@ -93,6 +93,68 @@ test("members can open a metadata editor and save through the owner PATCH route"
   assert.match(editModalSource, /makeGalleryTagPrimary/);
 });
 
+test("profile pin helpers enforce three pins and build the owner route", async () => {
+  const {
+    PROFILE_PIN_LIMIT,
+    getGalleryProfilePinRequest,
+    getProfilePinState,
+  } = await import("../src/lib/gallery-profile-pins.ts");
+
+  assert.equal(PROFILE_PIN_LIMIT, 3);
+  assert.deepEqual(getProfilePinState(2), {
+    atLimit: false,
+    pinnedCount: 2,
+  });
+  assert.deepEqual(getProfilePinState(3), {
+    atLimit: true,
+    pinnedCount: 3,
+  });
+  assert.deepEqual(getProfilePinState(99), {
+    atLimit: true,
+    pinnedCount: 3,
+  });
+  assert.deepEqual(getProfilePinState(-1), {
+    atLimit: false,
+    pinnedCount: 0,
+  });
+  assert.deepEqual(getGalleryProfilePinRequest("photo/unsafe", false), {
+    method: "PUT",
+    url: "/api/gallery/photo%2Funsafe/profile-pin",
+  });
+  assert.deepEqual(getGalleryProfilePinRequest("photo-1", true), {
+    method: "DELETE",
+    url: "/api/gallery/photo-1/profile-pin",
+  });
+});
+
+test("member gallery exposes accessible pin controls and clear max-three feedback", () => {
+  assert.match(galleryManagerSource, /getGalleryProfilePinRequest/);
+  assert.match(galleryManagerSource, /getProfilePinState/);
+  assert.match(galleryManagerSource, /profilePinPosition/);
+  assert.match(galleryManagerSource, /meta\.profilePinnedCount/);
+  assert.match(galleryManagerSource, /aria-pressed=\{isPinned\}/);
+  assert.match(galleryManagerSource, /\{isPinned \? "Unpin" : "Pin"\}/);
+  assert.match(galleryManagerSource, /of \{PROFILE_PIN_LIMIT\} pinned/);
+  assert.match(galleryManagerSource, /You can pin up to \{PROFILE_PIN_LIMIT\} photos\./);
+  assert.match(galleryManagerSource, /Active membership is required to pin new photos\./);
+  assert.match(galleryManagerSource, /canPin=\{canUpload\}/);
+  assert.match(galleryManagerSource, /!canPin\s*&&\s*!isPinned/);
+  assert.match(galleryManagerSource, /pinState\.atLimit\s*&&\s*!isPinned/);
+  assert.match(galleryManagerSource, /getGalleryProfilePinRequest\(photo\.id, isPinned\)/);
+  assert.match(galleryManagerSource, /fetchApi\(request\.url,[\s\S]*method:\s*request\.method/);
+  assert.match(galleryManagerSource, /await mutatePhotos\(\)/);
+  assert.doesNotMatch(
+    galleryManagerSource,
+    /profilePinPosition:\s*isPinned\s*\?\s*null\s*:\s*1/,
+    "pin mutations must revalidate the server-owned position instead of inventing slot 1",
+  );
+  assert.doesNotMatch(
+    galleryManagerSource,
+    /pinState\.pinnedCount\s*[+-]\s*1/,
+    "pin mutations must not drift the global count after an idempotent or raced request",
+  );
+});
+
 test("upload tag selection exposes an accessible primary-tag control", () => {
   assert.match(galleryManagerSource, /Make .* the main tag/);
   assert.match(galleryManagerSource, /Main tag/);

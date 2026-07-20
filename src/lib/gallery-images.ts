@@ -46,6 +46,7 @@ export interface GalleryPageMeta {
   perPage: number;
   total: number;
   totalPages: number;
+  profilePinnedCount?: number;
 }
 
 export interface GalleryPage<T> {

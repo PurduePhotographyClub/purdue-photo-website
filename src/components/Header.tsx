@@ -22,6 +22,7 @@ const navLinks = [
   { to: "/", label: "Home" },
   { to: "/events", label: "Events" },
   { to: "/gallery", label: "Gallery" },
+  { to: "/members", label: "Members" },
   { to: "/competitions", label: "Competitions" },
   { to: "/facilities", label: "Facilities" },
   { to: "/membership", label: "Membership" },
@@ -30,10 +31,10 @@ const navLinks = [
 ];
 
 const primaryNavLinks = navLinks.filter((link) =>
-  ["/events", "/gallery", "/membership", "/request"].includes(link.to)
+  ["/events", "/gallery", "/members", "/request"].includes(link.to)
 );
 const moreNavLinks = navLinks.filter((link) =>
-  ["/competitions", "/facilities", "/merch"].includes(link.to)
+  ["/competitions", "/facilities", "/membership", "/merch"].includes(link.to)
 );
 
 const socialLinks = [
@@ -260,7 +261,7 @@ export default function Header() {
         <div className="flex h-20 w-full items-center justify-between px-6">
           <a href="/" className={`flex min-h-11 items-center gap-3 flex-shrink-0 ${focusRing}`}>
             <img src="/ppc-logo.webp" alt="PPC Logo" className="size-10 rounded-full brightness-[1.8] invert" style={{ mixBlendMode: "screen" }} />
-            <span className={`text-sm tracking-[0.2em] uppercase ${logoText} hidden sm:inline`} style={{ fontFamily: "'Playfair Display', serif" }}>
+            <span className={`text-sm tracking-[0.2em] uppercase ${logoText} hidden 2xl:inline`} style={{ fontFamily: "'Playfair Display', serif" }}>
               Purdue Photography Club
             </span>
           </a>
