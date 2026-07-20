@@ -2,6 +2,7 @@ import { Instagram, Mail, ExternalLink } from "lucide-react";
 
 const navLinks = [
   { to: "/gallery", label: "Gallery" },
+  { to: "/members", label: "Members" },
   { to: "/competitions", label: "Competitions" },
   { to: "/facilities", label: "Facilities" },
   { to: "/membership", label: "Membership" },

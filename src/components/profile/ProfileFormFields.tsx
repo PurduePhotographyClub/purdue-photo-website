@@ -43,6 +43,7 @@ const SERIF_NAME_STYLES = new Set<ProfileNameStyle>([
 interface Props {
   access?: {
     avatarBusy?: boolean;
+    canChangeDirectoryVisibility?: boolean;
     canDisable?: boolean;
     canEnable?: boolean;
     disabled?: boolean;
@@ -68,6 +69,7 @@ export default function ProfileFormFields({
 }: Props) {
   const {
     avatarBusy = false,
+    canChangeDirectoryVisibility = true,
     canDisable = true,
     canEnable = true,
     disabled = false,
@@ -117,6 +119,28 @@ export default function ProfileFormFields({
               Enable public profile
             </label>
           </div>
+        </section>
+      )}
+
+      {showMemberControls && (
+        <section className="border border-neutral-800 bg-white/[0.015] p-4 sm:p-5" aria-labelledby={`${idPrefix}-directory-heading`}>
+          <h2 id={`${idPrefix}-directory-heading`} className="text-sm tracking-wide text-neutral-100">Members page</h2>
+          <label className={`mt-3 flex min-h-11 items-start gap-3 border border-neutral-800 p-3 ${canChangeDirectoryVisibility ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}>
+            <input
+              type="checkbox"
+              role="switch"
+              checked={profile.showInDirectory}
+              disabled={!canChangeDirectoryVisibility}
+              onChange={(event) => update("showInDirectory", event.target.checked)}
+              className="mt-1 size-4 accent-white disabled:cursor-not-allowed"
+            />
+            <span>
+              <span className="block text-[10px] uppercase tracking-[0.15em] text-neutral-300">Show on Members page</span>
+              <span className="mt-1 block max-w-3xl text-xs leading-5 text-neutral-500">
+                Turn this off to hide your profile from the Members page. Anonymous profiles never appear on Members.
+              </span>
+            </span>
+          </label>
         </section>
       )}
 

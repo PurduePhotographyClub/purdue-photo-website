@@ -116,6 +116,7 @@ export interface ProfileDraft {
   palette: ProfilePalette;
   paletteMode: ProfilePaletteMode;
   showAvatar: boolean;
+  showInDirectory: boolean;
   socialStyle: ProfileSocialStyle;
   socials: ProfileSocial[];
   specialties: ProfileSpecialty[];
@@ -213,6 +214,7 @@ export function createEmptyProfileDraft(displayName: string): ProfileDraft {
     palette: "monochrome",
     paletteMode: "background-accent",
     showAvatar: true,
+    showInDirectory: true,
     socialStyle: "tiles",
     socials: [],
     specialties: [],
@@ -444,6 +446,9 @@ export function normalizeProfileResponse(
       showAvatar: typeof rawProfile.showAvatar === "boolean"
         ? rawProfile.showAvatar
         : fallback.showAvatar,
+      showInDirectory: typeof rawProfile.showInDirectory === "boolean"
+        ? rawProfile.showInDirectory
+        : fallback.showInDirectory,
       socialStyle: includesValue(PROFILE_SOCIAL_STYLES, rawProfile.socialStyle)
         ? rawProfile.socialStyle
         : fallback.socialStyle,
@@ -480,7 +485,12 @@ export function toProfileUpdate(
 
   return {
     ...base,
-    ...(options.includePrivacy === false ? {} : { anonymous: profile.anonymous }),
+    ...(options.includePrivacy === false
+      ? {}
+      : {
+        anonymous: profile.anonymous,
+        showInDirectory: profile.showInDirectory,
+      }),
     ...(options.includePublishing === false ? {} : { enabled: profile.enabled }),
   };
 }

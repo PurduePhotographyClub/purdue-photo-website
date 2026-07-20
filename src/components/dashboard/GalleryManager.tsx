@@ -29,6 +29,12 @@ import {
   makeGalleryTagPrimary,
   serializeGalleryTags,
 } from "@/lib/gallery-tags";
+import {
+  getGalleryProfilePinRequest,
+  getProfilePinState,
+  PROFILE_PIN_LIMIT,
+  type ProfilePinState,
+} from "@/lib/gallery-profile-pins";
 
 function changeGalleryManagerPage(
   setExpanded: Dispatch<SetStateAction<string | null>>,
@@ -139,6 +145,8 @@ interface GalleryManagerState {
   savingEdit: boolean;
   deleteTarget: string | null;
   deleting: boolean;
+  pinningId: string | null;
+  pinStatus: string;
 }
 
 const initialGalleryManagerState: GalleryManagerState = {
@@ -158,6 +166,8 @@ const initialGalleryManagerState: GalleryManagerState = {
   savingEdit: false,
   deleteTarget: null,
   deleting: false,
+  pinningId: null,
+  pinStatus: "",
 };
 
 interface GalleryUploadPanelProps {
@@ -333,20 +343,54 @@ function GalleryUploadPanel({
 }
 
 interface GalleryPhotoGridProps {
+  canPin: boolean;
   canUpload: boolean;
   loading: boolean;
   onDelete: (photoId: string) => void;
   onEdit: (photoId: string) => void;
   onExpand: (photoId: string) => void;
+  onTogglePin: (photo: GalleryPhoto) => void;
+  pinningId: string | null;
+  pinState: ProfilePinState;
+  pinStatus: string;
   photos: GalleryPhoto[];
   total: number;
 }
 
-function GalleryPhotoGrid({ canUpload, loading, onDelete, onEdit, onExpand, photos, total }: GalleryPhotoGridProps) {
+function GalleryPhotoGrid({
+  canPin,
+  canUpload,
+  loading,
+  onDelete,
+  onEdit,
+  onExpand,
+  onTogglePin,
+  pinningId,
+  pinState,
+  pinStatus,
+  photos,
+  total,
+}: GalleryPhotoGridProps) {
   return (
     <div>
-      <div className="flex items-baseline justify-between mb-4">
-        <p className="text-[9px] tracking-[0.3em] uppercase text-neutral-600">Your Photos</p>
+      <div className="mb-4 flex flex-col gap-3 border-b border-neutral-800 pb-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[9px] uppercase tracking-[0.3em] text-neutral-600">Your Photos</p>
+          <p role="status" aria-live="polite" className="mt-1 text-[10px] text-neutral-400">
+            {pinState.pinnedCount} of {PROFILE_PIN_LIMIT} pinned
+          </p>
+          {pinState.atLimit && (
+            <p id="gallery-profile-pin-limit" className="mt-1 text-[10px] leading-4 text-amber-300/80">
+              You can pin up to {PROFILE_PIN_LIMIT} photos. Unpin one to choose another.
+            </p>
+          )}
+          {!canPin && (
+            <p id="gallery-profile-pin-membership" className="mt-1 text-[10px] leading-4 text-neutral-500">
+              Active membership is required to pin new photos. You can still unpin photos.
+            </p>
+          )}
+          {pinStatus && <p role="status" aria-live="polite" className="mt-1 text-[10px] text-neutral-400">{pinStatus}</p>}
+        </div>
         {!loading && photos.length > 0 && (
           <p className="text-[10px] text-neutral-600">{photos.length} shown · {total} total</p>
         )}
@@ -368,6 +412,7 @@ function GalleryPhotoGrid({ canUpload, loading, onDelete, onEdit, onExpand, phot
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {photos.map((photo) => {
             const primaryTag = getPrimaryGalleryTag(photo.tags);
+            const isPinned = typeof photo.profilePinPosition === "number";
             return (
             <div key={photo.id} className="group relative bg-white/[0.02] border border-neutral-800 overflow-hidden">
               <img
@@ -380,6 +425,21 @@ function GalleryPhotoGrid({ canUpload, loading, onDelete, onEdit, onExpand, phot
                   (e.target as HTMLImageElement).parentElement!.classList.add("min-h-[120px]");
                 }}
               />
+              <button
+                type="button"
+                aria-label={`${isPinned ? "Unpin" : "Pin"} ${photo.title || "photo"} ${isPinned ? "from" : "to"} profile`}
+                aria-describedby={!canPin && !isPinned
+                  ? "gallery-profile-pin-membership"
+                  : pinState.atLimit && !isPinned
+                    ? "gallery-profile-pin-limit"
+                    : undefined}
+                aria-pressed={isPinned}
+                disabled={pinningId === photo.id || (!canPin && !isPinned) || (pinState.atLimit && !isPinned)}
+                onClick={() => onTogglePin(photo)}
+                className={`absolute right-2 top-2 z-20 flex min-h-11 min-w-11 items-center justify-center border px-2 text-[9px] uppercase tracking-wider shadow-lg transition-colors focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-50 ${isPinned ? "border-white bg-white text-black" : "border-neutral-600 bg-black/85 text-neutral-200 hover:border-white hover:text-white"}`}
+              >
+                {pinningId === photo.id ? "Saving" : <>{isPinned ? "Unpin" : "Pin"}</>}
+              </button>
               <div className="absolute inset-0 flex items-end bg-black/60 p-3 pb-14 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                 <div className="flex-1 min-w-0">
                   {photo.title && (
@@ -541,6 +601,8 @@ export default function GalleryManager({ userRole, userTier }: Props) {
     savingEdit,
     deleteTarget,
     deleting,
+    pinningId,
+    pinStatus,
   } = state;
   const setUploading = createKeyedStateSetter(dispatchState, "uploading");
   const setTitle = createKeyedStateSetter(dispatchState, "title");
@@ -558,6 +620,8 @@ export default function GalleryManager({ userRole, userTier }: Props) {
   const setSavingEdit = createKeyedStateSetter(dispatchState, "savingEdit");
   const setDeleteTarget = createKeyedStateSetter(dispatchState, "deleteTarget");
   const setDeleting = createKeyedStateSetter(dispatchState, "deleting");
+  const setPinningId = createKeyedStateSetter(dispatchState, "pinningId");
+  const setPinStatus = createKeyedStateSetter(dispatchState, "pinStatus");
   const fileRef = useRef<HTMLInputElement>(null);
   const previewUrlRef = useRef<string | null>(null);
   const canUpload = userRole === "admin" || userRole === "officer" || !!userTier;
@@ -571,6 +635,7 @@ export default function GalleryManager({ userRole, userTier }: Props) {
     fetchGalleryPhotos,
   );
   const photos = galleryPage?.photos ?? EMPTY_GALLERY_PHOTOS;
+  const pinState = getProfilePinState(galleryPage?.meta.profilePinnedCount);
   const pageNumbers = galleryPage
     ? getVisiblePageNumbers(galleryPage.meta.page, galleryPage.meta.totalPages)
     : [];
@@ -722,6 +787,49 @@ export default function GalleryManager({ userRole, userTier }: Props) {
     }
   };
 
+  const toggleProfilePin = async (photo: GalleryPhoto) => {
+    if (pinningId) return;
+    const isPinned = typeof photo.profilePinPosition === "number";
+    if (!canUpload && !isPinned) {
+      setPinStatus("Active membership is required to pin new photos.");
+      return;
+    }
+    if (pinState.atLimit && !isPinned) {
+      setPinStatus(`You can pin up to ${PROFILE_PIN_LIMIT} photos.`);
+      return;
+    }
+
+    const request = getGalleryProfilePinRequest(photo.id, isPinned);
+    setPinningId(photo.id);
+    setPinStatus("");
+    try {
+      const response = await fetchApi(request.url, {
+        method: request.method,
+      });
+      if (!response.ok) {
+        setPinStatus(await readErrorMessage(
+          response,
+          response.status === 409
+            ? `You can pin up to ${PROFILE_PIN_LIMIT} photos.`
+            : "Unable to update this pin.",
+        ));
+        return;
+      }
+
+      const successMessage = isPinned ? "Photo unpinned." : "Photo pinned.";
+      try {
+        await mutatePhotos();
+        setPinStatus(successMessage);
+      } catch {
+        setPinStatus(`${successMessage} Reload to refresh the pin count.`);
+      }
+    } catch {
+      setPinStatus("Unable to update this pin. Please try again.");
+    } finally {
+      setPinningId(null);
+    }
+  };
+
   const expandedPhoto = photos.find((photo) => photo.id === expanded);
   const editPhoto = photos.find((photo) => photo.id === editTarget);
   const openEdit = (photoId: string) => {
@@ -778,11 +886,16 @@ export default function GalleryManager({ userRole, userTier }: Props) {
       )}
 
       <GalleryPhotoGrid
+        canPin={canUpload}
         canUpload={canUpload}
         loading={loading}
         onDelete={setDeleteTarget}
         onEdit={openEdit}
         onExpand={setExpanded}
+        onTogglePin={(photo) => void toggleProfilePin(photo)}
+        pinningId={pinningId}
+        pinState={pinState}
+        pinStatus={pinStatus}
         photos={photos}
         total={galleryPage?.meta.total ?? photos.length}
       />

@@ -72,6 +72,9 @@ test("inactive members render locked profile fields while retaining the disable 
   assert.match(html, /Enable public profile/);
   assert.match(html, /Your profile is public\./);
   assert.match(html, /Anonymous profile/);
+  assert.match(html, /Show on Members page/);
+  assert.match(html, /Turn this off to hide your profile from the Members page\./);
+  assert.doesNotMatch(html, /discoverability|directory visibility|profile visibility preferences/i);
   assert.match(html, /Contact sheet/);
   assert.match(html, /Print index/);
   assert.match(html, /Split frame/);

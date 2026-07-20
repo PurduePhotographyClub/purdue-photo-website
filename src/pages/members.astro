@@ -1,0 +1,10 @@
+---
+export const prerender = false;
+
+import Layout from '../layouts/Layout.astro';
+import MembersDirectory from '../components/MembersDirectory';
+---
+
+<Layout title="Members | Purdue Photography Club" robots="noindex, nofollow, noimageindex, noarchive">
+  <MembersDirectory client:load />
+</Layout>

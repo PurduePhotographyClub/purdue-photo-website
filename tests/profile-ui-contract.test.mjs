@@ -60,6 +60,9 @@ test("settings includes an accessible first-class Profile tab and membership loc
   assert.match(settingsSource, /ArrowLeft/);
   assert.match(profileFieldsSource, /Enable public profile/);
   assert.match(profileFieldsSource, /Anonymous profile/);
+  assert.match(profileFieldsSource, /Show on Members page/);
+  assert.match(profileFieldsSource, /profile\.showInDirectory/);
+  assert.match(profileFieldsSource, /update\("showInDirectory",\s*event\.target\.checked\)/);
   assert.doesNotMatch(profileSettingsSource, /Anonymous profile swaps your name for PPC Member\./);
   assert.doesNotMatch(profileSettingsSource, /social options.*roles.*layouts/);
   assert.match(profileSettingsSource, /Save profile/);
