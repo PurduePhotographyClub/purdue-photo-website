@@ -23,6 +23,7 @@ declare namespace App {
       suspendedUntil: string | null;
     }) | null;
     session: import("better-auth").Session | null;
+    managerScopes: import("./lib/service-manager-access").ServiceManagerScope[];
   }
 }
 

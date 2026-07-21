@@ -1,9 +1,17 @@
 import { defineMiddleware } from "astro:middleware";
 import { env } from "cloudflare:workers";
+import {
+  canAccessAdminPath,
+  getDefaultAdminPath,
+  isGlobalStaffRole,
+  normalizeManagerScopes,
+  type ServiceManagerScope,
+} from "@/lib/service-manager-access";
 
 type SessionPayload = {
   user?: App.Locals["user"];
   session?: App.Locals["session"];
+  managerScopes?: ServiceManagerScope[];
 };
 
 const DASHBOARD_VERIFY_PATH = "/dashboard/verify";
@@ -45,11 +53,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return withSecurityHeaders(await next(), pathname);
   }
 
-  const { user, session } = shouldResolveSession(pathname)
+  const { user, session, managerScopes } = shouldResolveSession(pathname)
     ? await resolveSession(context.request, context.url)
-    : { user: null, session: null };
+    : { user: null, session: null, managerScopes: [] };
   context.locals.user = user;
   context.locals.session = session;
+  context.locals.managerScopes = managerScopes;
 
   if (user?.suspendedUntil && new Date(user.suspendedUntil) > new Date()) {
     if (pathname.startsWith("/dashboard") || pathname === "/activate" || pathname === "/login") {
@@ -81,17 +90,18 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
 
     if (pathname.startsWith("/dashboard/admin")) {
-      const role = context.locals.user?.role;
-      if (role !== "admin" && role !== "officer") {
+      const role = currentUser.role;
+      if (!canAccessAdminPath(role, managerScopes, pathname)) {
         return withSecurityHeaders(context.redirect("/403"), pathname);
       }
 
       if (pathname === "/dashboard/admin" || pathname === "/dashboard/admin/") {
-        return withSecurityHeaders(context.redirect("/dashboard/admin/members"), pathname);
+        const defaultAdminPath = getDefaultAdminPath(role, managerScopes);
+        return withSecurityHeaders(context.redirect(defaultAdminPath ?? "/403"), pathname);
       }
     }
 
-    const isPrivileged = currentUser.role === "admin" || currentUser.role === "officer";
+    const isPrivileged = isGlobalStaffRole(currentUser.role);
     const isActivated = !!currentUser.activatedAt || !!currentUser.tier || isPrivileged;
     const memberOnlyRoutes = [
       "/dashboard/competitions",
@@ -156,30 +166,38 @@ function isAccountVerified(user: App.Locals["user"]) {
 async function resolveSession(request: Request, currentUrl: URL): Promise<Required<SessionPayload>> {
   const cookie = request.headers.get("cookie");
   if (!cookie) {
-    return { user: null, session: null };
+    return { user: null, session: null, managerScopes: [] };
   }
 
   try {
-    const response = await fetchApi(new URL("/api/auth/get-session", currentUrl.origin), {
+    const sessionRequestInit: RequestInit = {
       headers: {
         Accept: "application/json",
         Cookie: cookie,
         "x-forwarded-host": currentUrl.host,
         "x-forwarded-proto": currentUrl.protocol.replace(":", ""),
       },
-    });
+    };
+    const dashboardSessionResponse = await fetchApi(
+      new URL("/api/dashboard/session", currentUrl.origin),
+      sessionRequestInit,
+    ).catch(() => null);
+    const response = dashboardSessionResponse?.ok
+      ? dashboardSessionResponse
+      : await fetchApi(new URL("/api/auth/get-session", currentUrl.origin), sessionRequestInit);
 
     if (!response.ok) {
-      return { user: null, session: null };
+      return { user: null, session: null, managerScopes: [] };
     }
 
     const payload = (await response.json().catch(() => null)) as SessionPayload | null;
     return {
       user: payload?.user ?? null,
       session: payload?.session ?? null,
+      managerScopes: normalizeManagerScopes(payload?.managerScopes),
     };
   } catch {
-    return { user: null, session: null };
+    return { user: null, session: null, managerScopes: [] };
   }
 }
 
