@@ -143,7 +143,7 @@ export default function DarkroomScheduleCalendar({
       <AccessUpsellPanel
         eyebrow="Facilities calendar"
         title="Join darkroom time"
-        description="Facilities members can join manager-approved darkroom slots and get a private Discord channel for their session."
+        description="Facilities members can join manager-approved darkroom slots and get a private Discord thread for their session."
         ctaLabel="Buy Facilities"
       />
     );
@@ -476,7 +476,7 @@ function ScheduleSlotCard({
         {slot.discordChannelId && slot.isRegistered && !isPastDeadline && (
           <span className="inline-flex min-h-8 items-center justify-center gap-2 border border-neutral-800 px-2 text-[10px] uppercase tracking-[0.12em] text-neutral-500">
             <MessageCircle className="size-3" aria-hidden="true" />
-            Discord Ready
+            Discord thread ready
           </span>
         )}
         {slot.discordSyncStatus === "failed" && (
