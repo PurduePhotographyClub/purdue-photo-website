@@ -208,7 +208,7 @@ const initialEquipmentDashboardState: EquipmentDashboardState = {
 const CATEGORIES = EQUIPMENT_CATEGORY_FILTERS;
 const CATEGORY_OPTIONS = EQUIPMENT_CATEGORIES;
 const EQUIPMENT_TERMS_CHANNEL_ID = "1512505024792760421";
-const EMPTY_BORROWING_TERMS_MESSAGE = "This member did not add additional terms. Coordinate details in the loan channel if approved.";
+const EMPTY_BORROWING_TERMS_MESSAGE = "This member did not add additional terms. Coordinate details in the loan thread if approved.";
 const BORROWING_TERMS_BODY_CLASS = "space-y-2 text-xs leading-relaxed text-neutral-400";
 const BORROWING_TERMS_PREVIEW_CLASS = "mt-1 space-y-1 text-[10px] leading-relaxed text-neutral-400";
 

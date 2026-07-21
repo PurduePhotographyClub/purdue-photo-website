@@ -8,6 +8,7 @@ import {
   clubDateTimeToUtcIso,
   startOfClubSunday,
 } from "../src/lib/club-time.ts";
+import { getPrivateRoomSyncLabel } from "../src/lib/discord-private-room.ts";
 
 const darkroomCalendarPath = new URL(
   "../src/components/dashboard/DarkroomScheduleCalendar.tsx",
@@ -19,6 +20,14 @@ const adminDarkroomPath = new URL(
 );
 const studioManagerPath = new URL(
   "../src/components/dashboard/StudioManager.tsx",
+  import.meta.url,
+);
+const adminStudioPath = new URL(
+  "../src/components/dashboard/admin/AdminStudio.tsx",
+  import.meta.url,
+);
+const equipmentDashboardPath = new URL(
+  "../src/components/dashboard/EquipmentDashboard.tsx",
   import.meta.url,
 );
 const clubTimePath = new URL("../src/lib/club-time.ts", import.meta.url);
@@ -96,4 +105,64 @@ test("schedule synchronization warnings have warning semantics instead of succes
   assert.match(darkroomCalendar, /role="status"/);
   assert.match(adminDarkroom, /syncWarning/);
   assert.match(adminDarkroom, /text-amber-/);
+});
+
+test(
+  "deleted private rooms keep their wire status but use accurate display copy",
+  () => {
+    assert.equal(getPrivateRoomSyncLabel("archived"), "deleted");
+    assert.equal(getPrivateRoomSyncLabel("failed"), "failed");
+    assert.equal(getPrivateRoomSyncLabel("pending"), "pending");
+    assert.equal(getPrivateRoomSyncLabel("synced"), "synced");
+  },
+);
+
+test("private request rooms are described as Discord threads without archive cleanup controls", async () => {
+  const [
+    darkroomCalendar,
+    adminDarkroom,
+    studioManager,
+    adminStudio,
+    equipmentDashboard,
+  ] = await Promise.all([
+    readFile(darkroomCalendarPath, "utf8"),
+    readFile(adminDarkroomPath, "utf8"),
+    readFile(studioManagerPath, "utf8"),
+    readFile(adminStudioPath, "utf8"),
+    readFile(equipmentDashboardPath, "utf8"),
+  ]);
+
+  assert.match(darkroomCalendar, /private Discord thread for their session/);
+  assert.match(darkroomCalendar, />\s*Discord thread ready\s*</);
+  assert.doesNotMatch(
+    darkroomCalendar,
+    /private Discord channel for their session|>\s*Discord ready\s*</i,
+  );
+
+  assert.match(studioManager, />\s*Discord thread ready\s*</);
+  assert.doesNotMatch(studioManager, />\s*Discord ready\s*</i);
+
+  assert.match(adminStudio, /Discord thread: #\{buildStudioChannelName\(request\)\}/);
+  assert.match(adminStudio, /Thread ID \{request\.discordChannelId\}/);
+  assert.match(
+    adminStudio,
+    /\{getPrivateRoomSyncLabel\(request\.discordSyncStatus\)\}/,
+  );
+  assert.doesNotMatch(adminStudio, /Discord channel:/);
+  assert.doesNotMatch(adminStudio, /\{request\.discordSyncStatus\}/);
+
+  assert.match(adminDarkroom, /Thread ID \{slot\.discordChannelId\}/);
+  assert.match(
+    adminDarkroom,
+    /\{getPrivateRoomSyncLabel\(slot\.discordSyncStatus\)\}/,
+  );
+  assert.doesNotMatch(adminDarkroom, /\{slot\.discordSyncStatus\}/);
+  assert.doesNotMatch(
+    adminDarkroom,
+    /Clean Archived|cleanup-archived|archived channels?/i,
+  );
+
+  assert.match(equipmentDashboard, /loan thread if approved/);
+  assert.doesNotMatch(equipmentDashboard, /loan channel if approved/);
+  assert.match(equipmentDashboard, /Use the accept\/deny message in channel/);
 });

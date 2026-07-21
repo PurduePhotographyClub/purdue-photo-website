@@ -8,6 +8,7 @@ import {
   readErrorMessage,
   readJson,
 } from "@/lib/http";
+import { getPrivateRoomSyncLabel } from "@/lib/discord-private-room";
 
 interface StudioStats {
   approvedSessions: number;
@@ -553,7 +554,7 @@ function StudioRequestRow({
             <span
               className={`border px-2 py-1 text-[9px] uppercase tracking-[0.14em] ${getSyncTone(request.discordSyncStatus)}`}
             >
-              {request.discordSyncStatus}
+              {getPrivateRoomSyncLabel(request.discordSyncStatus)}
             </span>
           </div>
           <p className="text-[10px] text-neutral-500">{request.userEmail}</p>
@@ -578,9 +579,9 @@ function StudioRequestRow({
           {request.discordChannelId && (
             <div className="mt-2 text-[10px] text-neutral-600">
               <p className="text-neutral-400">
-                Discord channel: #{buildStudioChannelName(request)}
+                Discord thread: #{buildStudioChannelName(request)}
               </p>
-              <p>ID {request.discordChannelId}</p>
+              <p>Thread ID {request.discordChannelId}</p>
             </div>
           )}
           {request.discordSyncError && (

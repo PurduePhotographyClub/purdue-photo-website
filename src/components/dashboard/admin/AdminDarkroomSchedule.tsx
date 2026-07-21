@@ -8,7 +8,6 @@ import {
   Pencil,
   RefreshCcw,
   Send,
-  Trash2,
   Users,
   XCircle,
 } from "lucide-react";
@@ -19,6 +18,7 @@ import {
   readErrorMessage,
   readJson,
 } from "@/lib/http";
+import { getPrivateRoomSyncLabel } from "@/lib/discord-private-room";
 import {
   addClubCalendarDays,
   clubDateTimeInputToUtcIso,
@@ -96,12 +96,10 @@ interface AdminDarkroomScheduleState {
 interface AdminDarkroomSlotPanelsProps {
   archivedSlots: AdminDarkroomScheduleSlot[];
   busyAction: string | null;
-  hasArchivedChannels: boolean;
   postWeekStartIso: string;
   upcomingSlots: AdminDarkroomScheduleSlot[];
   weeklyPostOptions: WeeklyPostOption[];
   onCancel: (slotId: string) => void;
-  onCleanupArchived: () => void;
   onEdit: (slot: AdminDarkroomScheduleSlot) => void;
   onEnd: (slotId: string) => void;
   onPostWeeklyJoinMessage: () => void;
@@ -252,9 +250,6 @@ export default function AdminDarkroomSchedule() {
       slot.status === "cancelled" ||
       slot.discordSyncStatus === "archived" ||
       new Date(slot.endsAt) <= now,
-  );
-  const hasArchivedChannels = archivedSlots.some(
-    (slot) => !!slot.discordChannelId,
   );
   const weeklyPostOptions = useMemo(
     () => buildWeeklyPostOptions(upcomingSlots, postWeekStartIso),
@@ -419,47 +414,6 @@ export default function AdminDarkroomSchedule() {
     }
   };
 
-  const handleCleanupArchived = async () => {
-    setState({
-      busyAction: "cleanup-archived",
-      error: "",
-      success: "",
-      syncWarning: "",
-    });
-
-    try {
-      const response = await fetchApi(
-        "/api/admin/darkroom/schedule/cleanup-archived",
-        {
-          method: "POST",
-        },
-      );
-
-      if (!response.ok) {
-        setState({
-          error: await readErrorMessage(
-            response,
-            "Failed to clean up archived channels.",
-          ),
-        });
-        return;
-      }
-
-      const result =
-        await readJson<AdminDarkroomScheduleMutationResponse>(response);
-      const failedCopy =
-        result.failed && result.failed > 0 ? ` ${result.failed} failed.` : "";
-      setState({
-        success: `Cleaned ${result.cleaned ?? 0} archived channel${result.cleaned === 1 ? "" : "s"}.${failedCopy}`,
-      });
-      await mutate();
-    } catch {
-      setState({ error: "Failed to clean up archived channels." });
-    } finally {
-      setState({ busyAction: null });
-    }
-  };
-
   const handlePostWeeklyJoinMessage = () => postWeeklyJoinMessage(postWeekStartIso, setState, mutate);
 
   const startEditing = (slot: AdminDarkroomScheduleSlot) => startEditingSlot(slot, setState);
@@ -487,12 +441,10 @@ export default function AdminDarkroomSchedule() {
       <AdminDarkroomSlotPanels
         archivedSlots={archivedSlots}
         busyAction={busyAction}
-        hasArchivedChannels={hasArchivedChannels}
         postWeekStartIso={postWeekStartIso}
         upcomingSlots={upcomingSlots}
         weeklyPostOptions={weeklyPostOptions}
         onCancel={handleCancel}
-        onCleanupArchived={handleCleanupArchived}
         onEdit={startEditing}
         onEnd={handleEndSession}
         onPostWeeklyJoinMessage={handlePostWeeklyJoinMessage}
@@ -506,12 +458,10 @@ export default function AdminDarkroomSchedule() {
 function AdminDarkroomSlotPanels({
   archivedSlots,
   busyAction,
-  hasArchivedChannels,
   postWeekStartIso,
   upcomingSlots,
   weeklyPostOptions,
   onCancel,
-  onCleanupArchived,
   onEdit,
   onEnd,
   onPostWeeklyJoinMessage,
@@ -545,17 +495,6 @@ function AdminDarkroomSlotPanels({
           emptyLabel="No archived timeslots."
           label={`Archived (${archivedSlots.length})`}
           slots={archivedSlots}
-          action={hasArchivedChannels ? (
-            <button
-              type="button"
-              disabled={busyAction === "cleanup-archived"}
-              onClick={onCleanupArchived}
-              className={`${actionButtonClass} border-red-900/60 text-red-300 hover:border-red-700 hover:bg-red-950/30`}
-            >
-              <Trash2 className="size-3" aria-hidden="true" />
-              {busyAction === "cleanup-archived" ? "Cleaning" : "Clean Archived"}
-            </button>
-          ) : undefined}
           onCancel={onCancel}
           onEnd={onEnd}
           onEdit={onEdit}
@@ -806,7 +745,7 @@ function ScheduleSlotRow({
             <span
               className={`border px-2 py-1 text-[9px] uppercase tracking-[0.14em] ${syncTone}`}
             >
-              {slot.discordSyncStatus}
+              {getPrivateRoomSyncLabel(slot.discordSyncStatus)}
             </span>
             {slot.status === "cancelled" && (
               <span className="border border-red-900 bg-red-950/20 px-2 py-1 text-[9px] uppercase tracking-[0.14em] text-red-300">
@@ -829,7 +768,7 @@ function ScheduleSlotRow({
             </span>
             {slot.discordChannelId && (
               <span className="border border-neutral-800 px-2 py-1">
-                Channel {slot.discordChannelId}
+                Thread ID {slot.discordChannelId}
               </span>
             )}
           </div>

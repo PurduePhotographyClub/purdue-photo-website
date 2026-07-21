@@ -774,7 +774,7 @@ function StudioScheduleRequestItem({
         {request.status === "approved" && request.discordChannelId && (
           <span className="mt-2 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] text-green-300">
             <Clock className="size-3" aria-hidden="true" />
-            Discord ready
+            Discord thread ready
           </span>
         )}
         {request.needsStudioManager && (
@@ -808,7 +808,7 @@ function StudioScheduleRequestItem({
         request.discordChannelId && (
           <span className="mt-2 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] text-green-300">
             <Clock className="size-3" aria-hidden="true" />
-            Discord ready
+            Discord thread ready
           </span>
         )}
       {request.needsStudioManager && (
