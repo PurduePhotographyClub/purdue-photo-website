@@ -38,7 +38,7 @@
     "wrangler": "^4.103.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260508.1",
+    "@cloudflare/workers-types": "^5.20260721.1",
     "@tailwindcss/vite": "4.1.12",
     "@types/node": "^25.5.2",
     "@types/react": "^19.2.14",
