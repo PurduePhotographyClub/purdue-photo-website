@@ -18,6 +18,10 @@ const adminDarkroomPath = new URL(
   "../src/components/dashboard/admin/AdminDarkroomSchedule.tsx",
   import.meta.url,
 );
+const adminDarkroomPanelsPath = new URL(
+  "../src/components/dashboard/admin/AdminDarkroomSchedulePanels.tsx",
+  import.meta.url,
+);
 const studioManagerPath = new URL(
   "../src/components/dashboard/StudioManager.tsx",
   import.meta.url,
@@ -121,12 +125,14 @@ test("private request rooms are described as Discord threads without archive cle
   const [
     darkroomCalendar,
     adminDarkroom,
+    adminDarkroomPanels,
     studioManager,
     adminStudio,
     equipmentDashboard,
   ] = await Promise.all([
     readFile(darkroomCalendarPath, "utf8"),
     readFile(adminDarkroomPath, "utf8"),
+    readFile(adminDarkroomPanelsPath, "utf8"),
     readFile(studioManagerPath, "utf8"),
     readFile(adminStudioPath, "utf8"),
     readFile(equipmentDashboardPath, "utf8"),
@@ -151,14 +157,14 @@ test("private request rooms are described as Discord threads without archive cle
   assert.doesNotMatch(adminStudio, /Discord channel:/);
   assert.doesNotMatch(adminStudio, /\{request\.discordSyncStatus\}/);
 
-  assert.match(adminDarkroom, /Thread ID \{slot\.discordChannelId\}/);
+  assert.match(adminDarkroomPanels, /Thread ID \{slot\.discordChannelId\}/);
   assert.match(
-    adminDarkroom,
+    adminDarkroomPanels,
     /\{getPrivateRoomSyncLabel\(slot\.discordSyncStatus\)\}/,
   );
-  assert.doesNotMatch(adminDarkroom, /\{slot\.discordSyncStatus\}/);
+  assert.doesNotMatch(adminDarkroomPanels, /\{slot\.discordSyncStatus\}/);
   assert.doesNotMatch(
-    adminDarkroom,
+    adminDarkroomPanels,
     /Clean Archived|cleanup-archived|archived channels?/i,
   );
 

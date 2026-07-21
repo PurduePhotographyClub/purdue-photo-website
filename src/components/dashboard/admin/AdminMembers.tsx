@@ -11,6 +11,7 @@ import {
 } from "@/lib/http";
 import { createKeyedStateSetter, keyedStateReducer } from "@/lib/reducer-state";
 import AdminMemberProfileDialog from "./AdminMemberProfileDialog";
+import ServiceManagerAssignments from "./ServiceManagerAssignments";
 interface Member {
   id: string;
   name: string;
@@ -766,6 +767,8 @@ export default function AdminMembers() {
     <div className="space-y-4">
       {(error || membersError) && <p className="text-xs text-red-400">{error || "Failed to load members."}</p>}
       {success && <p className="text-xs text-green-400">{success}</p>}
+
+      <ServiceManagerAssignments members={members} />
 
       <MemberFilters
         inputClass={inputClass}

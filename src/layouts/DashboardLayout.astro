@@ -4,6 +4,7 @@ import ReportIssueWidget from '../components/dashboard/ReportIssueWidget';
 import DashboardUpdatePopup from '../components/dashboard/DashboardUpdatePopup';
 import DashboardNotificationBell from '../components/dashboard/DashboardNotificationBell';
 import { DASHBOARD_VERSION } from '../lib/project-config';
+import type { ServiceManagerScope } from '../lib/service-manager-access';
 
 export const prerender = false;
 
@@ -22,8 +23,10 @@ const pathname = Astro.url.pathname;
 const normalizedPathname = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
 
 const isAdmin = user.role === 'admin' || user.role === 'officer';
+const managerScopes = Astro.locals.managerScopes ?? [];
+const hasManagementAccess = isAdmin || managerScopes.length > 0;
 const isAccountVerified = !!user.discordId;
-const isActivated = !!user.tier || isAdmin;
+const isActivated = !!user.tier || hasManagementAccess;
 const canUpgrade = user.tier === 'member' && !isAdmin;
 const shouldShowNotificationBell = isAccountVerified && !['/dashboard', '/dashboard/notifications'].includes(normalizedPathname);
 
@@ -50,20 +53,30 @@ const navItems = isAccountVerified ? verifiedNavItems : [
   { href: '/dashboard/verify', label: 'Verify Discord', icon: 'link' },
 ];
 
-const adminItems = [
+const globalAdminItemsBeforeServices = [
   { href: '/dashboard/admin/members', label: 'Members', icon: 'users' },
   { href: '/dashboard/admin/membership', label: 'Membership', icon: 'credit-card' },
   { href: '/dashboard/admin/keys', label: 'Activation Keys', icon: 'key' },
   { href: '/dashboard/admin/gallery', label: 'Gallery', icon: 'image' },
   { href: '/dashboard/admin/competitions', label: 'Competitions', icon: 'trophy' },
-  { href: '/dashboard/admin/equipment', label: 'Equipment', icon: 'camera' },
-  { href: '/dashboard/admin/darkroom', label: 'Darkroom', icon: 'flask' },
-  { href: '/dashboard/admin/studio', label: 'Studio', icon: 'camera' },
+];
+
+const serviceAdminItems: Array<{ href: string; label: string; icon: string; scope: ServiceManagerScope }> = [
+  { href: '/dashboard/admin/studio', label: 'Studio', icon: 'camera', scope: 'studio' },
+  { href: '/dashboard/admin/darkroom', label: 'Darkroom', icon: 'flask', scope: 'darkroom' },
+  { href: '/dashboard/admin/equipment', label: 'Equipment', icon: 'camera', scope: 'equipment' },
+];
+
+const globalAdminItemsAfterServices = [
   { href: '/dashboard/admin/events', label: 'Events', icon: 'calendar' },
   { href: '/dashboard/admin/merch', label: 'Merch', icon: 'shopping-bag' },
   { href: '/dashboard/admin/updates', label: 'Updates', icon: 'bell' },
   { href: '/dashboard/admin/newsletter', label: 'Newsletter', icon: 'mail' },
 ];
+
+const adminItems = isAdmin
+  ? [...globalAdminItemsBeforeServices, ...serviceAdminItems, ...globalAdminItemsAfterServices]
+  : serviceAdminItems.filter((item) => managerScopes.includes(item.scope));
 
 const roleBadge: Record<string, string> = {
   admin: 'bg-red-900/50 text-red-300 border-red-800',
@@ -74,6 +87,12 @@ const roleBadge: Record<string, string> = {
 const tierBadge: Record<string, string> = {
   facilities: 'bg-blue-900/50 text-blue-300 border-blue-800',
   member: 'bg-green-900/50 text-green-300 border-green-800',
+};
+
+const managerLabels: Record<ServiceManagerScope, string> = {
+  studio: 'Studio manager',
+  darkroom: 'Darkroom manager',
+  equipment: 'Equipment manager',
 };
 ---
 
@@ -128,6 +147,11 @@ const tierBadge: Record<string, string> = {
                 {user.tier}
               </span>
             )}
+            {managerScopes.map((scope) => (
+              <span class="inline-block rounded border border-indigo-800 bg-indigo-950/40 px-2 py-0.5 text-[9px] uppercase tracking-[0.15em] text-indigo-300">
+                {managerLabels[scope]}
+              </span>
+            ))}
             {!isAccountVerified && (
               <span class="inline-block px-2 py-0.5 text-[9px] tracking-[0.15em] uppercase border rounded border-amber-800 bg-amber-950/40 text-amber-300">
                 Unverified
@@ -160,10 +184,12 @@ const tierBadge: Record<string, string> = {
             </a>
           ))}
 
-          {isAdmin && isAccountVerified && (
+          {adminItems.length > 0 && isAccountVerified && (
             <>
               <div class="px-3 mt-6 mb-2">
-                <p class="text-[9px] tracking-[0.3em] uppercase text-neutral-600 px-2">Admin</p>
+                <p class="text-[9px] tracking-[0.3em] uppercase text-neutral-600 px-2">
+                  {isAdmin ? 'Admin' : 'Management'}
+                </p>
               </div>
               {adminItems.map((item) => (
                 <a
@@ -236,6 +262,11 @@ const tierBadge: Record<string, string> = {
                 {user.tier}
               </span>
             )}
+            {managerScopes.map((scope) => (
+              <span class="rounded border border-indigo-800 bg-indigo-950/40 px-2 py-0.5 text-[9px] uppercase tracking-[0.15em] text-indigo-300">
+                {managerLabels[scope]}
+              </span>
+            ))}
             {!isAccountVerified && (
               <span class="px-2 py-0.5 text-[9px] tracking-[0.15em] uppercase border rounded border-amber-800 bg-amber-950/40 text-amber-300">
                 Unverified
