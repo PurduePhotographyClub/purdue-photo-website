@@ -1,5 +1,10 @@
-import { useEffect, useReducer, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useDeferredValue, useEffect, useReducer, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import useSWR from "swr";
+import {
+  buildAdminMembersUrl,
+  normalizeAdminMembersPageForUrl,
+  type AdminMembersPage,
+} from "@/lib/admin-members";
 import {
   normalizeCompetitionPageForUrl,
   type CompetitionPage,
@@ -38,6 +43,7 @@ import {
 } from "./types";
 
 const ADMIN_COMPETITIONS_PAGE_SIZE = 12;
+const COMPETITION_MEMBER_SEARCH_PAGE_SIZE = 30;
 const ADMIN_COMPETITIONS_SWR_OPTIONS = {
   ...PUBLIC_API_SWR_OPTIONS,
   keepPreviousData: false,
@@ -98,6 +104,19 @@ const initialAdminCompetitionsState: AdminCompetitionsState = {
 async function fetchAdminCompetitionPage(url: string) {
   const value = await fetchJson<unknown>(url);
   return normalizeCompetitionPageForUrl<Competition>(value, url, ADMIN_COMPETITIONS_PAGE_SIZE);
+}
+
+async function fetchCompetitionMembers([url, search]: readonly [string, string]) {
+  const value = await fetchJson<unknown>(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ search }),
+  });
+  return normalizeAdminMembersPageForUrl<Member>(
+    value,
+    url,
+    COMPETITION_MEMBER_SEARCH_PAGE_SIZE,
+  );
 }
 
 async function prepareCompetitionResultImages(
@@ -182,6 +201,7 @@ export function useAdminCompetitions() {
   const setUploadingFor = createKeyedStateSetter(dispatchState, "uploadingFor");
   const resultFileRef = useRef<HTMLInputElement>(null);
   const resultPreviewUrlRef = useRef<string | null>(null);
+  const deferredMemberQuery = useDeferredValue(memberQuery);
 
   const competitionUrl = `/api/competitions?page=${page}&per_page=${ADMIN_COMPETITIONS_PAGE_SIZE}&format=page&include=results`;
   const {
@@ -194,11 +214,21 @@ export function useAdminCompetitions() {
     fetchAdminCompetitionPage,
     ADMIN_COMPETITIONS_SWR_OPTIONS,
   );
-  const { data: members = [], error: memberLoadError } = useSWR<Member[]>(
-    uploadingFor ? "/api/admin/members" : null,
-    fetchJson,
+  const memberSearch = resultForm.userId && resultForm.userId !== "manual"
+    ? resultForm.userId
+    : deferredMemberQuery.trim();
+  const memberSearchUrl = buildAdminMembersUrl({
+    page: 1,
+    perPage: COMPETITION_MEMBER_SEARCH_PAGE_SIZE,
+  });
+  const { data: memberPage, error: memberLoadError } = useSWR<AdminMembersPage<Member>>(
+    uploadingFor && memberSearch
+      ? [memberSearchUrl, memberSearch] as const
+      : null,
+    fetchCompetitionMembers,
     PUBLIC_API_SWR_OPTIONS,
   );
+  const members = memberPage?.members ?? [];
 
   const competitions = competitionPage?.competitions ?? [];
   const activeResultCompetition = competitions.find((competition) => competition.id === uploadingFor);
@@ -381,7 +411,7 @@ export function useAdminCompetitions() {
       setResultError("Choose an image before uploading a result.");
       return;
     }
-    if (resultForm.userId !== "manual" && !members.some((member) => member.id === resultForm.userId)) {
+    if (resultForm.userId !== "manual" && !resultForm.userId) {
       setResultError("Search for and select a member, or use a manual photographer name.");
       return;
     }

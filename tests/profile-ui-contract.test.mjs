@@ -16,6 +16,7 @@ const [
   profileGallerySource,
   profileRouteSource,
   adminMembersSource,
+  adminMembersListSource,
   adminEditorSource,
   adminProfileDialogSource,
   adminRouteSource,
@@ -39,6 +40,7 @@ const [
   readFile(new URL("../src/components/profile/ProfileGallery.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/pages/profile/[username].astro", import.meta.url), "utf8"),
   readFile(new URL("../src/components/dashboard/admin/AdminMembers.tsx", import.meta.url), "utf8"),
+  readFile(new URL("../src/components/dashboard/admin/AdminMembersList.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/dashboard/admin/AdminMemberProfileEditor.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/dashboard/admin/AdminMemberProfileDialog.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/pages/dashboard/admin/members/[id]/profile.astro", import.meta.url), "utf8"),
@@ -254,9 +256,9 @@ test("signed-in header exposes the account destinations from one accessible menu
 });
 
 test("member list opens enabled profiles in a responsive staff editor dialog", () => {
-  assert.match(adminMembersSource, /profileEnabled/);
-  assert.match(adminMembersSource, /profileUsername/);
-  assert.match(adminMembersSource, /Edit profile/);
+  assert.match(adminMembersListSource, /profileEnabled/);
+  assert.match(adminMembersListSource, /profileUsername/);
+  assert.match(adminMembersListSource, /Edit profile/);
   assert.match(adminMembersSource, /profileTarget/);
   assert.match(adminMembersSource, /AdminMemberProfileDialog/);
   assert.doesNotMatch(adminMembersSource, /href=\{`\/dashboard\/admin\/members\//);

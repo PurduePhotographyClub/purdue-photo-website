@@ -14,6 +14,14 @@ const adminGallerySource = await readFile(
   new URL("../src/components/dashboard/admin/AdminGallery.tsx", import.meta.url),
   "utf8",
 );
+const adminGalleryPaginationSource = await readFile(
+  new URL("../src/components/dashboard/admin/AdminGalleryPagination.tsx", import.meta.url),
+  "utf8",
+);
+const adminPreviewSource = await readFile(
+  new URL("../src/components/dashboard/admin/AdminGalleryPhotoPreviewModal.tsx", import.meta.url),
+  "utf8",
+);
 const memberPreviewSource = await readFile(
   new URL("../src/components/dashboard/gallery/GalleryPhotoPreviewModal.tsx", import.meta.url),
   "utf8",
@@ -53,10 +61,10 @@ test("admin gallery pagination has reachable state and controls", () => {
     adminGallerySource,
     /\/api\/gallery\?page=\$\{page\}&per_page=\$\{ADMIN_GALLERY_PAGE_SIZE\}/,
   );
-  assert.match(adminGallerySource, /aria-label="Admin gallery pagination"/);
-  assert.match(adminGallerySource, />\s*Previous\s*</);
-  assert.match(adminGallerySource, />\s*Next\s*</);
-  assert.match(adminGallerySource, /aria-current=\{[^}]*["']page["']/);
+  assert.match(adminGalleryPaginationSource, /aria-label="Admin gallery pagination"/);
+  assert.match(adminGalleryPaginationSource, />\s*Previous\s*</);
+  assert.match(adminGalleryPaginationSource, />\s*Next\s*</);
+  assert.match(adminGalleryPaginationSource, /aria-current=\{[^}]*["']page["']/);
   assert.match(adminGallerySource, /setPage\(/);
 });
 
@@ -128,8 +136,8 @@ test("public and member previews render all ordered tags", () => {
   assert.match(publicPreview, /\.tags\.map\(/);
   assert.match(memberPreviewSource, /parseGalleryTags\(photo\.tags\)/);
   assert.match(memberPreviewSource, /tags\.map\(/);
-  assert.match(adminGallerySource, /parseGalleryTags\(photo\.tags\)/);
-  assert.match(adminGallerySource, /aria-label="Photo tags"/);
+  assert.match(adminPreviewSource, /parseGalleryTags\(photo\.tags\)/);
+  assert.match(adminPreviewSource, /aria-label="Photo tags"/);
 });
 
 test("public gallery filters stay available after a request error and expose selection state", () => {
@@ -171,17 +179,19 @@ test("admin edit-photo modal can scroll within short viewports", () => {
 });
 
 test("admin photo preview is contained by the mobile dynamic viewport", () => {
-  const preview = adminGallerySource.slice(
-    adminGallerySource.indexOf("function PhotoPreviewModal"),
-    adminGallerySource.indexOf("interface DeletePhotoModalProps"),
-  );
+  const preview = adminPreviewSource;
 
-  assert.match(preview, /100dvh/);
-  assert.match(preview, /min-h-0/);
+  assert.match(preview, /max-h-\[calc\(100dvh-/);
+  assert.match(preview, /max-w-6xl/);
+  assert.match(preview, /flex-col/);
+  assert.match(preview, /lg:flex-row/);
+  assert.match(preview, /bg-neutral-950/);
+  assert.match(preview, /src=\{photo\.imageUrl\}/);
+  assert.doesNotMatch(preview, /src=\{photo\.thumbnailUrl\}/);
+  assert.match(preview, /max-h-\[48dvh\]/);
   assert.match(preview, /overflow-y-auto/);
   assert.match(preview, /object-contain/);
-  assert.match(preview, /aria-label="Gallery photo details"/);
-  assert.match(preview, /tabIndex=\{0\}/);
+  assert.match(preview, /aria-label="Close photo preview"/);
   assert.match(preview, /whitespace-pre-wrap/);
   assert.match(preview, /break-words/);
   assert.doesNotMatch(preview, /max-h-\[90vh\]/);

@@ -25,7 +25,11 @@ test("admin competitions load one paginated competition and results payload", ()
 });
 
 test("member data is deferred until a result editor needs it", () => {
-  assert.match(adminSource, /useSWR<Member\[]>\(\s*uploadingFor \? "\/api\/admin\/members" : null/);
+  assert.match(adminSource, /COMPETITION_MEMBER_SEARCH_PAGE_SIZE = 30/);
+  assert.match(adminSource, /uploadingFor && memberSearch/);
+  assert.match(adminSource, /fetchCompetitionMembers/);
+  assert.match(adminSource, /method: "POST"/);
+  assert.doesNotMatch(adminSource, /uploadingFor \? "\/api\/admin\/members" : null/);
 });
 
 test("competition creation and editing share a touch-friendly metadata editor", () => {
