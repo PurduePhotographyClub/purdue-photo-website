@@ -62,12 +62,21 @@ test("dashboard session, middleware, and layout share scoped-manager access", ()
 
 test("members admin exposes linked-member assignment controls with service caps", () => {
   assert.match(membersSource, /ServiceManagerAssignments/);
+  assert.doesNotMatch(membersSource, /<ServiceManagerAssignments\s+members=/);
+  assert.match(assignmentPanelSource, /buildAdminMembersUrl\(/);
+  assert.match(assignmentPanelSource, /discordLinked:\s*true/);
+  assert.match(assignmentPanelSource, /excludeSuspended:\s*true/);
+  assert.match(assignmentPanelSource, /method: "POST"/);
+  assert.match(assignmentPanelSource, /JSON\.stringify\(\{ search \}\)/);
   assert.match(assignmentPanelSource, /\/api\/admin\/service-managers/);
   assert.match(assignmentPanelSource, /member\.discordId/);
   assert.match(assignmentPanelSource, /member\.suspendedUntil/);
   assert.match(assignmentPanelSource, /studio: 1/);
   assert.match(assignmentPanelSource, /darkroom: 2/);
   assert.match(assignmentPanelSource, /equipment: 1/);
+  assert.match(assignmentPanelSource, /retainedMembers/);
+  assert.match(assignmentPanelSource, /nextSelectedUserIds\.flatMap/);
+  assert.match(assignmentPanelSource, /availableMembers\.map/);
   assert.match(assignmentPanelSource, /JSON\.stringify\(\{ scope, userIds \}\)/);
   assert.match(assignmentPanelSource, /reconciliation\?\.warning/);
   assert.match(assignmentPanelSource, /\{reconciliationWarning\}/);

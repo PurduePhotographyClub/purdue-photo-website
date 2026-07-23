@@ -1,7 +1,14 @@
-import { useMemo, useReducer } from "react";
+import { useDeferredValue, useReducer, useState } from "react";
 import useSWR from "swr";
-import { Search, Shield, ShieldOff, Trash2, Key, X, RotateCcw } from "lucide-react";
+import { X } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
+import {
+  ADMIN_MEMBERS_PAGE_SIZE,
+  buildAdminMembersUrl,
+  normalizeAdminMembersPageForUrl,
+  type AdminMember,
+  type AdminMembersPage,
+} from "@/lib/admin-members";
 import {
   fetchApi,
   fetchJson,
@@ -11,21 +18,10 @@ import {
 } from "@/lib/http";
 import { createKeyedStateSetter, keyedStateReducer } from "@/lib/reducer-state";
 import AdminMemberProfileDialog from "./AdminMemberProfileDialog";
+import AdminMembersList from "./AdminMembersList";
 import ServiceManagerAssignments from "./ServiceManagerAssignments";
-interface Member {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  tier: string | null;
-  membershipExpiresAt: string | null;
-  activatedAt: string | null;
-  discordId: string | null;
-  createdAt: string;
-  suspendedUntil: string | null;
-  profileEnabled: boolean;
-  profileUsername: string | null;
-}
+
+type Member = AdminMember;
 
 interface AvailableKey {
   id: string;
@@ -34,34 +30,6 @@ interface AvailableKey {
   expiresAt: string;
   usedBy?: string | null;
 }
-
-const ROLES = ["user", "officer", "admin"] as const;
-const STATUSES = ["all", "active", "suspended", "expired", "unactivated"] as const;
-
-function getStatus(m: Member): string {
-  if (m.suspendedUntil && new Date(m.suspendedUntil) > new Date()) return "suspended";
-  if (m.membershipExpiresAt && new Date(m.membershipExpiresAt) < new Date()) return "expired";
-  if (!m.activatedAt && m.role !== "admin" && m.role !== "officer") return "unactivated";
-  return "active";
-}
-
-const statusStyle: Record<string, string> = {
-  active: "text-green-400 border-green-900 bg-green-900/10",
-  suspended: "text-red-400 border-red-900 bg-red-900/10",
-  expired: "text-amber-400 border-amber-900 bg-amber-900/10",
-  unactivated: "text-neutral-500 border-neutral-700 bg-neutral-800/30",
-};
-
-const roleBadge: Record<string, string> = {
-  admin: "text-red-400 border-red-900",
-  officer: "text-amber-400 border-amber-900",
-  user: "text-neutral-500 border-neutral-800",
-};
-
-const tierStyle: Record<string, string> = {
-  facilities: "text-blue-400 border-blue-900",
-  member: "text-green-400 border-green-900",
-};
 
 interface AdminMembersState {
   error: string;
@@ -102,261 +70,6 @@ const initialAdminMembersState: AdminMembersState = {
   keysLoading: false,
   profileTarget: null,
 };
-
-interface MemberFiltersProps {
-  inputClass: string;
-  onRoleFilterChange: (value: string) => void;
-  onSearchChange: (value: string) => void;
-  onStatusFilterChange: (value: string) => void;
-  roleFilter: string;
-  search: string;
-  statusFilter: string;
-}
-
-function MemberFilters({
-  inputClass,
-  onRoleFilterChange,
-  onSearchChange,
-  onStatusFilterChange,
-  roleFilter,
-  search,
-  statusFilter,
-}: MemberFiltersProps) {
-  return (
-    <div className="flex flex-wrap gap-3 items-end">
-      <div className="relative flex-1 min-w-[200px]">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-600" />
-        <input aria-label="Search by name or email"
-          type="text"
-          placeholder="Search by name or email"
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className={`${inputClass} pl-9 w-full`}
-        />
-      </div>
-      <select aria-label="Filter members by role" value={roleFilter} onChange={(e) => onRoleFilterChange(e.target.value)} className={inputClass}>
-        <option value="all">All roles</option>
-        {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-      </select>
-      <select aria-label="Filter members by status" value={statusFilter} onChange={(e) => onStatusFilterChange(e.target.value)} className={inputClass}>
-        {STATUSES.map((s) => <option key={s} value={s}>{s === "all" ? "All statuses" : s}</option>)}
-      </select>
-    </div>
-  );
-}
-
-interface MembersTableProps {
-  currentUserId?: string;
-  currentUserRole?: string | null;
-  filtered: Member[];
-  onAssignKey: (member: Member) => void;
-  onDeleteRequest: (member: Member) => void;
-  onEditProfile: (member: Member) => void;
-  onResetTier: (member: Member) => void;
-  onRoleChange: (id: string, role: string) => void;
-  onSuspendRequest: (member: Member) => void;
-  onUnsuspend: (member: Member) => void;
-}
-
-function MembersTable({
-  currentUserId,
-  currentUserRole,
-  filtered,
-  onAssignKey,
-  onDeleteRequest,
-  onEditProfile,
-  onResetTier,
-  onRoleChange,
-  onSuspendRequest,
-  onUnsuspend,
-}: MembersTableProps) {
-  return (
-    <div className="border border-neutral-800 overflow-x-auto">
-      <table className="w-full text-left">
-        <thead>
-          <tr className="border-b border-neutral-800 bg-white/[0.02]">
-            <th className="px-4 py-3 text-[9px] tracking-[0.2em] uppercase text-neutral-500 font-normal">Member</th>
-            <th className="px-4 py-3 text-[9px] tracking-[0.2em] uppercase text-neutral-500 font-normal">Role</th>
-            <th className="px-4 py-3 text-[9px] tracking-[0.2em] uppercase text-neutral-500 font-normal">Tier</th>
-            <th className="px-4 py-3 text-[9px] tracking-[0.2em] uppercase text-neutral-500 font-normal">Status</th>
-            <th className="px-4 py-3 text-[9px] tracking-[0.2em] uppercase text-neutral-500 font-normal">Expires</th>
-            <th className="px-4 py-3 text-[9px] tracking-[0.2em] uppercase text-neutral-500 font-normal">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filtered.map((member) => (
-            <MemberRow
-              key={member.id}
-              currentUserId={currentUserId}
-              currentUserRole={currentUserRole}
-              member={member}
-              onAssignKey={onAssignKey}
-              onDeleteRequest={onDeleteRequest}
-              onEditProfile={onEditProfile}
-              onResetTier={onResetTier}
-              onRoleChange={onRoleChange}
-              onSuspendRequest={onSuspendRequest}
-              onUnsuspend={onUnsuspend}
-            />
-          ))}
-        </tbody>
-      </table>
-      {filtered.length === 0 && (
-        <p className="text-xs text-neutral-600 text-center py-8">No members match your filters.</p>
-      )}
-    </div>
-  );
-}
-
-interface MemberRowProps extends Omit<MembersTableProps, "filtered"> {
-  member: Member;
-}
-
-function MemberRow({
-  currentUserId,
-  currentUserRole,
-  member,
-  onAssignKey,
-  onDeleteRequest,
-  onEditProfile,
-  onResetTier,
-  onRoleChange,
-  onSuspendRequest,
-  onUnsuspend,
-}: MemberRowProps) {
-  const status = getStatus(member);
-  const canEditMember = member.id !== currentUserId;
-  const isStaffAccount = member.role === "admin" || member.role === "officer";
-  const canEditProfile = canEditMember &&
-    member.profileEnabled &&
-    !!member.profileUsername &&
-    (currentUserRole === "admin" || !isStaffAccount);
-
-  return (
-    <tr className="border-b border-neutral-800/50 hover:bg-white/[0.01] transition-colors">
-      <td className="px-4 py-3">
-        <p className="text-sm text-neutral-200">{member.name}</p>
-        <p className="text-[10px] text-neutral-600">{member.email}</p>
-        {member.discordId && <p className="text-[9px] text-indigo-400/60 mt-0.5">Discord linked</p>}
-        {member.profileEnabled && member.profileUsername && (
-          <p className="mt-0.5 text-[9px] text-neutral-500">
-            Profile /{member.profileUsername}
-          </p>
-        )}
-      </td>
-      <td className="px-4 py-3">
-        <select
-          aria-label={`Role for ${member.name}`}
-          value={member.role}
-          disabled={
-            member.id === currentUserId ||
-            (currentUserRole === "officer" && (member.role === "admin" || member.role === "officer"))
-          }
-          onChange={(e) => onRoleChange(member.id, e.target.value)}
-          className="bg-transparent border border-neutral-800 text-[10px] text-neutral-400 px-2 py-1 focus:outline-none focus:border-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {ROLES.map((role) => (
-            <option
-              key={role}
-              value={role}
-              disabled={currentUserRole === "officer" && role === "admin"}
-            >
-              {role}
-            </option>
-          ))}
-        </select>
-      </td>
-      <td className="px-4 py-3">
-        {member.tier ? (
-          <span className={`text-[9px] tracking-wider uppercase px-2 py-0.5 border inline-block ${tierStyle[member.tier] || "text-neutral-500 border-neutral-800"}`}>
-            {member.tier}
-          </span>
-        ) : (
-          <span className="text-[10px] text-neutral-600">None</span>
-        )}
-      </td>
-      <td className="px-4 py-3">
-        <span className={`text-[9px] tracking-wider uppercase px-2 py-0.5 border inline-block ${statusStyle[status]}`}>
-          {status}
-        </span>
-        {status === "suspended" && member.suspendedUntil && (
-          <p className="text-[9px] text-neutral-600 mt-0.5">
-            Until {new Date(member.suspendedUntil).toLocaleDateString()}
-          </p>
-        )}
-      </td>
-      <td className="px-4 py-3 text-[10px] text-neutral-500">
-        {member.membershipExpiresAt
-          ? new Date(member.membershipExpiresAt).toLocaleDateString()
-          : "—"}
-      </td>
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-2">
-          {canEditProfile && (
-            <button
-              type="button"
-              onClick={() => onEditProfile(member)}
-              className="flex min-h-11 items-center gap-1 text-[9px] uppercase tracking-wider text-cyan-400 transition-colors hover:text-cyan-300"
-            >
-              Edit profile
-            </button>
-          )}
-          {canEditMember ? (
-            isStaffAccount ? (
-              <span className="text-[9px] text-neutral-600 uppercase tracking-wider">Staff Account</span>
-            ) : (
-              <>
-                <button type="button"
-                  onClick={() => onAssignKey(member)}
-                  className="text-[9px] tracking-wider uppercase text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
-                  title="Assign Key"
-                >
-                  <Key size={12} /> Key
-                </button>
-                {(member.tier || member.membershipExpiresAt) && (
-                  <button type="button"
-                    onClick={() => onResetTier(member)}
-                    className="text-[9px] tracking-wider uppercase text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors"
-                    title="Reset Tier & Expiry"
-                  >
-                    <RotateCcw size={12} /> Reset
-                  </button>
-                )}
-                {status === "suspended" ? (
-                  <button type="button"
-                    onClick={() => onUnsuspend(member)}
-                    className="text-[9px] tracking-wider uppercase text-green-400 hover:text-green-300 flex items-center gap-1 transition-colors"
-                    title="Unsuspend"
-                  >
-                    <ShieldOff size={12} /> Unsuspend
-                  </button>
-                ) : (
-                  <button type="button"
-                    onClick={() => onSuspendRequest(member)}
-                    className="text-[9px] tracking-wider uppercase text-amber-500 hover:text-amber-400 flex items-center gap-1 transition-colors"
-                    title="Suspend"
-                  >
-                    <Shield size={12} /> Suspend
-                  </button>
-                )}
-                <button type="button"
-                  onClick={() => onDeleteRequest(member)}
-                  aria-label={`Delete ${member.name}`}
-                  className="text-[9px] tracking-wider uppercase text-red-500 hover:text-red-400 flex items-center gap-1 transition-colors"
-                  title="Delete"
-                >
-                  <Trash2 size={12} />
-                </button>
-              </>
-            )
-          ) : (
-            <span className="text-[9px] text-neutral-600 uppercase tracking-wider">Current Session</span>
-          )}
-        </div>
-      </td>
-    </tr>
-  );
-}
 
 interface SuspendMemberModalProps {
   inputClass: string;
@@ -540,8 +253,23 @@ function AssignKeyModal({
   );
 }
 
+const EMPTY_ADMIN_MEMBERS: Member[] = [];
+const ADMIN_MEMBERS_SWR_OPTIONS = {
+  ...PUBLIC_API_SWR_OPTIONS,
+  keepPreviousData: true,
+};
+
+async function fetchAdminMembersPage([url, search]: readonly [string, string]) {
+  const data = await fetchJson<unknown>(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ search }),
+  });
+  return normalizeAdminMembersPageForUrl<Member>(data, url);
+}
+
 export default function AdminMembers() {
-  const { data: members = [], error: membersError, isLoading: loading, mutate: mutateMembers } = useSWR<Member[]>("/api/admin/members", fetchJson, PUBLIC_API_SWR_OPTIONS);
+  const [page, setPage] = useState(1);
   const [state, dispatchState] = useReducer(keyedStateReducer<AdminMembersState>, initialAdminMembersState);
   const {
     error,
@@ -580,32 +308,39 @@ export default function AdminMembers() {
   const setKeysLoading = createKeyedStateSetter(dispatchState, "keysLoading");
   const setProfileTarget = createKeyedStateSetter(dispatchState, "profileTarget");
 
+  const deferredSearch = useDeferredValue(search);
+  const membersUrl = buildAdminMembersUrl({
+    page,
+    perPage: ADMIN_MEMBERS_PAGE_SIZE,
+    role: roleFilter,
+    status: statusFilter,
+  });
+  const {
+    data: membersPage,
+    error: membersError,
+    isLoading: loading,
+    mutate: mutateMembers,
+  } = useSWR<AdminMembersPage<Member>>(
+    [membersUrl, deferredSearch] as const,
+    fetchAdminMembersPage,
+    ADMIN_MEMBERS_SWR_OPTIONS,
+  );
+  const members = membersPage?.members ?? EMPTY_ADMIN_MEMBERS;
+
   const { data: sessionData } = authClient.useSession();
   const currentUserId = sessionData?.user?.id;
   const currentUserRole = (sessionData?.user as { role?: string | null } | undefined)?.role;
 
-  const refreshMembers = () => {
-    void mutateMembers().catch(() => setError("Failed to load members."));
+  const refreshMembers = async () => {
+    try {
+      const refreshedPage = await mutateMembers();
+      if (refreshedPage && refreshedPage.meta.page !== page) {
+        setPage(refreshedPage.meta.page);
+      }
+    } catch {
+      setError("Failed to load members.");
+    }
   };
-
-  const filtered = useMemo(() => {
-    let list = members;
-    if (search) {
-      const q = search.toLowerCase();
-      list = list.filter((m) =>
-        m.name.toLowerCase().includes(q) ||
-        m.email.toLowerCase().includes(q) ||
-        m.id.toLowerCase().includes(q)
-      );
-    }
-    if (roleFilter !== "all") {
-      list = list.filter((m) => m.role === roleFilter);
-    }
-    if (statusFilter !== "all") {
-      list = list.filter((m) => getStatus(m) === statusFilter);
-    }
-    return list;
-  }, [members, search, roleFilter, statusFilter]);
 
   const updateRole = async (id: string, role: string) => {
     setError("");
@@ -616,7 +351,7 @@ export default function AdminMembers() {
         body: JSON.stringify({ role }),
       });
       if (res.ok) {
-        void mutateMembers(members.map((m) => (m.id === id ? { ...m, role } : m)), { revalidate: false });
+        await refreshMembers();
       } else {
         setError(await readErrorMessage(res, "Failed to update role."));
       }
@@ -634,12 +369,9 @@ export default function AdminMembers() {
         body: JSON.stringify({ tier: null, membershipExpiresAt: null }),
       });
       if (res.ok) {
-        void mutateMembers(members.map((x) =>
-          x.id === m.id ? { ...x, tier: null, membershipExpiresAt: null } : x
-        ), { revalidate: false });
+        await refreshMembers();
         setSuccess(`Tier & expiry cleared for ${m.name}`);
         setTimeout(() => setSuccess(""), 4000);
-        refreshMembers();
       } else {
         setError(await readErrorMessage(res, "Failed to reset tier."));
       }
@@ -659,9 +391,7 @@ export default function AdminMembers() {
         body: JSON.stringify({ suspendedUntil: new Date(suspendDate).toISOString() }),
       });
       if (res.ok) {
-        void mutateMembers(members.map((m) =>
-          m.id === suspendTarget.id ? { ...m, suspendedUntil: new Date(suspendDate).toISOString() } : m
-        ), { revalidate: false });
+        await refreshMembers();
         setSuccess(`${suspendTarget.name} suspended until ${new Date(suspendDate).toLocaleDateString()}`);
         setTimeout(() => setSuccess(""), 4000);
         setSuspendTarget(null);
@@ -684,9 +414,7 @@ export default function AdminMembers() {
         body: JSON.stringify({ suspendedUntil: null }),
       });
       if (res.ok) {
-        void mutateMembers(members.map((x) =>
-          x.id === m.id ? { ...x, suspendedUntil: null } : x
-        ), { revalidate: false });
+        await refreshMembers();
         setSuccess(`${m.name} unsuspended.`);
         setTimeout(() => setSuccess(""), 4000);
       }
@@ -702,7 +430,7 @@ export default function AdminMembers() {
     try {
       const res = await fetchApi(`/api/admin/members/${deleteTarget.id}`, { method: "DELETE" });
       if (res.ok) {
-        void mutateMembers(members.filter((m) => m.id !== deleteTarget.id), { revalidate: false });
+        await refreshMembers();
         setSuccess(`${deleteTarget.name} has been deleted.`);
         setTimeout(() => setSuccess(""), 4000);
         setDeleteTarget(null);
@@ -745,7 +473,7 @@ export default function AdminMembers() {
         setSuccess(`Key assigned to ${assignTarget.name}`);
         setTimeout(() => setSuccess(""), 4000);
         setAssignTarget(null);
-        refreshMembers();
+        await refreshMembers();
       } else {
         setError(await readErrorMessage(res, "Failed to assign key."));
       }
@@ -760,42 +488,55 @@ export default function AdminMembers() {
     setDeleteTarget(null);
     setDeleteConfirm("");
   };
+  const changeSearch = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+  const changeRoleFilter = (value: string) => {
+    setRoleFilter(value);
+    setPage(1);
+  };
+  const changeStatusFilter = (value: string) => {
+    setStatusFilter(value);
+    setPage(1);
+  };
+  const changePage = (nextPage: number) => {
+    if (!membersPage || nextPage < 1 || nextPage > membersPage.meta.totalPages) return;
+    setPage(nextPage);
+  };
 
-  if (loading) return <p className="text-xs text-neutral-500">Loading members</p>;
+  if (!membersPage && loading) return <p className="text-xs text-neutral-500">Loading members</p>;
 
   return (
     <div className="space-y-4">
       {(error || membersError) && <p className="text-xs text-red-400">{error || "Failed to load members."}</p>}
       {success && <p className="text-xs text-green-400">{success}</p>}
 
-      <ServiceManagerAssignments members={members} />
+      <ServiceManagerAssignments />
 
-      <MemberFilters
-        inputClass={inputClass}
-        onRoleFilterChange={setRoleFilter}
-        onSearchChange={setSearch}
-        onStatusFilterChange={setStatusFilter}
-        roleFilter={roleFilter}
-        search={search}
-        statusFilter={statusFilter}
-      />
-
-      <p className="text-[10px] text-neutral-600 tracking-wider">
-        Showing {filtered.length} of {members.length} members
-      </p>
-
-      <MembersTable
-        currentUserId={currentUserId}
-        currentUserRole={currentUserRole}
-        filtered={filtered}
-        onAssignKey={openAssignKey}
-        onDeleteRequest={setDeleteTarget}
-        onEditProfile={setProfileTarget}
-        onResetTier={resetTier}
-        onRoleChange={updateRole}
-        onSuspendRequest={setSuspendTarget}
-        onUnsuspend={handleUnsuspend}
-      />
+      {membersPage && (
+        <AdminMembersList
+          currentUserId={currentUserId}
+          currentUserRole={currentUserRole}
+          inputClass={inputClass}
+          members={members}
+          meta={membersPage.meta}
+          onAssignKey={openAssignKey}
+          onDeleteRequest={setDeleteTarget}
+          onEditProfile={setProfileTarget}
+          onPageChange={changePage}
+          onResetTier={resetTier}
+          onRoleChange={updateRole}
+          onRoleFilterChange={changeRoleFilter}
+          onSearchChange={changeSearch}
+          onStatusFilterChange={changeStatusFilter}
+          onSuspendRequest={setSuspendTarget}
+          onUnsuspend={handleUnsuspend}
+          roleFilter={roleFilter}
+          search={search}
+          statusFilter={statusFilter}
+        />
+      )}
 
       {suspendTarget && (
         <SuspendMemberModal

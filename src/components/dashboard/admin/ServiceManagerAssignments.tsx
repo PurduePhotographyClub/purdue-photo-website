@@ -1,6 +1,12 @@
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import useSWR from "swr";
 
+import {
+  buildAdminMembersUrl,
+  normalizeAdminMembersPageForUrl,
+  type AdminMember,
+  type AdminMembersPage,
+} from "@/lib/admin-members";
 import {
   fetchApi,
   fetchJson,
@@ -38,10 +44,6 @@ interface ServiceManagerAssignmentsResponse {
   };
 }
 
-interface ServiceManagerAssignmentsProps {
-  members: readonly MemberOption[];
-}
-
 const SCOPE_CAPS: Record<ServiceManagerScope, number> = {
   studio: 1,
   darkroom: 2,
@@ -60,10 +62,42 @@ const EMPTY_ASSIGNMENTS: ServiceManagerAssignments = {
   equipment: [],
 };
 
-export default function ServiceManagerAssignments({ members }: ServiceManagerAssignmentsProps) {
+const MANAGER_CANDIDATE_PAGE_SIZE = 50;
+
+async function fetchManagerCandidates([url, search]: readonly [string, string]) {
+  const data = await fetchJson<unknown>(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ search }),
+  });
+  return normalizeAdminMembersPageForUrl<AdminMember>(
+    data,
+    url,
+    MANAGER_CANDIDATE_PAGE_SIZE,
+  );
+}
+
+export default function ServiceManagerAssignments() {
+  const [candidateSearch, setCandidateSearch] = useState("");
   const [reconciliationWarnings, setReconciliationWarnings] = useState<
     Partial<Record<ServiceManagerScope, string>>
   >({});
+  const deferredCandidateSearch = useDeferredValue(candidateSearch);
+  const candidateUrl = buildAdminMembersUrl({
+    discordLinked: true,
+    excludeSuspended: true,
+    page: 1,
+    perPage: MANAGER_CANDIDATE_PAGE_SIZE,
+  });
+  const {
+    data: candidatePage,
+    error: candidateError,
+    isLoading: candidatesLoading,
+  } = useSWR<AdminMembersPage<AdminMember>>(
+    [candidateUrl, deferredCandidateSearch] as const,
+    fetchManagerCandidates,
+    PUBLIC_API_SWR_OPTIONS,
+  );
   const {
     data,
     error,
@@ -75,16 +109,23 @@ export default function ServiceManagerAssignments({ members }: ServiceManagerAss
     PUBLIC_API_SWR_OPTIONS,
   );
 
-  const linkedMembers = useMemo(
-    () => members
-      .filter((member): member is MemberOption & { discordId: string } => (
-        Boolean(member.discordId) && !isCurrentlySuspended(member.suspendedUntil)
-      ))
-      .toSorted((first, second) => first.name.localeCompare(second.name)),
-    [members],
-  );
-
   const assignments = data?.assignments ?? EMPTY_ASSIGNMENTS;
+  const linkedMembers = useMemo(() => {
+    const byId = new Map<string, MemberOption & { discordId: string }>();
+    for (const member of candidatePage?.members ?? []) {
+      if (isLinkedMemberOption(member)) byId.set(member.id, member);
+    }
+    for (const manager of Object.values(assignments).flat()) {
+      byId.set(manager.userId, {
+        discordId: manager.discordId,
+        email: manager.email,
+        id: manager.userId,
+        name: manager.name,
+        suspendedUntil: null,
+      });
+    }
+    return Array.from(byId.values()).toSorted((first, second) => first.name.localeCompare(second.name));
+  }, [assignments, candidatePage?.members]);
 
   const saveScope = async (scope: ServiceManagerScope, userIds: string[]) => {
     const response = await fetchApi("/api/admin/service-managers", {
@@ -118,8 +159,26 @@ export default function ServiceManagerAssignments({ members }: ServiceManagerAss
         </p>
       </div>
 
-      {error && <p role="alert" className="mb-4 text-xs text-red-400">Failed to load manager assignments.</p>}
-      {isLoading ? (
+      <div className="mb-4 max-w-md">
+        <label htmlFor="service-manager-member-search" className="mb-1 block text-[9px] uppercase tracking-wider text-neutral-500">
+          Find linked member
+        </label>
+        <input
+          id="service-manager-member-search"
+          type="search"
+          maxLength={100}
+          value={candidateSearch}
+          onChange={(event) => setCandidateSearch(event.target.value)}
+          placeholder="Search by name or email"
+          className="min-h-11 w-full border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-neutral-200 outline-none transition-colors placeholder:text-neutral-700 focus:border-neutral-500"
+        />
+        {candidatePage?.meta.hasNextPage && (
+          <p className="mt-1 text-[10px] text-amber-300">More linked members match. Refine the search to find a specific person.</p>
+        )}
+      </div>
+
+      {(error || candidateError) && <p role="alert" className="mb-4 text-xs text-red-400">Failed to load manager assignments.</p>}
+      {isLoading || candidatesLoading ? (
         <p className="text-xs text-neutral-500">Loading manager assignments</p>
       ) : linkedMembers.length === 0 ? (
         <p className="text-xs text-amber-300">No members with linked Discord accounts are available.</p>
@@ -167,15 +226,37 @@ function ServiceManagerScopeEditor({
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>(() =>
     Array.from({ length: maxManagers }, (_, index) => assignedUserIds[index] ?? ""),
   );
+  const [retainedMembers, setRetainedMembers] = useState<readonly (MemberOption & { discordId: string })[]>(() => {
+    const assignedIdSet = new Set(assignedUserIds);
+    return linkedMembers.filter((member) => assignedIdSet.has(member.id));
+  });
   const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [error, setError] = useState("");
 
   const selectedManagers = selectedUserIds.filter(Boolean);
   const hasDuplicate = new Set(selectedManagers).size !== selectedManagers.length;
   const hasChanged = selectedManagers.join("|") !== assignedUserIds.join("|");
+  const availableMembers = useMemo(() => {
+    const byId = new Map(linkedMembers.map((member) => [member.id, member]));
+    const selectedIdSet = new Set(selectedUserIds);
+    for (const member of retainedMembers) {
+      if (selectedIdSet.has(member.id)) byId.set(member.id, member);
+    }
+    return Array.from(byId.values()).toSorted((first, second) => first.name.localeCompare(second.name));
+  }, [linkedMembers, retainedMembers, selectedUserIds]);
 
   const updatePosition = (position: number, userId: string) => {
-    setSelectedUserIds((current) => current.map((value, index) => index === position ? userId : value));
+    const nextSelectedUserIds = selectedUserIds.map((value, index) => index === position ? userId : value);
+    const selectedMember = linkedMembers.find((member) => member.id === userId);
+    setSelectedUserIds(nextSelectedUserIds);
+    setRetainedMembers((current) => {
+      const byId = new Map(current.map((member) => [member.id, member]));
+      if (selectedMember) byId.set(selectedMember.id, selectedMember);
+      return nextSelectedUserIds.flatMap((selectedId) => {
+        const member = byId.get(selectedId);
+        return member ? [member] : [];
+      });
+    });
     setStatus("idle");
     setError("");
   };
@@ -213,7 +294,7 @@ function ServiceManagerScopeEditor({
                 className="min-h-11 w-full border border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-neutral-200 outline-none transition-colors focus:border-neutral-500"
               >
                 <option value="">Not assigned</option>
-                {linkedMembers.map((member) => (
+                {availableMembers.map((member) => (
                   <option
                     key={member.id}
                     value={member.id}
@@ -255,4 +336,12 @@ function isCurrentlySuspended(suspendedUntil: string | null) {
   if (!suspendedUntil) return false;
   const suspendedUntilTimestamp = Date.parse(suspendedUntil);
   return Number.isFinite(suspendedUntilTimestamp) && suspendedUntilTimestamp > Date.now();
+}
+
+function isLinkedMemberOption(
+  member: MemberOption,
+): member is MemberOption & { discordId: string } {
+  return typeof member.discordId === "string" &&
+    /^\d{17,20}$/.test(member.discordId) &&
+    !isCurrentlySuspended(member.suspendedUntil);
 }

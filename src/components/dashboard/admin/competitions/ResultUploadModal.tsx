@@ -142,9 +142,15 @@ export default function ResultUploadModal({
                   <Search size={14} className="shrink-0 text-neutral-500" />
                   <input
                     aria-label="Search members by name or email"
-                    type="text"
+                    type="search"
+                    maxLength={100}
                     value={memberQuery}
-                    onChange={(event) => onMemberQueryChange(event.target.value)}
+                    onChange={(event) => {
+                      onMemberQueryChange(event.target.value);
+                      if (resultForm.userId) {
+                        onResultFormChange((previous) => ({ ...previous, userId: "" }));
+                      }
+                    }}
                     placeholder="Search members by name or email"
                     className="min-w-0 flex-1 bg-transparent py-3 text-sm text-neutral-100 placeholder:text-neutral-500 focus:outline-none"
                   />

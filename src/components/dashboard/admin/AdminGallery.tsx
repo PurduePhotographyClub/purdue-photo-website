@@ -21,6 +21,9 @@ import {
   parseGalleryTags,
   serializeGalleryTags,
 } from "@/lib/gallery-tags";
+import AdminGalleryPagination from "./AdminGalleryPagination";
+import AdminGalleryPhotoPreviewModal from "./AdminGalleryPhotoPreviewModal";
+import type { AdminGalleryPhoto } from "./admin-gallery-types";
 
 const ADMIN_GALLERY_PAGE_SIZE = 60;
 const ADMIN_GALLERY_SWR_OPTIONS = {
@@ -29,19 +32,7 @@ const ADMIN_GALLERY_SWR_OPTIONS = {
 };
 const ADMIN_GALLERY_TAGS = [...GALLERY_TAGS];
 
-interface Photo {
-  id: string;
-  imageUrl: string;
-  thumbnailUrl: string;
-  title: string | null;
-  description: string | null;
-  tags: string | null;
-  camera: string | null;
-  lens: string | null;
-  uploaderId: string;
-  uploaderName: string | null;
-  createdAt: string;
-}
+type Photo = AdminGalleryPhoto;
 
 function changeAdminGalleryPage(
   setFilterTag: Dispatch<SetStateAction<string | null>>,
@@ -62,12 +53,6 @@ const EMPTY_ADMIN_GALLERY_PHOTOS: Photo[] = [];
 async function fetchAdminGalleryPage(url: string) {
   const data = await fetchJson<unknown>(url);
   return normalizeGalleryPageForUrl<Photo>(data, url, ADMIN_GALLERY_PAGE_SIZE);
-}
-
-function getVisiblePageNumbers(page: number, totalPages: number) {
-  return Array.from(new Set([1, page - 1, page, page + 1, totalPages]))
-    .filter((pageNumber) => pageNumber >= 1 && pageNumber <= totalPages)
-    .sort((first, second) => first - second);
 }
 
 interface AdminGalleryState {
@@ -280,56 +265,6 @@ function AdminGalleryGrid({
         );
       })}
     </div>
-  );
-}
-
-interface PhotoPreviewModalProps {
-  onClose: () => void;
-  photo: Photo;
-}
-
-function PhotoPreviewModal({ onClose, photo }: PhotoPreviewModalProps) {
-  const tags = parseGalleryTags(photo.tags);
-  return (
-    <ModalDialog ariaLabel="Gallery photo preview" onClose={onClose} className="flex items-center justify-center overflow-y-auto bg-black/90 p-2 sm:p-4">
-      <button type="button" tabIndex={-1} aria-label="Close photo preview" className="absolute inset-0 cursor-default" onMouseDown={onClose} />
-      <div className="relative z-10 grid h-[calc(100dvh-1rem)] min-h-0 w-full max-w-4xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:h-[calc(100dvh-2rem)]">
-        <div className="mb-3 flex shrink-0 items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sm text-neutral-200">{photo.title || "Untitled"}</p>
-            {photo.uploaderName && <p className="text-[10px] text-neutral-500">by {photo.uploaderName}</p>}
-          </div>
-          <button type="button" aria-label="Close photo preview" onClick={onClose} className="flex min-h-11 min-w-11 shrink-0 items-center justify-center text-neutral-600 transition-colors hover:text-white">
-            <X size={18} />
-          </button>
-        </div>
-        <div className="flex min-h-0 items-center justify-center overflow-hidden">
-          <img
-            src={photo.imageUrl}
-            alt={photo.title || "Gallery photo"}
-            className="max-h-full max-w-full object-contain"
-          />
-        </div>
-        <div
-          aria-label="Gallery photo details"
-          tabIndex={0}
-          className="mt-3 flex max-h-[25dvh] shrink-0 flex-wrap gap-4 overflow-y-auto text-[10px] text-neutral-500 focus-visible:outline focus-visible:outline-1 focus-visible:outline-neutral-500"
-        >
-          {photo.camera && <span>Camera: {photo.camera}</span>}
-          {photo.lens && <span>Lens: {photo.lens}</span>}
-          {photo.description && <span className="basis-full whitespace-pre-wrap break-words text-neutral-400">{photo.description}</span>}
-          {tags.length > 0 && (
-            <div aria-label="Photo tags" className="flex basis-full flex-wrap gap-2">
-              {tags.map((tag, index) => (
-                <span key={tag} className={index === 0 ? "text-neutral-300" : "text-neutral-600"}>
-                  {tag}{index === 0 ? " (Main)" : ""}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </ModalDialog>
   );
 }
 
@@ -567,49 +502,6 @@ function EditPhotoModal({
   );
 }
 
-interface AdminGalleryPaginationProps {
-  meta: GalleryPage<Photo>["meta"];
-  onPageChange: (page: number) => void;
-  pageNumbers: number[];
-}
-
-function AdminGalleryPagination({ meta, onPageChange, pageNumbers }: AdminGalleryPaginationProps) {
-  if (meta.totalPages <= 1) return null;
-
-  return (
-    <nav aria-label="Admin gallery pagination" className="flex flex-wrap items-center justify-center gap-2">
-      <button
-        type="button"
-        disabled={!meta.hasPreviousPage}
-        onClick={() => onPageChange(meta.page - 1)}
-        className="min-h-11 border border-neutral-800 px-4 text-[10px] uppercase tracking-wider text-neutral-400 disabled:opacity-30"
-      >
-        Previous
-      </button>
-      {pageNumbers.map((pageNumber) => (
-        <button
-          type="button"
-          key={pageNumber}
-          aria-label={`Go to admin gallery page ${pageNumber}`}
-          aria-current={pageNumber === meta.page ? "page" : undefined}
-          onClick={() => onPageChange(pageNumber)}
-          className={`min-h-11 min-w-11 border px-3 text-xs ${pageNumber === meta.page ? "border-white text-white" : "border-neutral-800 text-neutral-500"}`}
-        >
-          {pageNumber}
-        </button>
-      ))}
-      <button
-        type="button"
-        disabled={!meta.hasNextPage}
-        onClick={() => onPageChange(meta.page + 1)}
-        className="min-h-11 border border-neutral-800 px-4 text-[10px] uppercase tracking-wider text-neutral-400 disabled:opacity-30"
-      >
-        Next
-      </button>
-    </nav>
-  );
-}
-
 export default function AdminGallery() {
   const [page, setPage] = useState(1);
   const [state, dispatchState] = useReducer(keyedStateReducer<AdminGalleryState>, initialAdminGalleryState);
@@ -659,9 +551,6 @@ export default function AdminGallery() {
     ADMIN_GALLERY_SWR_OPTIONS,
   );
   const photos = galleryPage?.photos ?? EMPTY_ADMIN_GALLERY_PHOTOS;
-  const pageNumbers = galleryPage
-    ? getVisiblePageNumbers(galleryPage.meta.page, galleryPage.meta.totalPages)
-    : [];
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -841,12 +730,11 @@ export default function AdminGallery() {
         <AdminGalleryPagination
           meta={galleryPage.meta}
           onPageChange={handlePageChange}
-          pageNumbers={pageNumbers}
         />
       )}
 
       {previewPhoto && (
-        <PhotoPreviewModal onClose={() => setPreviewPhoto(null)} photo={previewPhoto} />
+        <AdminGalleryPhotoPreviewModal onClose={() => setPreviewPhoto(null)} photo={previewPhoto} />
       )}
 
       {deleteId && deleteTarget && (

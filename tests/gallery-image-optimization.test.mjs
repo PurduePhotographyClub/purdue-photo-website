@@ -197,7 +197,7 @@ test("gallery upload targets a web-sized full image in hundreds of kilobytes", (
     GALLERY_FULL_IMAGE_TARGET_BYTES < 1_000_000,
     "the preferred full image should stay below one decimal megabyte",
   );
-  assert.equal(GALLERY_PREVIEW_IMAGE_TARGET_BYTES, 160 * 1024);
+  assert.equal(GALLERY_PREVIEW_IMAGE_TARGET_BYTES, 220 * 1024);
   assert.equal(GALLERY_FULL_IMAGE_MAX_DIMENSION, 2200);
   assert.deepEqual(
     getGalleryUploadTargetSize(
@@ -234,7 +234,7 @@ test("gallery browser encoder prefers the storage-saving full and preview target
   );
   assert.ok(encodes.every(({ type }) => type === "image/jpeg"));
   assert.ok(encodes.some(({ quality }) => quality === 0.78));
-  assert.ok(encodes.some(({ quality }) => quality === 0.68));
+  assert.ok(encodes.some(({ quality }) => quality === 0.74));
 });
 
 test("gallery browser encoder keeps a safe hard-limit fallback when preferred targets are unreachable", async () => {
@@ -308,7 +308,7 @@ test("gallery uploads reencode every full image to strip EXIF and produce lightw
   assert.equal(GALLERY_FULL_IMAGE_MAX_BYTES, 1_500_000);
   assert.equal(GALLERY_FULL_IMAGE_TARGET_BYTES, 700 * 1024);
   assert.equal(GALLERY_PREVIEW_IMAGE_MAX_BYTES, 450 * 1024);
-  assert.equal(GALLERY_PREVIEW_IMAGE_TARGET_BYTES, 160 * 1024);
+  assert.equal(GALLERY_PREVIEW_IMAGE_TARGET_BYTES, 220 * 1024);
   assert.deepEqual(
     getGalleryUploadTargetSize(
       { width: 4032, height: 5236 },
