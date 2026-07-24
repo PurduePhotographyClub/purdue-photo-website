@@ -1,0 +1,11 @@
+---
+import AdminReceipts from '@/components/dashboard/admin/AdminReceipts';
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+
+export const prerender = false;
+---
+
+<DashboardLayout title="Receipts — Admin">
+  <h1 class="mb-8 text-sm uppercase tracking-[0.2em] text-neutral-400">Manage Receipts</h1>
+  <AdminReceipts canManage={Astro.locals.user?.role === 'admin'} client:load />
+</DashboardLayout>
