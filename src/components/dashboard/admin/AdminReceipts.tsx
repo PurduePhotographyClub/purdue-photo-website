@@ -175,8 +175,8 @@ export default function AdminReceipts({ canManage }: { canManage: boolean }) {
       });
       setNotice(
         "expectedRoleGeneration" in nextSettings
-          ? "Receipt settings saved. Discord role reconciliation is queued."
-          : "Allowed receipt sender saved. The email worker will use it on the next message.",
+          ? "Settings saved. Discord role sync queued."
+          : "Sender saved.",
       );
       return true;
     } catch (error) {
@@ -237,18 +237,13 @@ export default function AdminReceipts({ canManage }: { canManage: boolean }) {
       : "";
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 border-b border-neutral-800 pb-5 sm:flex-row sm:items-start sm:justify-between">
-        <div className="max-w-3xl">
-          <p className="text-sm text-neutral-200">Purchase fulfillment ledger</p>
-          <p className="mt-2 text-xs leading-relaxed text-neutral-500">
-            Follow each forwarded purchase from receipt intake through activation
-            email and the Discord purchase log. Search text is sent in the request
-            body and the API performs every filter, sort, and page operation.
-          </p>
-        </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-4 border-b border-neutral-800 pb-3">
+        <p className="text-[10px] text-neutral-600">
+          {visiblePage.meta.total} receipt{visiblePage.meta.total === 1 ? "" : "s"}
+        </p>
         <button
-          className="inline-flex min-h-11 items-center justify-center gap-2 border border-neutral-800 px-4 text-[10px] uppercase tracking-[0.15em] text-neutral-400 transition-colors hover:border-neutral-600 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex min-h-11 items-center justify-center gap-2 border border-neutral-800 px-4 text-[10px] uppercase tracking-[0.14em] text-neutral-400 transition-colors hover:border-neutral-600 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 disabled:cursor-not-allowed disabled:opacity-40"
           disabled={receiptsRefreshing || settingsLoading}
           onClick={() => void handleRefresh()}
           type="button"
@@ -288,7 +283,7 @@ export default function AdminReceipts({ canManage }: { canManage: boolean }) {
       {settingsLoading && !settings ? (
         <div
           aria-label="Loading receipt settings"
-          className="h-72 animate-pulse border border-neutral-800 bg-white/[0.015] motion-reduce:animate-none"
+          className="h-14 animate-pulse border border-neutral-800 bg-white/[0.015] motion-reduce:animate-none"
         />
       ) : settings ? (
         <AdminReceiptSettings
