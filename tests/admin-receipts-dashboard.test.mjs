@@ -227,7 +227,7 @@ test("receipt settings support one exact sender and the two managed Discord role
   assert.match(receiptSource, /inputMode=["']numeric["']/);
   assert.match(receiptSource, /\\d\{17,20\}/);
   assert.match(receiptSource, /Role sync queued/);
-  assert.match(receiptSource, /resumable scheduled batches/i);
+  assert.match(receiptSource, /sync for linked members/i);
   assert.match(receiptSource, /\{canManage\s*&&/);
   assert.match(receiptSource, /disabled=\{[^}]*!canManage/);
 });
@@ -294,4 +294,54 @@ test("receipt rows and actions remain usable on phones and assistive technology"
   assert.match(receiptSource, /role=["']alert["']/);
   assert.match(receiptSource, /aria-busy=/);
   assert.match(receiptSource, /disabled=\{[^}]*(?:loading|busy|saving|cleaning)/);
+});
+
+test("receipt history uses compact rows with progressive details", () => {
+  assert.match(receiptSource, /aria-label=["']Receipt list["']/);
+  for (const label of [
+    "Status",
+    "Receipt",
+    "Customer",
+    "Purchased",
+    "Delivery",
+    "Amount",
+  ]) {
+    assert.match(receiptSource, new RegExp(`>\\s*${label}\\s*<`));
+  }
+
+  assert.match(receiptSource, /<details[\s\S]*<summary/);
+  assert.match(receiptSource, /View details for/);
+  assert.match(receiptSource, /Receipt details/);
+  assert.match(receiptSource, /h-16/);
+  assert.doesNotMatch(receiptSource, /h-44/);
+});
+
+test("receipt dashboard copy is concise and operational", () => {
+  assert.match(routeSource, />\s*Receipts\s*</);
+  assert.match(routeSource, /Purchases, email delivery, and Discord logs\./);
+  assert.match(receiptSource, /No matching receipts\./);
+  assert.match(receiptSource, /More filters/);
+  assert.match(receiptSource, /Receipt settings/);
+  assert.match(receiptSource, /Email intake/);
+  assert.match(receiptSource, /Discord roles/);
+  assert.match(receiptSource, /Archive history/);
+
+  for (const verboseCopy of [
+    /Purchase fulfillment ledger/i,
+    /Follow each forwarded purchase/i,
+    /Search text is sent in the request body/i,
+    /API performs every filter/i,
+    /resumable scheduled batches/i,
+    /Idempotency and processing history remain stored/i,
+  ]) {
+    assert.doesNotMatch(receiptSource, verboseCopy);
+  }
+});
+
+test("failed receipt rows keep the error and delivery state readable at a glance", () => {
+  assert.match(receiptSource, /receipt\.error/);
+  assert.match(receiptSource, /Email sent|Email pending/);
+  assert.match(receiptSource, /Discord sent|Discord pending/);
+  assert.match(receiptSource, /Full error/);
+  assert.match(receiptSource, /line-clamp-1/);
 });
