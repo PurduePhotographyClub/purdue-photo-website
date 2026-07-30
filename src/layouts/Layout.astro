@@ -8,10 +8,15 @@ import CookieConsent from '../components/CookieConsent';
 
 interface Props {
   robots?: string;
+  showFloatingWidgets?: boolean;
   title?: string;
 }
 
-const { title = 'Purdue Photography Club', robots } = Astro.props;
+const {
+  robots,
+  showFloatingWidgets = true,
+  title = 'Purdue Photography Club',
+} = Astro.props;
 ---
 
 <!doctype html>
@@ -37,8 +42,8 @@ const { title = 'Purdue Photography Club', robots } = Astro.props;
       <Footer client:load />
     </div>
     <!-- Filter widget lives OUTSIDE the filtered wrapper -->
-    <DonateWidget client:load />
-    <FilterWidget client:load />
+    {showFloatingWidgets && <DonateWidget client:load />}
+    {showFloatingWidgets && <FilterWidget client:load />}
     <CookieConsent client:load />
   </body>
 </html>

@@ -8,6 +8,7 @@ const navLinks = [
   { to: "/membership", label: "Membership" },
   { to: "/events", label: "Events" },
   { to: "/request", label: "Request" },
+  { to: "/report", label: "Report a Concern" },
 ];
 
 const socialLinks = [
