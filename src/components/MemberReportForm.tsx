@@ -1,5 +1,5 @@
 import { useCallback, useReducer, useRef, type FormEvent } from "react";
-import { CheckCircle, Send, Shield } from "lucide-react";
+import { CheckCircle, Send } from "lucide-react";
 import TurnstileWidget, {
   type TurnstileWidgetHandle,
 } from "@/components/TurnstileWidget";
@@ -102,37 +102,21 @@ function MemberReportSubmitted({ onReset }: { onReset: () => void }) {
 
 function MemberReportIntroduction() {
   return (
-    <>
-      <div className="mb-10 text-center">
-        <Shield
-          aria-hidden="true"
-          className="mx-auto mb-6 text-neutral-400"
-          size={32}
-          strokeWidth={1.25}
-        />
-        <h1
-          className="text-4xl tracking-wider text-neutral-100 md:text-5xl"
-          style={{ fontFamily: "'Playfair Display', serif" }}
-        >
-          Anonymous Member Report
-        </h1>
-        <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed tracking-wider text-neutral-400">
-          Use this form to report a member&apos;s behavior to club officers. It
-          does not ask for your name, contact information, or sign-in.
-        </p>
-      </div>
-
-      <div
-        id="member-report-privacy-note"
-        className="mb-8 border-y border-neutral-800 py-5 text-xs leading-relaxed tracking-wider text-neutral-300"
+    <div className="mb-12 text-center">
+      <p className="mb-4 text-xs uppercase tracking-[0.4em] text-neutral-500">
+        Anonymous Reporting
+      </p>
+      <h1
+        className="text-4xl tracking-wider text-neutral-100 md:text-5xl"
+        style={{ fontFamily: "'Playfair Display', serif" }}
       >
-        <p>
-          Do not include details that identify you in the report. Enter the
-          member&apos;s name as it appears in the club or Discord so officers
-          can match it accurately.
-        </p>
-      </div>
-    </>
+        Report a Concern
+      </h1>
+      <p className="mx-auto mt-6 max-w-lg text-sm leading-relaxed tracking-wider text-neutral-400">
+        Share a concern about a member&apos;s behavior with the Executive team.
+        No sign-in or contact information is required.
+      </p>
+    </div>
   );
 }
 
@@ -168,7 +152,7 @@ function MemberReportReasonField({
         autoComplete="off"
         maxLength={REASON_HTML_MAX_LENGTH}
         rows={5}
-        aria-describedby="member-report-privacy-note member-report-reason-help member-report-reason-count"
+        aria-describedby="member-report-reason-help member-report-reason-count"
         placeholder="Why does this behavior concern you?"
         className="w-full resize-y border border-neutral-800 bg-transparent px-4 py-3 text-sm leading-relaxed tracking-wider text-neutral-100 placeholder-neutral-500 transition-colors focus:border-neutral-500 focus:outline-none"
       />
@@ -379,7 +363,6 @@ export default function MemberReportForm({
               minLength={REPORTED_NAME_MIN_LENGTH}
               maxLength={REPORTED_NAME_MAX_LENGTH}
               required
-              aria-describedby="member-report-privacy-note"
               placeholder="Member name"
               className="w-full border border-neutral-800 bg-transparent px-4 py-3 text-sm tracking-wider text-neutral-100 placeholder-neutral-500 transition-colors focus:border-neutral-500 focus:outline-none"
             />
@@ -411,8 +394,8 @@ export default function MemberReportForm({
               maxLength={BEHAVIOR_MAX_LENGTH}
               required
               rows={9}
-              aria-describedby="member-report-privacy-note member-report-behavior-count"
-              placeholder="Describe the behavior without including details that identify you."
+              aria-describedby="member-report-behavior-count"
+              placeholder="Describe what happened."
               className="w-full resize-y border border-neutral-800 bg-transparent px-4 py-3 text-sm leading-relaxed tracking-wider text-neutral-100 placeholder-neutral-500 transition-colors focus:border-neutral-500 focus:outline-none"
             />
             <p
