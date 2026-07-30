@@ -33,14 +33,29 @@ test("the public report page is server-rendered, noindex, and protected by Turns
   assert.match(layout, /\{showFloatingWidgets && <FilterWidget client:load \/>\}/);
 });
 
+test("the report introduction follows the website style without repeating the privacy warning", async () => {
+  const component = await readFile(
+    new URL("../src/components/MemberReportForm.tsx", import.meta.url),
+    "utf8",
+  );
+  const html = renderToStaticMarkup(createElement(MemberReportForm, {
+    turnstileSiteKey: "test-site-key",
+  }));
+
+  assert.match(html, /Anonymous Reporting/);
+  assert.match(html, /Report a Concern/);
+  assert.match(html, /Executive team/);
+  assert.match(html, /No sign-in or contact information is required\./);
+  assert.doesNotMatch(html, /details that identify you/i);
+  assert.doesNotMatch(html, /member-report-privacy-note/);
+  assert.doesNotMatch(component, /\bShield\b/);
+});
+
 test("the report form includes a separate optional reason without native serialization", () => {
   const html = renderToStaticMarkup(createElement(MemberReportForm, {
     turnstileSiteKey: "test-site-key",
   }));
 
-  assert.match(html, /Anonymous Member Report/);
-  assert.match(html, /club officers/i);
-  assert.match(html, /do not include details that identify you/i);
   assert.match(
     html,
     /<form[^>]+action="\/report"[^>]+method="post"[^>]*>/,
@@ -65,8 +80,10 @@ test("the report form includes a separate optional reason without native seriali
   assert.match(reasonInput, /maxLength="1000"/);
   assert.match(
     reasonInput,
-    /aria-describedby="member-report-privacy-note member-report-reason-help member-report-reason-count"/,
+    /aria-describedby="member-report-reason-help member-report-reason-count"/,
   );
+  assert.match(behaviorInput, /aria-describedby="member-report-behavior-count"/);
+  assert.doesNotMatch(reportedNameInput, /aria-describedby=/);
   assert.doesNotMatch(reasonInput, /\srequired(?:=|\s|>)/);
   assert.doesNotMatch(reportedNameInput, /\sname="/);
   assert.doesNotMatch(behaviorInput, /\sname="/);
