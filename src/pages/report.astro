@@ -1,0 +1,17 @@
+---
+import { env } from 'cloudflare:workers';
+import MemberReportForm from '../components/MemberReportForm';
+import Layout from '../layouts/Layout.astro';
+
+export const prerender = false;
+
+const turnstileSiteKey = env.TURNSTILE_SITE_KEY?.trim() ?? '';
+---
+
+<Layout
+  title="Anonymous Member Report | Purdue Photography Club"
+  robots="noindex, nofollow, noarchive"
+  showFloatingWidgets={false}
+>
+  <MemberReportForm client:load turnstileSiteKey={turnstileSiteKey} />
+</Layout>

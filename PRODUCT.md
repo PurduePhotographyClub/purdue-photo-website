@@ -12,6 +12,14 @@ Purdue Photography Club serves Purdue students, club members, officers, event or
 
 The website is the club's public face and member portal. It presents the club's history, meetings, facilities, competitions, gallery, merch, and request forms while keeping authenticated dashboard work connected to the private API Worker through same-origin `/api/*` routes. Success means the public site feels unmistakably like a photography club with analog roots and digital workflows, and the dashboard remains calm, legible, and reliable for repeated member tasks.
 
+## Anonymous Member Reports
+
+The report system gives people a private route for sharing concerns about a member's behavior. The public `/report` page uses Turnstile, and the Discord `/report` command is limited to members. Both surfaces send the same bounded report data to the API.
+
+Reporter identity is not stored with the report or included in the officer-facing Discord message. Website submissions omit account cookies, and Discord uses the caller only long enough to check access. Reports are unverified accounts, not findings of misconduct. Similar member names may be grouped to show how many reports share a match, but that count is not a severity or guilt score.
+
+Officers can correct a mistaken name match from each Discord message. Counts come from stored reports and update for every affected message; officers cannot type or override a count. This feature does not notify the reported member, resolve investigations, issue sanctions, accept emergency requests, or replace Purdue and emergency reporting channels.
+
 ## Brand Personality
 
 Analog, archival, and technical. The public site should feel like a darkroom contact sheet crossed with a contemporary student organization site: photographic, restrained, textural, and confident. The dashboard should keep the same monochrome and film-lab character, but let utility lead over atmosphere.
