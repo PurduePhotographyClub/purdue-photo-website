@@ -10,6 +10,8 @@ const REPORTED_NAME_MIN_LENGTH = 2;
 const REPORTED_NAME_MAX_LENGTH = 120;
 const BEHAVIOR_MIN_LENGTH = 20;
 const BEHAVIOR_MAX_LENGTH = 2000;
+const REASON_MAX_LENGTH = 500;
+const REASON_HTML_MAX_LENGTH = REASON_MAX_LENGTH * 2;
 
 interface MemberReportFormProps {
   turnstileSiteKey: string;
@@ -18,6 +20,7 @@ interface MemberReportFormProps {
 interface MemberReportState {
   behavior: string;
   error: string;
+  reason: string;
   reportedName: string;
   submitted: boolean;
   submitting: boolean;
@@ -33,6 +36,7 @@ type MemberReportAction =
 const initialMemberReportState: MemberReportState = {
   behavior: "",
   error: "",
+  reason: "",
   reportedName: "",
   submitted: false,
   submitting: false,
@@ -51,6 +55,18 @@ function memberReportReducer(
     case "reset":
       return initialMemberReportState;
   }
+}
+
+export function unicodeLength(value: string): number {
+  return Array.from(value).length;
+}
+
+export function limitUnicodeLength(value: string, maximum: number): string {
+  return Array.from(value).slice(0, maximum).join("");
+}
+
+export function normalizeMemberReportReason(value: string): string {
+  return value.trim();
 }
 
 function MemberReportSubmitted({ onReset }: { onReset: () => void }) {
@@ -120,6 +136,52 @@ function MemberReportIntroduction() {
   );
 }
 
+function MemberReportReasonField({
+  onChange,
+  reason,
+}: {
+  onChange: (reason: string) => void;
+  reason: string;
+}) {
+  return (
+    <div>
+      <label
+        htmlFor="MemberReport-reason"
+        className="mb-2 block text-xs uppercase tracking-[0.2em] text-neutral-400"
+      >
+        Reason for Report{" "}
+        <span className="text-neutral-500">(Optional)</span>
+      </label>
+      <p
+        id="member-report-reason-help"
+        className="mb-3 text-[11px] leading-relaxed tracking-wider text-neutral-400"
+      >
+        Explain why this behavior concerns you. Leave this blank if the behavior
+        description already covers it.
+      </p>
+      <textarea
+        id="MemberReport-reason"
+        value={reason}
+        onChange={(event) =>
+          onChange(limitUnicodeLength(event.target.value, REASON_MAX_LENGTH))
+        }
+        autoComplete="off"
+        maxLength={REASON_HTML_MAX_LENGTH}
+        rows={5}
+        aria-describedby="member-report-privacy-note member-report-reason-help member-report-reason-count"
+        placeholder="Why does this behavior concern you?"
+        className="w-full resize-y border border-neutral-800 bg-transparent px-4 py-3 text-sm leading-relaxed tracking-wider text-neutral-100 placeholder-neutral-500 transition-colors focus:border-neutral-500 focus:outline-none"
+      />
+      <p
+        id="member-report-reason-count"
+        className="mt-2 text-right text-[10px] tracking-wider text-neutral-500"
+      >
+        {unicodeLength(reason)} / {REASON_MAX_LENGTH}
+      </p>
+    </div>
+  );
+}
+
 export default function MemberReportForm({
   turnstileSiteKey,
 }: MemberReportFormProps) {
@@ -167,6 +229,7 @@ export default function MemberReportForm({
 
     const reportedName = state.reportedName.trim();
     const behavior = state.behavior.trim();
+    const reason = normalizeMemberReportReason(state.reason);
 
     if (
       reportedName.length < REPORTED_NAME_MIN_LENGTH ||
@@ -177,6 +240,16 @@ export default function MemberReportForm({
         value: {
           error:
             "Enter the member's name and at least 20 characters describing the behavior.",
+        },
+      });
+      return;
+    }
+
+    if (unicodeLength(reason) > REASON_MAX_LENGTH) {
+      dispatch({
+        type: "patch",
+        value: {
+          error: "Keep the optional reason to 500 characters or fewer.",
         },
       });
       return;
@@ -212,6 +285,7 @@ export default function MemberReportForm({
       const response = await fetchApi("/api/member-reports", {
         body: JSON.stringify({
           behavior,
+          reason,
           reportedName,
           turnstileToken,
         }),
@@ -348,6 +422,16 @@ export default function MemberReportForm({
               {state.behavior.length} / {BEHAVIOR_MAX_LENGTH}
             </p>
           </div>
+
+          <MemberReportReasonField
+            reason={state.reason}
+            onChange={(reason) =>
+              dispatch({
+                type: "patch",
+                value: { error: "", reason },
+              })
+            }
+          />
 
           <div className="min-h-[65px]">
             {turnstileSiteKey ? (

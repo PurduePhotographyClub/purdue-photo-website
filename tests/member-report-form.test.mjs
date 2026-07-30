@@ -6,7 +6,12 @@ import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-const { default: MemberReportForm } = await import(
+const {
+  default: MemberReportForm,
+  limitUnicodeLength,
+  normalizeMemberReportReason,
+  unicodeLength,
+} = await import(
   "../src/components/MemberReportForm.tsx"
 );
 
@@ -28,7 +33,7 @@ test("the public report page is server-rendered, noindex, and protected by Turns
   assert.match(layout, /\{showFloatingWidgets && <FilterWidget client:load \/>\}/);
 });
 
-test("the report form asks only for the reported member and the behavior", () => {
+test("the report form includes a separate optional reason without native serialization", () => {
   const html = renderToStaticMarkup(createElement(MemberReportForm, {
     turnstileSiteKey: "test-site-key",
   }));
@@ -44,6 +49,8 @@ test("the report form asks only for the reported member and the behavior", () =>
     html.match(/<input[^>]+id="MemberReport-reported-name"[^>]*>/)?.[0] ?? "";
   const behaviorInput =
     html.match(/<textarea[^>]+id="MemberReport-behavior"[^>]*>/)?.[0] ?? "";
+  const reasonInput =
+    html.match(/<textarea[^>]+id="MemberReport-reason"[^>]*>/)?.[0] ?? "";
   assert.match(
     reportedNameInput,
     /minLength="2"[^>]+maxLength="120"[^>]+required=""/,
@@ -52,9 +59,32 @@ test("the report form asks only for the reported member and the behavior", () =>
     behaviorInput,
     /minLength="20"[^>]+maxLength="2000"[^>]+required=""/,
   );
+  assert.match(html, /Reason for Report/);
+  assert.match(html, /Optional/);
+  assert.match(html, /id="member-report-reason-help"/);
+  assert.match(reasonInput, /maxLength="1000"/);
+  assert.match(
+    reasonInput,
+    /aria-describedby="member-report-privacy-note member-report-reason-help member-report-reason-count"/,
+  );
+  assert.doesNotMatch(reasonInput, /\srequired(?:=|\s|>)/);
   assert.doesNotMatch(reportedNameInput, /\sname="/);
   assert.doesNotMatch(behaviorInput, /\sname="/);
+  assert.doesNotMatch(reasonInput, /\sname="/);
   assert.doesNotMatch(html, /name="(?:email|reporter|reporterName|pageUrl|userAgent)"/);
+});
+
+test("the optional reason limit counts Unicode code points", () => {
+  const overLimit = `${"😀".repeat(500)}x`;
+  const limited = limitUnicodeLength(overLimit, 500);
+
+  assert.equal(unicodeLength(overLimit), 501);
+  assert.equal(unicodeLength(limited), 500);
+  assert.equal(limited, "😀".repeat(500));
+});
+
+test("an omitted optional reason is normalized to an empty string", () => {
+  assert.equal(normalizeMemberReportReason(" \n\t "), "");
 });
 
 test("submission omits credentials and sends only the anonymous report payload", async () => {
@@ -67,8 +97,13 @@ test("submission omits credentials and sends only the anonymous report payload",
   assert.match(component, /credentials: "omit"/);
   assert.match(
     component,
-    /body: JSON\.stringify\(\{\s*behavior,\s*reportedName,\s*turnstileToken,\s*\}\)/s,
+    /body: JSON\.stringify\(\{\s*behavior,\s*reason,\s*reportedName,\s*turnstileToken,\s*\}\)/s,
   );
+  assert.match(
+    component,
+    /const reason = normalizeMemberReportReason\(state\.reason\)/,
+  );
+  assert.match(component, /unicodeLength\(reason\) > REASON_MAX_LENGTH/);
   assert.doesNotMatch(component, /\bauthClient\b|\buseSession\b/);
   assert.doesNotMatch(
     component,
