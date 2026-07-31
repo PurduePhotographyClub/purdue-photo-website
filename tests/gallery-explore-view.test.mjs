@@ -18,6 +18,11 @@ function assertSourceMatch(source, pattern, message) {
   assert.ok(pattern.test(source), message);
 }
 
+test("gallery collection component is declared once after branch merges", () => {
+  const declarations = publicGallerySource.match(/function\s+GalleryPhotoCollection\s*\(/g) ?? [];
+  assert.equal(declarations.length, 1);
+});
+
 test("public gallery requests the explore order with its stable view token", () => {
   assertSourceMatch(
     galleryExploreSource,
