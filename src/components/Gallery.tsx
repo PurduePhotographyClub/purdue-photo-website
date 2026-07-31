@@ -3,6 +3,11 @@ import useSWR from "swr";
 import { ExternalLink, X } from "lucide-react";
 import { ImageWithFallback } from "./ImageWithFallback";
 import {
+  buildGalleryExploreUrl,
+  createGalleryExploreViewToken,
+  readGalleryExploreUrlState,
+} from "@/lib/gallery-explore";
+import {
   formatGalleryDate,
   getGalleryImageSources,
   normalizeGalleryPageForUrl,
@@ -38,6 +43,10 @@ interface GalleryPageResponse {
   meta: {
     hasNextPage: boolean;
     hasPreviousPage: boolean;
+    explore?: {
+      recentCount: number;
+      view: string;
+    };
     page: number;
     perPage: number;
     total: number;
@@ -83,11 +92,107 @@ async function fetchGalleryPage(url: string): Promise<GalleryPageResponse> {
   return normalizeGalleryPageForUrl<Record<string, unknown>>(data, url, GALLERY_PAGE_SIZE);
 }
 
+interface GalleryPhotoCollectionProps {
+  isRecent?: boolean;
+  onSelect: (index: number) => void;
+  startIndex: number;
+  visibleImages: GalleryImage[];
+}
+
+function GalleryPhotoCollection({
+  isRecent = false,
+  onSelect,
+  startIndex,
+  visibleImages,
+}: GalleryPhotoCollectionProps) {
+  const galleryLayout = getGalleryLayoutClassNames(visibleImages.length);
+  const containerClassName = isRecent
+    ? "grid grid-cols-1 gap-2 sm:grid-cols-3"
+    : galleryLayout.container;
+
+  return (
+    <div className={containerClassName}>
+      {visibleImages.map((img, i) => {
+        const absoluteIndex = startIndex + i;
+        const formattedDate = formatGalleryDate(img.createdAt);
+        const figureClassName = isRecent
+          ? "aspect-[4/3]"
+          : galleryLayout.item;
+
+        return (
+          <figure key={img.fullSrc} className={`group relative ${figureClassName} overflow-hidden`}>
+            {img.author && img.profileUrl && (
+              <a
+                href={img.profileUrl}
+                aria-label={`View ${img.author} profile`}
+                className="absolute bottom-1 left-4 z-20 inline-flex min-h-11 max-w-[70%] items-center gap-1.5 text-xs text-neutral-300 opacity-100 underline decoration-neutral-600 underline-offset-4 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-300 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+              >
+                <span className="truncate">by {img.author}</span>
+                <ExternalLink aria-hidden="true" className="shrink-0" size={13} strokeWidth={1.5} />
+              </a>
+            )}
+            <button
+              type="button"
+              aria-label={`View ${img.cat ?? "gallery photograph"}`}
+              className={`block w-full cursor-pointer text-left focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400 ${isRecent ? "h-full" : ""}`}
+              onClick={() => onSelect(absoluteIndex)}
+            >
+              <ImageWithFallback
+                src={img.src}
+                alt={img.cat ?? "Gallery photograph"}
+                className={`block w-full transition-transform duration-700 motion-reduce:transition-none motion-reduce:group-hover:scale-100 group-hover:scale-[1.03] ${isRecent ? "h-full object-cover" : ""}`}
+                loading={absoluteIndex < 6 ? "eager" : "lazy"}
+                decoding="async"
+                fetchPriority={absoluteIndex < 2 ? "high" : "auto"}
+                sizes={isRecent
+                  ? "(min-width: 640px) 33vw, 100vw"
+                  : "(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"}
+                width={img.width ?? undefined}
+                height={img.height ?? undefined}
+              />
+              <div className="absolute inset-0 flex items-end bg-black/25 transition-colors duration-300 sm:bg-black/0 sm:group-hover:bg-black/30 sm:group-focus-within:bg-black/30">
+                <div className={`w-full p-4 opacity-100 transition-opacity duration-300 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 ${img.author && img.profileUrl ? "pb-11" : ""}`}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1 text-left">
+                      <p className="truncate text-xs tracking-[0.2em] uppercase text-white">{img.cat}</p>
+                      {!isRecent && img.description && (
+                        <p className="mt-1 line-clamp-2 break-words text-[11px] leading-4 text-neutral-300">
+                          {img.description}
+                        </p>
+                      )}
+                      {!img.profileUrl && img.author && (
+                        <p className="mt-1 truncate text-xs text-neutral-400">by {img.author}</p>
+                      )}
+                      {!isRecent && formattedDate && (
+                        <p className="mt-1 text-[10px] text-neutral-400">
+                          <time dateTime={img.createdAt ?? undefined}>{formattedDate}</time>
+                        </p>
+                      )}
+                    </div>
+                    {!isRecent && img.primaryTag && (
+                      <span className="shrink-0 border border-neutral-700 bg-neutral-900/90 px-2 py-1 text-[9px] uppercase tracking-[0.2em] text-neutral-300">
+                        {img.primaryTag}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </button>
+          </figure>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function Gallery() {
   const [filter, setFilter] = useState("All");
   const [page, setPage] = useState(1);
+  const [exploreView, setExploreView] = useState<string | null>(null);
   const tagFilter = filter === "All" ? "" : `&tag=${encodeURIComponent(filter)}`;
-  const galleryUrl = `/api/gallery?page=${page}&per_page=${GALLERY_PAGE_SIZE}&format=page${tagFilter}`;
+  const galleryUrl = exploreView
+    ? `/api/gallery?page=${page}&per_page=${GALLERY_PAGE_SIZE}&format=page&order=explore&view=${encodeURIComponent(exploreView)}${tagFilter}`
+    : null;
   const { data: galleryPage, error, mutate } = useSWR<GalleryPageResponse>(
     galleryUrl,
     fetchGalleryPage,
@@ -118,19 +223,70 @@ export default function Gallery() {
   const visibleImages = galleryPage?.legacy && filter !== "All"
     ? images.filter((image) => image.tags.includes(filter))
     : images;
-  const status: "loading" | "loaded" | "error" = !galleryPage && !error ? "loading" : error ? "error" : "loaded";
+  const status: "loading" | "loaded" | "error" = !exploreView || (!galleryPage && !error)
+    ? "loading"
+    : error ? "error" : "loaded";
   const [selected, setSelected] = useState<number | null>(null);
   const galleryResultsRef = useRef<HTMLDivElement | null>(null);
   const lightboxDialogRef = useRef<HTMLDialogElement | null>(null);
   const previousGalleryPageRef = useRef(1);
   const meta = galleryPage?.meta;
   const visiblePageNumbers = meta ? getVisiblePageNumbers(meta.page, meta.totalPages) : [];
-  const galleryLayout = getGalleryLayoutClassNames(visibleImages.length);
+  const recentImageCount = meta?.page === 1
+    ? Math.min(meta.explore?.recentCount ?? 0, visibleImages.length)
+    : 0;
+  const recentImages = visibleImages.slice(0, recentImageCount);
+  const discoveryImages = meta?.page === 1
+    ? visibleImages.slice(recentImageCount)
+    : visibleImages;
   const selectedImage = selected === null ? null : visibleImages[selected] ?? null;
   const selectedImageDescription = selected === null
     ? null
     : visibleImages[selected]?.description ?? null;
   const selectedImageDate = formatGalleryDate(selectedImage?.createdAt);
+
+  useEffect(() => {
+    const restoreGalleryLocation = () => {
+      const locationState = readGalleryExploreUrlState(window.location.search, GALLERY_TAGS);
+      const nextView = locationState.view ?? createGalleryExploreViewToken();
+      setFilter(locationState.filter);
+      setPage(locationState.page);
+      setExploreView(nextView);
+      setSelected(null);
+
+      const normalizedUrl = buildGalleryExploreUrl({
+        filter: locationState.filter,
+        page: locationState.page,
+        view: nextView,
+      });
+      if (`${window.location.pathname}${window.location.search}` !== normalizedUrl) {
+        window.history.replaceState(
+          null,
+          "",
+          normalizedUrl,
+        );
+      }
+    };
+
+    restoreGalleryLocation();
+    window.addEventListener("popstate", restoreGalleryLocation);
+    return () => window.removeEventListener("popstate", restoreGalleryLocation);
+  }, []);
+
+  useEffect(() => {
+    const normalizedView = meta?.explore?.view;
+    const normalizedPage = meta?.page;
+    if (!normalizedView || !normalizedPage) return;
+    if (normalizedView === exploreView && normalizedPage === page) return;
+
+    if (normalizedView !== exploreView) setExploreView(normalizedView);
+    if (normalizedPage !== page) setPage(normalizedPage);
+    window.history.replaceState(
+      null,
+      "",
+      buildGalleryExploreUrl({ filter, page: normalizedPage, view: normalizedView }),
+    );
+  }, [exploreView, filter, meta?.explore?.view, meta?.page, page]);
 
   useEffect(() => {
     if (selected === null) return;
@@ -156,12 +312,25 @@ export default function Gallery() {
   }, [galleryPage]);
 
   const handleFilterChange = (category: string) => {
+    if (!exploreView) return;
     changeGalleryFilter(setFilter, setPage, setSelected, category);
+    window.history.pushState(
+      null,
+      "",
+      buildGalleryExploreUrl({ filter: category, page: 1, view: exploreView }),
+    );
   };
 
   const handlePageChange = (nextPage: number) => {
     if (!meta || nextPage < 1 || nextPage > meta.totalPages || nextPage === meta.page) return;
     changeGalleryPage(setSelected, setPage, nextPage);
+    if (exploreView) {
+      window.history.pushState(
+        null,
+        "",
+        buildGalleryExploreUrl({ filter, page: nextPage, view: exploreView }),
+      );
+    }
   };
 
   const heading = "text-neutral-100";
@@ -225,68 +394,46 @@ export default function Gallery() {
             </p>
           </div>
         ) : (
-        <div className={galleryLayout.container}>
-            {visibleImages.map((img, i) => {
-              const formattedDate = formatGalleryDate(img.createdAt);
-              return (
-              <figure key={img.fullSrc} className={`group relative ${galleryLayout.item} overflow-hidden`}>
-                {img.author && img.profileUrl && (
-                  <a
-                    href={img.profileUrl}
-                    aria-label={`View ${img.author} profile`}
-                    className="absolute bottom-1 left-4 z-20 inline-flex min-h-11 max-w-[70%] items-center gap-1.5 text-xs text-neutral-300 opacity-100 underline decoration-neutral-600 underline-offset-4 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-300 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+          <div className="flex flex-col gap-20">
+            {recentImages.length > 0 && (
+              <section aria-labelledby="gallery-recent-heading">
+                <div className="mb-6 border-b border-neutral-800 pb-4">
+                  <h2
+                    id="gallery-recent-heading"
+                    className="text-2xl tracking-wide text-neutral-100 sm:text-3xl"
+                    style={{ fontFamily: "'Playfair Display', serif" }}
                   >
-                    <span className="truncate">by {img.author}</span>
-                    <ExternalLink aria-hidden="true" className="shrink-0" size={13} strokeWidth={1.5} />
-                  </a>
-                )}
-                <button
-                  type="button"
-                  aria-label={`View ${img.cat ?? "gallery photograph"}`}
-                  className="block w-full cursor-pointer text-left focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
-                  onClick={() => setSelected(i)}
-                >
-                <ImageWithFallback src={img.src} alt={img.cat ?? "Gallery photograph"}
-                  className="block w-full transition-all duration-700 group-hover:scale-[1.03]"
-                  loading={i < 6 ? "eager" : "lazy"}
-                  decoding="async"
-                  fetchPriority={i < 2 ? "high" : "auto"}
-                  sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                  width={img.width ?? undefined}
-                  height={img.height ?? undefined}
-                />
-                <div className="absolute inset-0 flex items-end bg-black/25 transition-all duration-300 sm:bg-black/0 sm:group-hover:bg-black/30 sm:group-focus-within:bg-black/30">
-                  <div className={`w-full p-4 opacity-100 transition-opacity duration-300 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 ${img.author && img.profileUrl ? "pb-11" : ""}`}>
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1 text-left">
-                        <p className="truncate text-xs tracking-[0.2em] uppercase text-white">{img.cat}</p>
-                        {img.description && (
-                          <p className="mt-1 line-clamp-2 break-words text-[11px] leading-4 text-neutral-300">
-                            {img.description}
-                          </p>
-                        )}
-                        {!img.profileUrl && img.author && (
-                          <p className="mt-1 truncate text-xs text-neutral-400">by {img.author}</p>
-                        )}
-                        {formattedDate && (
-                          <p className="mt-1 text-[10px] text-neutral-400">
-                            <time dateTime={img.createdAt ?? undefined}>{formattedDate}</time>
-                          </p>
-                        )}
-                      </div>
-                      {img.primaryTag && (
-                        <span className="shrink-0 border border-neutral-700 bg-neutral-900/90 px-2 py-1 text-[9px] uppercase tracking-[0.2em] text-neutral-300">
-                          {img.primaryTag}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                    Recently added
+                  </h2>
                 </div>
-                </button>
-              </figure>
-              );
-            })}
-        </div>
+                <GalleryPhotoCollection
+                  isRecent
+                  onSelect={setSelected}
+                  startIndex={0}
+                  visibleImages={recentImages}
+                />
+              </section>
+            )}
+
+            {discoveryImages.length > 0 && (
+              <section aria-labelledby="gallery-discover-heading">
+                <div className="mb-6 border-b border-neutral-800 pb-4">
+                  <h2
+                    id="gallery-discover-heading"
+                    className="text-2xl tracking-wide text-neutral-100 sm:text-3xl"
+                    style={{ fontFamily: "'Playfair Display', serif" }}
+                  >
+                    Discover
+                  </h2>
+                </div>
+                <GalleryPhotoCollection
+                  onSelect={setSelected}
+                  startIndex={recentImageCount}
+                  visibleImages={discoveryImages}
+                />
+              </section>
+            )}
+          </div>
         )}
 
         {status === "loaded" && meta && meta.totalPages > 1 && (
