@@ -185,6 +185,99 @@ function GalleryPhotoCollection({
   );
 }
 
+interface GalleryPhotoCollectionProps {
+  isRecent?: boolean;
+  onSelect: (index: number) => void;
+  startIndex: number;
+  visibleImages: GalleryImage[];
+}
+
+function GalleryPhotoCollection({
+  isRecent = false,
+  onSelect,
+  startIndex,
+  visibleImages,
+}: GalleryPhotoCollectionProps) {
+  const galleryLayout = getGalleryLayoutClassNames(visibleImages.length);
+  const containerClassName = isRecent
+    ? "grid grid-cols-1 gap-2 sm:grid-cols-3"
+    : galleryLayout.container;
+
+  return (
+    <div className={containerClassName}>
+      {visibleImages.map((img, i) => {
+        const absoluteIndex = startIndex + i;
+        const formattedDate = formatGalleryDate(img.createdAt);
+        const figureClassName = isRecent
+          ? "aspect-[4/3]"
+          : galleryLayout.item;
+
+        return (
+          <figure key={img.fullSrc} className={`group relative ${figureClassName} overflow-hidden`}>
+            {img.author && img.profileUrl && (
+              <a
+                href={img.profileUrl}
+                aria-label={`View ${img.author} profile`}
+                className="absolute bottom-1 left-4 z-20 inline-flex min-h-11 max-w-[70%] items-center gap-1.5 text-xs text-neutral-300 opacity-100 underline decoration-neutral-600 underline-offset-4 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-300 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+              >
+                <span className="truncate">by {img.author}</span>
+                <ExternalLink aria-hidden="true" className="shrink-0" size={13} strokeWidth={1.5} />
+              </a>
+            )}
+            <button
+              type="button"
+              aria-label={`View ${img.cat ?? "gallery photograph"}`}
+              className={`block w-full cursor-pointer text-left focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400 ${isRecent ? "h-full" : ""}`}
+              onClick={() => onSelect(absoluteIndex)}
+            >
+              <ImageWithFallback
+                src={img.src}
+                alt={img.cat ?? "Gallery photograph"}
+                className={`block w-full transition-transform duration-700 motion-reduce:transition-none motion-reduce:group-hover:scale-100 group-hover:scale-[1.03] ${isRecent ? "h-full object-cover" : ""}`}
+                loading={absoluteIndex < 6 ? "eager" : "lazy"}
+                decoding="async"
+                fetchPriority={absoluteIndex < 2 ? "high" : "auto"}
+                sizes={isRecent
+                  ? "(min-width: 640px) 33vw, 100vw"
+                  : "(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"}
+                width={img.width ?? undefined}
+                height={img.height ?? undefined}
+              />
+              <div className="absolute inset-0 flex items-end bg-black/25 transition-colors duration-300 sm:bg-black/0 sm:group-hover:bg-black/30 sm:group-focus-within:bg-black/30">
+                <div className={`w-full p-4 opacity-100 transition-opacity duration-300 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 ${img.author && img.profileUrl ? "pb-11" : ""}`}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1 text-left">
+                      <p className="truncate text-xs tracking-[0.2em] uppercase text-white">{img.cat}</p>
+                      {!isRecent && img.description && (
+                        <p className="mt-1 line-clamp-2 break-words text-[11px] leading-4 text-neutral-300">
+                          {img.description}
+                        </p>
+                      )}
+                      {!img.profileUrl && img.author && (
+                        <p className="mt-1 truncate text-xs text-neutral-400">by {img.author}</p>
+                      )}
+                      {!isRecent && formattedDate && (
+                        <p className="mt-1 text-[10px] text-neutral-400">
+                          <time dateTime={img.createdAt ?? undefined}>{formattedDate}</time>
+                        </p>
+                      )}
+                    </div>
+                    {!isRecent && img.primaryTag && (
+                      <span className="shrink-0 border border-neutral-700 bg-neutral-900/90 px-2 py-1 text-[9px] uppercase tracking-[0.2em] text-neutral-300">
+                        {img.primaryTag}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </button>
+          </figure>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function Gallery() {
   const [filter, setFilter] = useState("All");
   const [page, setPage] = useState(1);
