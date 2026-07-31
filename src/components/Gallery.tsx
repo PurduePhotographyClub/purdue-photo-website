@@ -55,7 +55,7 @@ interface GalleryPageResponse {
 }
 
 const galleryCategories = ["All", ...GALLERY_TAGS];
-const GALLERY_PAGE_SIZE = 15;
+const GALLERY_DISCOVERY_PAGE_SIZE = 15;
 const GALLERY_SWR_OPTIONS = {
   ...PUBLIC_API_SWR_OPTIONS,
   keepPreviousData: false,
@@ -89,7 +89,7 @@ function getVisiblePageNumbers(page: number, totalPages: number) {
 
 async function fetchGalleryPage(url: string): Promise<GalleryPageResponse> {
   const data = await fetchPublicJson<unknown>(url);
-  return normalizeGalleryPageForUrl<Record<string, unknown>>(data, url, GALLERY_PAGE_SIZE);
+  return normalizeGalleryPageForUrl<Record<string, unknown>>(data, url, GALLERY_DISCOVERY_PAGE_SIZE);
 }
 
 interface GalleryPhotoCollectionProps {
@@ -191,7 +191,7 @@ export default function Gallery() {
   const [exploreView, setExploreView] = useState<string | null>(null);
   const tagFilter = filter === "All" ? "" : `&tag=${encodeURIComponent(filter)}`;
   const galleryUrl = exploreView
-    ? `/api/gallery?page=${page}&per_page=${GALLERY_PAGE_SIZE}&format=page&order=explore&view=${encodeURIComponent(exploreView)}${tagFilter}`
+    ? `/api/gallery?page=${page}&per_page=${GALLERY_DISCOVERY_PAGE_SIZE}&format=page&order=explore&view=${encodeURIComponent(exploreView)}${tagFilter}`
     : null;
   const { data: galleryPage, error, mutate } = useSWR<GalleryPageResponse>(
     galleryUrl,

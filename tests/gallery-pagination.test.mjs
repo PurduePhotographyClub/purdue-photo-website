@@ -11,11 +11,11 @@ const homeSource = await readFile(
   "utf8",
 );
 
-test("public gallery requests one 15-photo page instead of the full collection", () => {
-  assert.match(gallerySource, /const GALLERY_PAGE_SIZE = 15;/);
+test("public gallery requests 15 Discover photos in addition to the recent lane", () => {
+  assert.match(gallerySource, /const GALLERY_DISCOVERY_PAGE_SIZE = 15;/);
   assert.match(
     gallerySource,
-    /\/api\/gallery\?page=\$\{[^}]+\}&per_page=\$\{GALLERY_PAGE_SIZE\}/,
+    /\/api\/gallery\?page=\$\{[^}]+\}&per_page=\$\{GALLERY_DISCOVERY_PAGE_SIZE\}/,
   );
   assert.doesNotMatch(
     gallerySource,
