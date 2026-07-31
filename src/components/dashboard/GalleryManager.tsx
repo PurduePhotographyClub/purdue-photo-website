@@ -35,6 +35,10 @@ import {
   PROFILE_PIN_LIMIT,
   type ProfilePinState,
 } from "@/lib/gallery-profile-pins";
+import {
+  mergeGalleryExifAutofill,
+  readGalleryExifMetadata,
+} from "@/lib/gallery-exif";
 
 function changeGalleryManagerPage(
   setExpanded: Dispatch<SetStateAction<string | null>>,
@@ -262,6 +266,7 @@ function GalleryUploadPanel({
             value={camera}
             onChange={(e) => onCameraChange(e.target.value)}
             placeholder="Camera (optional)"
+            maxLength={200}
             className={inputClass}
           />
           <input aria-label="Lens"
@@ -269,9 +274,13 @@ function GalleryUploadPanel({
             value={lens}
             onChange={(e) => onLensChange(e.target.value)}
             placeholder="Lens (optional)"
+            maxLength={200}
             className={inputClass}
           />
         </div>
+        <p className="text-[10px] text-neutral-600">
+          Camera and lens fill from EXIF when available and appear with the photo. You can edit or clear either field before uploading.
+        </p>
         <div>
           <p className="text-[10px] tracking-[0.2em] uppercase text-neutral-500 mb-2">Tags (optional)</p>
           <div className="flex flex-wrap gap-2">
@@ -624,6 +633,8 @@ export default function GalleryManager({ userRole, userTier }: Props) {
   const setPinStatus = createKeyedStateSetter(dispatchState, "pinStatus");
   const fileRef = useRef<HTMLInputElement>(null);
   const previewUrlRef = useRef<string | null>(null);
+  const cameraAutofillRef = useRef("");
+  const lensAutofillRef = useRef("");
   const canUpload = userRole === "admin" || userRole === "officer" || !!userTier;
   const {
     data: galleryPage,
@@ -660,6 +671,23 @@ export default function GalleryManager({ userRole, userTier }: Props) {
         return;
       }
 
+      const exifMetadata = await readGalleryExifMetadata(file);
+      if (fileRef.current?.files?.[0] !== file) return;
+
+      const previousCameraAutofill = cameraAutofillRef.current;
+      const previousLensAutofill = lensAutofillRef.current;
+      cameraAutofillRef.current = exifMetadata.camera ?? "";
+      lensAutofillRef.current = exifMetadata.lens ?? "";
+      setCamera((current) => mergeGalleryExifAutofill(
+        current,
+        previousCameraAutofill,
+        exifMetadata.camera,
+      ));
+      setLens((current) => mergeGalleryExifAutofill(
+        current,
+        previousLensAutofill,
+        exifMetadata.lens,
+      ));
       setError("");
       replacePreview(URL.createObjectURL(file));
     } else {
@@ -718,6 +746,8 @@ export default function GalleryManager({ userRole, userTier }: Props) {
       setSelectedTags([]);
       setCamera("");
       setLens("");
+      cameraAutofillRef.current = "";
+      lensAutofillRef.current = "";
       setShowName(true);
       replacePreview(null);
       if (fileRef.current) fileRef.current.value = "";
