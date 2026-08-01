@@ -207,7 +207,20 @@ const initialEquipmentDashboardState: EquipmentDashboardState = {
 
 const CATEGORIES = EQUIPMENT_CATEGORY_FILTERS;
 const CATEGORY_OPTIONS = EQUIPMENT_CATEGORIES;
-const EQUIPMENT_TERMS_CHANNEL_ID = "1512505024792760421";
+const EQUIPMENT_TERMS_CHANNEL_LABEL = "#terms";
+const EQUIPMENT_TERMS_REFRESH_INTERVAL_MS = 10_000;
+const EQUIPMENT_TERMS_SWR_OPTIONS = {
+  ...PUBLIC_API_SWR_OPTIONS,
+  dedupingInterval: 5_000,
+  focusThrottleInterval: 5_000,
+  refreshInterval: (latestTerms?: EquipmentTermsResponse) =>
+    latestTerms?.status.isAccepted === true
+      ? 0
+      : EQUIPMENT_TERMS_REFRESH_INTERVAL_MS,
+  refreshWhenHidden: false,
+  revalidateOnFocus: true,
+  revalidateOnReconnect: true,
+};
 const EMPTY_BORROWING_TERMS_MESSAGE = "This member did not add additional terms. Coordinate details in the loan thread if approved.";
 const BORROWING_TERMS_BODY_CLASS = "space-y-2 text-xs leading-relaxed text-neutral-400";
 const BORROWING_TERMS_PREVIEW_CLASS = "mt-1 space-y-1 text-[10px] leading-relaxed text-neutral-400";
@@ -803,7 +816,7 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
   const {
     data: termsData,
     mutate: mutateTerms,
-  } = useSWR<EquipmentTermsResponse>("/api/equipment/terms", fetchJson, PUBLIC_API_SWR_OPTIONS);
+  } = useSWR<EquipmentTermsResponse>("/api/equipment/terms", fetchJson, EQUIPMENT_TERMS_SWR_OPTIONS);
 
   const ppcEquipment = ppcData?.equipment ?? EMPTY_EQUIPMENT;
   const personalEquipment = personalData?.equipment ?? EMPTY_EQUIPMENT;
@@ -1605,7 +1618,7 @@ function EquipmentDashboardContent({ viewModel }: { viewModel: ReturnType<typeof
             <div className="min-w-0 space-y-2">
               <p className="text-[10px] uppercase tracking-[0.18em] text-amber-300">Discord terms required</p>
               <p className="max-w-3xl text-xs leading-relaxed text-neutral-400">
-                Borrowing and lending are locked until you accept the one-time equipment terms in Discord. Use the accept/deny message in channel <span className="font-mono text-neutral-200">{EQUIPMENT_TERMS_CHANNEL_ID}</span>; officers can repost it with <span className="font-mono text-neutral-200">/equipment-terms-message</span>.
+                Borrowing and lending are locked until you accept the one-time equipment terms in Discord. Use the accept/deny message in channel <span className="font-mono text-neutral-200">{EQUIPMENT_TERMS_CHANNEL_LABEL}</span>.
               </p>
               {termsData.status.deniedAt && (
                 <p className="text-xs text-amber-300">
