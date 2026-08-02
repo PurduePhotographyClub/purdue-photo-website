@@ -29,7 +29,7 @@
     "astro": "^7.1.6",
     "better-auth": "^1.6.25",
     "canvas-confetti": "1.9.4",
-    "lucide-react": "0.487.0",
+    "lucide-react": "1.28.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-qr-code": "^2.0.18",
