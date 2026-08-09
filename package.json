@@ -30,7 +30,7 @@
     "better-auth": "^1.6.25",
     "canvas-confetti": "1.9.4",
     "lucide-react": "0.487.0",
-    "react": "18.3.1",
+    "react": "19.2.8",
     "react-dom": "18.3.1",
     "react-qr-code": "^2.0.18",
     "swr": "^2.4.2",
@@ -41,12 +41,12 @@
     "@cloudflare/workers-types": "^5.20260722.1",
     "@tailwindcss/vite": "4.3.3",
     "@types/node": "^25.5.2",
-    "@types/react": "^19.2.14",
+    "@types/react": "^19.2.18",
     "tailwindcss": "4.3.3",
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
-    "react": "18.3.1",
+    "react": "19.2.8",
     "react-dom": "18.3.1"
   },
   "peerDependenciesMeta": {
