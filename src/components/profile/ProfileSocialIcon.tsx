@@ -1,5 +1,6 @@
-import { Globe2, Instagram, Mail } from "lucide-react";
+import { Globe2, Mail } from "lucide-react";
 import type { ProfileSocialIconName } from "@/lib/profile-model";
+import InstagramIcon from "../icons/InstagramIcon";
 
 interface Props {
   className?: string;
@@ -8,7 +9,7 @@ interface Props {
 }
 
 export default function ProfileSocialIcon({ className = "", platform, size = 18 }: Props) {
-  if (platform === "instagram") return <Instagram aria-hidden="true" className={className} size={size} />;
+  if (platform === "instagram") return <InstagramIcon className={className} size={size} />;
   if (platform === "globe") return <Globe2 aria-hidden="true" className={className} size={size} />;
   if (platform === "mail") return <Mail aria-hidden="true" className={className} size={size} />;
 

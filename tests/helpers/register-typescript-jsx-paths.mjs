@@ -2,7 +2,7 @@ import { readFileSync, statSync } from "node:fs";
 import { registerHooks } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import ts from "typescript";
+import ts from "@typescript/typescript6";
 
 const websiteRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 

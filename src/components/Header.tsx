@@ -5,7 +5,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { Menu, X, Instagram, Mail, ExternalLink, UserCircle, LogIn, UserPlus } from "lucide-react";
+import { Menu, X, Mail, ExternalLink, UserCircle, LogIn, UserPlus } from "lucide-react";
 import { authClient } from "../lib/auth-client";
 import { fetchApi } from "../lib/http";
 import {
@@ -17,6 +17,7 @@ import {
 } from "../lib/profile-link-cache";
 import { getPublicProfileHref, normalizeProfileResponse } from "../lib/profile-model";
 import LiveEventBar, { useCurrentLiveEvents } from "./LiveEventBar";
+import InstagramIcon from "./icons/InstagramIcon";
 
 const navLinks = [
   { to: "/", label: "Home" },
@@ -38,7 +39,7 @@ const moreNavLinks = navLinks.filter((link) =>
 );
 
 const socialLinks = [
-  { href: "https://www.instagram.com/purduephotoclub/", label: "Instagram", icon: Instagram },
+  { href: "https://www.instagram.com/purduephotoclub/", label: "Instagram", icon: InstagramIcon },
   { href: "/discord", label: "Discord", icon: DiscordIcon },
   { href: "mailto:photo@purdue.edu", label: "Email", icon: Mail },
   { href: "https://linktr.ee/purduephotoclub", label: "Linktree", icon: ExternalLink },

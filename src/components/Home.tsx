@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import useSWR from "swr";
-import { Users, ArrowRight, Film, Trophy, Image, Instagram, Mail, ShoppingBag } from "lucide-react";
+import { Users, ArrowRight, Film, Trophy, Image, Mail, ShoppingBag } from "lucide-react";
 import { ImageWithFallback } from "./ImageWithFallback";
+import InstagramIcon from "./icons/InstagramIcon";
 import {
   formatEventMonth,
   normalizeEvent,
@@ -170,7 +171,7 @@ const updateLinks = [
     desc: "Photo walks, member work, merch drops, and public announcements.",
     href: "https://www.instagram.com/purduephotoclub/",
     label: "Follow Instagram",
-    icon: Instagram,
+    icon: InstagramIcon,
   },
   {
     title: "Email",
