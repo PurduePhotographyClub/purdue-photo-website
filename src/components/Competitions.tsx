@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
-import { Award, ExternalLink, Film, Instagram, Medal, Monitor, Trophy, X } from "lucide-react";
+import { Award, ExternalLink, Film, Medal, Monitor, Trophy, X } from "lucide-react";
 import ModalDialog from "./ModalDialog";
 import { ImageWithFallback } from "./ImageWithFallback";
+import InstagramIcon from "./icons/InstagramIcon";
 import {
   normalizeCompetitionPageForUrl,
   type CompetitionPage,
@@ -344,7 +345,7 @@ export default function Competitions() {
                                 </button>
                                 {winner.instagram && (
                                   <a href={`https://instagram.com/${winner.instagram.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="absolute bottom-3 right-3 z-10 inline-flex min-h-11 max-w-24 items-center gap-1.5 truncate text-[10px] tracking-wider text-neutral-300 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400 sm:bottom-5 sm:right-5 sm:max-w-28">
-                                    <Instagram size={11} className="shrink-0" /><span className="truncate">{winner.instagram}</span>
+                                    <InstagramIcon size={11} className="shrink-0" /><span className="truncate">{winner.instagram}</span>
                                   </a>
                                 )}
                               </article>
@@ -422,7 +423,7 @@ export default function Competitions() {
               </div>
               {lightbox.instagram && (
                 <a href={`https://instagram.com/${lightbox.instagram.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-xs tracking-wider text-neutral-300 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400">
-                  <Instagram size={12} />{lightbox.instagram}
+                  <InstagramIcon size={12} />{lightbox.instagram}
                 </a>
               )}
             </div>

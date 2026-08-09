@@ -1,4 +1,5 @@
-import { Instagram, Mail, ExternalLink } from "lucide-react";
+import { Mail, ExternalLink } from "lucide-react";
+import InstagramIcon from "./icons/InstagramIcon";
 
 const navLinks = [
   { to: "/gallery", label: "Gallery" },
@@ -12,7 +13,7 @@ const navLinks = [
 ];
 
 const socialLinks = [
-  { href: "https://www.instagram.com/purduephotoclub/", label: "Instagram", icon: Instagram },
+  { href: "https://www.instagram.com/purduephotoclub/", label: "Instagram", icon: InstagramIcon },
   { href: "/discord", label: "Discord", icon: DiscordIcon },
   { href: "mailto:photo@purdue.edu", label: "Email", icon: Mail },
   { href: "https://linktr.ee/purduephotoclub", label: "Linktree", icon: ExternalLink },
