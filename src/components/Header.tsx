@@ -16,7 +16,7 @@ import {
   updateProfileLinkCache,
 } from "../lib/profile-link-cache";
 import { getPublicProfileHref, normalizeProfileResponse } from "../lib/profile-model";
-import LiveEventBar, { useCurrentLiveEvents } from "./LiveEventBar";
+import LiveEventBar, { useFeaturedEvents } from "./LiveEventBar";
 import InstagramIcon from "./icons/InstagramIcon";
 
 const navLinks = [
@@ -80,8 +80,9 @@ export default function Header() {
   const { data: session } = authClient.useSession();
   const isSignedIn = Boolean(session);
   const currentUserId = typeof session?.user?.id === "string" ? session.user.id : null;
-  const currentEvents = useCurrentLiveEvents();
-  const showLiveEventBar = currentEvents.length > 0 && !menuOpen && !dashboardOpen;
+  const featuredEvents = useFeaturedEvents();
+  const hasFeaturedEvent = Boolean(featuredEvents.currentEvents.length > 0 || featuredEvents.upcomingEvent);
+  const showEventBar = hasFeaturedEvent && !menuOpen && !dashboardOpen;
 
   useEffect(() => {
     if (!menuOpen && !dashboardOpen) return;
@@ -343,7 +344,7 @@ export default function Header() {
           </div>
         </div>
 
-        {showLiveEventBar && <LiveEventBar currentEvents={currentEvents} />}
+        {showEventBar && <LiveEventBar featuredEvents={featuredEvents} />}
 
         {/* Dashboard dropdown */}
         {dashboardOpen && !session && (
@@ -490,7 +491,7 @@ export default function Header() {
           </div>
         )}
       </nav>
-      {showLiveEventBar && <div aria-hidden="true" className="h-11" />}
+      {showEventBar && <div aria-hidden="true" className="h-11" />}
     </>
   );
 }

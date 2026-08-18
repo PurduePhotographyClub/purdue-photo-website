@@ -32,6 +32,7 @@ interface EventItem { title: string; date: string; desc: string }
 interface HomeEventsResponse {
   current: Record<string, unknown>[];
   recentPast: Record<string, unknown>[];
+  upcoming: Record<string, unknown>[];
 }
 interface CompItem { label: string; theme: string; winner: string; winnerTitle: string; img: string }
 interface ClubStats {

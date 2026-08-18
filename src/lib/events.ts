@@ -95,6 +95,12 @@ export function findCurrentEvents(events: WebsiteEvent[], now = new Date()) {
     .sort((a, b) => getEventStart(a).getTime() - getEventStart(b).getTime());
 }
 
+export function findNextUpcomingEvent(events: WebsiteEvent[], now = new Date()) {
+  return events
+    .filter((event) => getEventStatus(event, now) === "upcoming")
+    .sort((a, b) => getEventStart(a).getTime() - getEventStart(b).getTime())[0] ?? null;
+}
+
 export function getEventDiscordState(
   event: WebsiteEvent,
   now = new Date(),
