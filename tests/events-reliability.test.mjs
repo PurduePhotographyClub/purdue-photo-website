@@ -1,9 +1,14 @@
+import "./helpers/register-typescript-jsx-paths.mjs";
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
 import {
   findCurrentEvents,
+  findNextUpcomingEvent,
   formatEventDateTime,
   formatEventDay,
   formatEventMonth,
@@ -135,6 +140,57 @@ test("current event selection is ordered and ignores future or finished events",
   assert.deepEqual(current.map((item) => item.id), ["first", "later"]);
 });
 
+test("next event selection returns the closest future event", () => {
+  const now = new Date("2026-07-13T18:00:00.000Z");
+  const next = findNextUpcomingEvent([
+    event({ id: "later", date: "2026-07-14T20:00:00.000Z", endsAt: "2026-07-14T22:00:00.000Z" }),
+    event({ id: "live", date: "2026-07-13T17:00:00.000Z", endsAt: "2026-07-13T19:00:00.000Z" }),
+    event({ id: "closest", date: "2026-07-13T20:00:00.000Z", endsAt: "2026-07-13T22:00:00.000Z" }),
+    event({ id: "past", date: "2026-07-13T15:00:00.000Z", endsAt: "2026-07-13T17:00:00.000Z" }),
+  ], now);
+
+  assert.equal(next?.id, "closest");
+  assert.equal(findNextUpcomingEvent([], now), null);
+  assert.equal(findNextUpcomingEvent([
+    event({ date: now.toISOString(), endsAt: "2026-07-13T20:00:00.000Z" }),
+  ], now), null);
+});
+
+test("global event bar prioritizes live events and falls back to the closest upcoming event", async () => {
+  const { default: LiveEventBar } = await import("../src/components/LiveEventBar.tsx");
+  const liveEvents = [
+    event({ id: "live-first", title: "Live Photo Walk" }),
+    event({ id: "live-second", title: "Studio Meetup" }),
+  ];
+  const upcomingEvent = event({
+    id: "upcoming",
+    title: "Next Critique",
+    date: "2026-07-14T18:00:00.000Z",
+    endsAt: "2026-07-14T20:00:00.000Z",
+  });
+
+  const liveHtml = renderToStaticMarkup(createElement(LiveEventBar, {
+    featuredEvents: { currentEvents: liveEvents, upcomingEvent },
+  }));
+  assert.match(liveHtml, /Live now/);
+  assert.match(liveHtml, /Live Photo Walk/);
+  assert.match(liveHtml, /\+1 more/);
+  assert.doesNotMatch(liveHtml, /Next Critique/);
+
+  const upcomingHtml = renderToStaticMarkup(createElement(LiveEventBar, {
+    featuredEvents: { currentEvents: [], upcomingEvent },
+  }));
+  assert.match(upcomingHtml, /Next event/);
+  assert.match(upcomingHtml, /Next Critique/);
+  assert.match(upcomingHtml, /aria-label="Next event: Next Critique\./);
+  assert.doesNotMatch(upcomingHtml, /\+\d+ more/);
+
+  const emptyHtml = renderToStaticMarkup(createElement(LiveEventBar, {
+    featuredEvents: { currentEvents: [], upcomingEvent: null },
+  }));
+  assert.equal(emptyHtml, "");
+});
+
 test("event times are formatted in Purdue time instead of the viewer timezone", () => {
   assert.equal(
     formatEventDateTime(event()),
@@ -217,12 +273,18 @@ test("event surfaces use fresh admin reads, reactive live state, recovery, and a
   assert.match(eventsPage, />\s*Retry/);
   assert.doesNotMatch(eventsPage, /event\.discordSynced\s*&&/);
   assert.doesNotMatch(home, /LiveEventWidget/);
-  assert.match(header, /const showLiveEventBar = currentEvents\.length > 0 && !menuOpen && !dashboardOpen/);
-  assert.match(header, /<LiveEventBar currentEvents=\{currentEvents\}\s*\/>/);
-  assert.match(header, /showLiveEventBar && <div aria-hidden="true" className="h-11"/);
+  assert.match(header, /const hasFeaturedEvent = Boolean\(featuredEvents\.currentEvents\.length > 0 \|\| featuredEvents\.upcomingEvent\)/);
+  assert.match(header, /const showEventBar = hasFeaturedEvent && !menuOpen && !dashboardOpen/);
+  assert.match(header, /<LiveEventBar featuredEvents=\{featuredEvents\}\s*\/>/);
+  assert.match(header, /showEventBar && <div aria-hidden="true" className="h-11"/);
   assert.doesNotMatch(layout, /LiveEventBar/);
   assert.match(liveEventBar, /HOME_EVENTS_API_KEY/);
-  assert.match(liveEventBar, /const liveEvents = currentEvents \?\? \[\]/);
+  assert.match(liveEventBar, /findNextUpcomingEvent/);
+  assert.match(liveEventBar, /\[\.\.\.\(data\?\.current \?\? \[\]\), \.\.\.\(data\?\.upcoming \?\? \[\]\)\]/);
+  assert.match(liveEventBar, /data\?\.upcoming/);
+  assert.match(liveEventBar, /const event = liveEvents\[0\] \?\? upcomingEvent/);
+  assert.match(liveEventBar, /Live now/);
+  assert.match(liveEventBar, /Next event/);
   assert.match(liveEventBar, /useEventClock\(eventRows\.length > 0\)/);
   assert.doesNotMatch(liveEventBar, /\/api\/events\?view=home/);
   assert.doesNotMatch(liveEventBar, /\bfixed\b|top-28/);
