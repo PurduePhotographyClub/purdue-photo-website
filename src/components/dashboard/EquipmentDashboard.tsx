@@ -15,6 +15,7 @@ import {
   readErrorMessage
 } from "@/lib/http";
 import { EQUIPMENT_CATEGORIES, EQUIPMENT_CATEGORY_FILTERS, getEquipmentCategoryLabel, normalizeEquipmentCategory } from "@/lib/equipment";
+import { canRequestEquipmentItem, getEquipmentRequestAccess } from "@/lib/equipment-membership-access";
 import { createKeyedStateSetter, keyedStateReducer } from "@/lib/reducer-state";
 
 // ========================
@@ -776,9 +777,8 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
   const currentTimeMs = useMemo(() => Date.now(), []);
   const todayInputMin = useMemo(() => new Date().toISOString().split("T")[0], []);
 
-  const isAdmin = userRole === "admin" || userRole === "officer";
-  const canRequestPpc = isAdmin || userTier === "facilities";
-  const canRequestPersonal = isAdmin || userTier === "facilities" || userTier === "member";
+  const equipmentAccess = getEquipmentRequestAccess(userRole, userTier);
+  const { canRequestPpc, isStaff: isAdmin } = equipmentAccess;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1089,7 +1089,7 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
     const { showBorrowButton, showEditButton, showDeleteButton, isOwner: isItemOwner } = options;
     const canDelete = !hasActiveLoan(item);
     const isPpcItem = item.ownerId === null;
-    const canBorrowThisItem = isPpcItem ? canRequestPpc : canRequestPersonal;
+    const canBorrowThisItem = canRequestEquipmentItem(equipmentAccess, isPpcItem);
 
     return (
       <div key={item.id} className="group flex h-full flex-col overflow-hidden rounded-sm border border-neutral-800 bg-neutral-950/70 shadow-sm shadow-black/20 transition-colors hover:border-neutral-700 hover:bg-white/[0.03]">
@@ -1653,7 +1653,7 @@ function EquipmentDashboardContent({ viewModel }: { viewModel: ReturnType<typeof
         <AccessUpsellPanel
           eyebrow="Facilities unlock"
           title="Request club equipment"
-          description="You can browse the full club inventory now. Facilities access unlocks equipment requests for cameras, lenses, lighting, tripods, and accessories."
+          description="Basic members can borrow and lend Personal Gear. Facilities access unlocks requests for PPC-owned cameras, lenses, lighting, tripods, and accessories."
           ctaLabel="Buy Facilities"
         />
       )}
