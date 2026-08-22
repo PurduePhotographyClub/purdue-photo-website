@@ -12,6 +12,19 @@ export interface WebsiteEvent {
   discordSynced: boolean;
   discordSyncError: string | null;
   discordSyncStatus: "failed" | "not_applicable" | "synced" | null;
+  photoCount: number;
+  coverPhoto: WebsiteEventPhoto | null;
+  photos: WebsiteEventPhoto[];
+}
+
+export interface WebsiteEventPhoto {
+  id: string;
+  caption: string | null;
+  sortOrder: number;
+  width: number | null;
+  height: number | null;
+  imageUrl: string;
+  thumbnailUrl: string | null;
 }
 
 export type EventStatus = "live" | "past" | "upcoming";
@@ -27,6 +40,18 @@ export function getEventLoadStatus(data: unknown, error: unknown): EventLoadStat
 }
 
 export function normalizeEvent(row: Record<string, unknown>): WebsiteEvent {
+  const photos = Array.isArray(row.photos)
+    ? row.photos.flatMap((photo) => {
+        const normalized = normalizeEventPhoto(photo);
+        return normalized ? [normalized] : [];
+      }).toSorted((first, second) => first.sortOrder - second.sortOrder)
+    : [];
+  const photoSummary = isRecord(row.photoSummary) ? row.photoSummary : null;
+  const coverPhoto = normalizeEventPhoto(row.coverPhoto) ??
+    normalizeEventPhoto(photoSummary?.cover);
+  const requestedPhotoCount = readNonNegativeInteger(row.photoCount) ??
+    readNonNegativeInteger(photoSummary?.count);
+
   return {
     id: readString(row.id) || crypto.randomUUID(),
     title: readString(row.title) || "Untitled Event",
@@ -41,6 +66,27 @@ export function normalizeEvent(row: Record<string, unknown>): WebsiteEvent {
     ),
     discordSyncError: readString(row.discordSyncError),
     discordSyncStatus: readDiscordSyncStatus(row.discordSyncStatus),
+    photoCount: requestedPhotoCount ?? photos.length,
+    coverPhoto,
+    photos,
+  };
+}
+
+export function normalizeEventPhoto(value: unknown): WebsiteEventPhoto | null {
+  if (!isRecord(value)) return null;
+
+  const id = readString(value.id);
+  const imageUrl = readEventPhotoUrl(value.imageUrl, id, false);
+  if (!id || !imageUrl) return null;
+
+  return {
+    id,
+    caption: readString(value.caption),
+    sortOrder: readNonNegativeInteger(value.sortOrder) ?? 0,
+    width: readPositiveInteger(value.width),
+    height: readPositiveInteger(value.height),
+    imageUrl,
+    thumbnailUrl: readEventPhotoUrl(value.thumbnailUrl, id, true),
   };
 }
 
@@ -228,6 +274,24 @@ function readString(value: unknown) {
 
 function readBoolean(value: unknown) {
   return typeof value === "boolean" ? value : null;
+}
+
+function readEventPhotoUrl(value: unknown, id: string | null, thumbnail: boolean) {
+  if (!id || typeof value !== "string") return null;
+  const expected = `/api/events/image/photo/${encodeURIComponent(id)}${thumbnail ? "?variant=thumbnail" : ""}`;
+  return value === expected ? value : null;
+}
+
+function readNonNegativeInteger(value: unknown) {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null;
+}
+
+function readPositiveInteger(value: unknown) {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function readDiscordSyncStatus(value: unknown): WebsiteEvent["discordSyncStatus"] {

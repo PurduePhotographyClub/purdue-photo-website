@@ -1,9 +1,10 @@
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import {
   AlertTriangle,
   CalendarDays,
   CheckCircle2,
   Clock,
+  Images,
   Loader2,
   MapPin,
   Pencil,
@@ -21,9 +22,11 @@ import {
   type WebsiteEvent,
 } from "@/lib/events";
 import { useAdminEvents, type EventFormState } from "./admin-events/useAdminEvents";
+import EventPhotoManagerDialog from "./admin-events/EventPhotoManagerDialog";
 
-export default function AdminEvents({ canDelete }: { canDelete: boolean }) {
+export default function AdminEvents({ canDelete, canManagePhotos }: { canDelete: boolean; canManagePhotos: boolean }) {
   const controller = useAdminEvents();
+  const [photoEvent, setPhotoEvent] = useState<WebsiteEvent | null>(null);
   const {
     beginCreate,
     beginEdit,
@@ -76,9 +79,11 @@ export default function AdminEvents({ canDelete }: { canDelete: boolean }) {
       ) : (
         <EventsList
           canDelete={canDelete}
+          canManagePhotos={canManagePhotos}
           events={events}
           now={now}
           onBeginEdit={beginEdit}
+          onManagePhotos={setPhotoEvent}
           onRequestDelete={requestDelete}
           onSync={syncEvent}
           syncBusy={syncingId !== null}
@@ -106,6 +111,10 @@ export default function AdminEvents({ canDelete }: { canDelete: boolean }) {
           onCancel={cancelDelete}
           onConfirm={() => void deleteEvent(deleteTarget.id)}
         />
+      )}
+
+      {photoEvent && (
+        <EventPhotoManagerDialog event={photoEvent} onClose={() => setPhotoEvent(null)} />
       )}
     </div>
   );
@@ -142,18 +151,22 @@ function EventsSkeleton() {
 
 function EventsList({
   canDelete,
+  canManagePhotos,
   events,
   now,
   onBeginEdit,
+  onManagePhotos,
   onRequestDelete,
   onSync,
   syncBusy,
   syncingId,
 }: {
   canDelete: boolean;
+  canManagePhotos: boolean;
   events: WebsiteEvent[];
   now: Date;
   onBeginEdit: (event: WebsiteEvent) => void;
+  onManagePhotos: (event: WebsiteEvent) => void;
   onRequestDelete: (id: string) => void;
   onSync: (id: string) => Promise<void>;
   syncBusy: boolean;
@@ -169,10 +182,12 @@ function EventsList({
         <EventRow
           actionLabel={getEventDiscordActionLabel(event, now)}
           canDelete={canDelete}
+          canManagePhotos={canManagePhotos}
           event={event}
           key={event.id}
           now={now}
           onBeginEdit={onBeginEdit}
+          onManagePhotos={onManagePhotos}
           onRequestDelete={onRequestDelete}
           onSync={onSync}
           syncBusy={syncBusy}
@@ -186,9 +201,11 @@ function EventsList({
 function EventRow({
   actionLabel,
   canDelete,
+  canManagePhotos,
   event,
   now,
   onBeginEdit,
+  onManagePhotos,
   onRequestDelete,
   onSync,
   syncBusy,
@@ -196,9 +213,11 @@ function EventRow({
 }: {
   actionLabel: string | null;
   canDelete: boolean;
+  canManagePhotos: boolean;
   event: WebsiteEvent;
   now: Date;
   onBeginEdit: (event: WebsiteEvent) => void;
+  onManagePhotos: (event: WebsiteEvent) => void;
   onRequestDelete: (id: string) => void;
   onSync: (id: string) => Promise<void>;
   syncBusy: boolean;
@@ -221,6 +240,9 @@ function EventRow({
               <RefreshCw className={syncing ? "animate-spin motion-reduce:animate-none" : ""} size={13} />
               {syncing ? "Syncing" : actionLabel}
             </button>
+          )}
+          {canManagePhotos && (
+            <button type="button" aria-label={`Manage photos for ${event.title}`} onClick={() => onManagePhotos(event)} disabled={syncing} className="inline-flex size-11 items-center justify-center border border-neutral-800 text-neutral-500 transition-colors hover:border-neutral-600 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 disabled:opacity-40" title="Manage photos"><Images size={14} /></button>
           )}
           <button type="button" aria-label={`Edit ${event.title}`} onClick={() => onBeginEdit(event)} disabled={syncing} className="inline-flex size-11 items-center justify-center border border-neutral-800 text-neutral-500 transition-colors hover:border-neutral-600 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 disabled:opacity-40" title="Edit event"><Pencil size={14} /></button>
           {canDelete && <button type="button" aria-label={`Delete ${event.title}`} onClick={() => onRequestDelete(event.id)} disabled={syncing} className="inline-flex size-11 items-center justify-center border border-neutral-800 text-neutral-500 transition-colors hover:border-red-900 hover:text-red-400 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-red-400 disabled:opacity-40" title="Delete event"><Trash2 size={14} /></button>}
