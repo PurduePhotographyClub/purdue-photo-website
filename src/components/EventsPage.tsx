@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { ArrowRight, CalendarDays, Clock, MapPin, Radio } from "lucide-react";
 import {
@@ -12,9 +12,10 @@ import {
 } from "@/lib/events";
 import { useEventClock } from "@/hooks/useEventClock";
 import { fetchPublicJson, PUBLIC_EVENTS_SWR_OPTIONS } from "@/lib/http";
+import EventPhotoGalleryDialog from "@/components/events/EventPhotoGalleryDialog";
 
 export default function EventsPage() {
-  const { data: eventRows, error, mutate } = useSWR<Record<string, unknown>[]>("/api/events?limit=100", fetchPublicJson, PUBLIC_EVENTS_SWR_OPTIONS);
+  const { data: eventRows, error, mutate } = useSWR<Record<string, unknown>[]>("/api/events?limit=100&include=photo-summary", fetchPublicJson, PUBLIC_EVENTS_SWR_OPTIONS);
   const events = useMemo(() => (eventRows ?? []).map(normalizeEvent), [eventRows]);
   const status = getEventLoadStatus(eventRows, error);
   const hasRefreshError = Boolean(eventRows && error);
@@ -22,6 +23,7 @@ export default function EventsPage() {
   const now = useEventClock();
   const { upcoming, past } = useMemo(() => splitEvents(events, now), [events, now]);
   const nextEvent = upcoming[0] ?? null;
+  const [galleryEvent, setGalleryEvent] = useState<WebsiteEvent | null>(null);
 
   return (
     <div className="min-h-screen overflow-x-hidden">
@@ -97,12 +99,20 @@ export default function EventsPage() {
           ) : (
             <div className="grid gap-1 md:grid-cols-2 xl:grid-cols-3">
               {past.map((event, index) => (
-                <ArchiveEvent key={event.id} event={event} index={index} />
+                <ArchiveEvent key={event.id} event={event} index={index} onOpenPhotos={setGalleryEvent} />
               ))}
             </div>
           )}
         </div>
       </section>
+
+      {galleryEvent && (
+        <EventPhotoGalleryDialog
+          eventId={galleryEvent.id}
+          eventTitle={galleryEvent.title}
+          onClose={() => setGalleryEvent(null)}
+        />
+      )}
     </div>
   );
 }
@@ -201,11 +211,19 @@ function DiscordInfoCard() {
   );
 }
 
-function ArchiveEvent({ event, index }: { event: WebsiteEvent; index: number }) {
+function ArchiveEvent({ event, index, onOpenPhotos }: { event: WebsiteEvent; index: number; onOpenPhotos: (event: WebsiteEvent) => void }) {
   const parts = formatEventDay(event.date);
+  const coverSrc = event.coverPhoto?.thumbnailUrl ?? event.coverPhoto?.imageUrl;
 
   return (
-    <article className="group min-h-56 border border-neutral-800 bg-white/[0.02] p-5 transition-colors hover:border-neutral-600">
+    <article className="group flex min-h-56 flex-col overflow-hidden border border-neutral-800 bg-white/[0.02] transition-colors hover:border-neutral-600">
+      {coverSrc && (
+        <button type="button" onClick={() => onOpenPhotos(event)} aria-label={`View ${event.photoCount} photos from ${event.title}`} className="relative block aspect-[16/9] w-full overflow-hidden text-left focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-1px] focus-visible:outline-neutral-300">
+          <img src={coverSrc} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100" loading="lazy" decoding="async" />
+          <span className="absolute bottom-3 right-3 bg-black/80 px-3 py-2 text-[9px] uppercase tracking-[0.18em] text-neutral-200">{event.photoCount} {event.photoCount === 1 ? "photo" : "photos"}</span>
+        </button>
+      )}
+      <div className="flex flex-1 flex-col p-5">
       <div className="mb-10 flex items-start justify-between gap-4">
         <div className="flex size-14 flex-col items-center justify-center border border-neutral-800 bg-black/30">
           <span className="text-xl tracking-wider text-neutral-100" style={{ fontFamily: "'Playfair Display', serif" }}>{parts.day}</span>
@@ -216,6 +234,12 @@ function ArchiveEvent({ event, index }: { event: WebsiteEvent; index: number }) 
       <h3 className="mb-3 text-lg tracking-wider text-neutral-100" style={{ fontFamily: "'Playfair Display', serif" }}>{event.title}</h3>
       {event.description && <p className="text-xs leading-relaxed tracking-wider text-neutral-500 select-text">{event.description}</p>}
       {event.location && <p className="mt-5 flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-neutral-600"><MapPin size={11} /> {event.location}</p>}
+      {event.photoCount > 0 && (
+        <button type="button" onClick={() => onOpenPhotos(event)} className="mt-5 inline-flex min-h-11 w-fit items-center gap-2 border border-neutral-800 px-4 text-[10px] uppercase tracking-[0.16em] text-neutral-400 transition-colors hover:border-neutral-600 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-neutral-400">
+          View event photos <ArrowRight size={12} />
+        </button>
+      )}
+      </div>
     </article>
   );
 }
