@@ -4,6 +4,7 @@ import { authClient } from "@/lib/auth-client";
 import QRCode from "react-qr-code";
 import { fetchApi, fetchJson, readErrorMessage } from "@/lib/http";
 import { createKeyedStateSetter, keyedStateReducer } from "@/lib/reducer-state";
+import { readTotpEnrollment } from "@/lib/two-factor-enrollment";
 import ProfileSettingsPanel from "@/components/dashboard/profile/ProfileSettingsPanel";
 
 interface SettingsUser {
@@ -703,7 +704,10 @@ export default function SettingsPanel({ initialUser }: SettingsPanelProps) {
 
     // Better Auth only needs a password when the account actually has a password credential.
     const passwordPayload = password.trim() ? { password } : {};
-    const { data, error } = await authClient.twoFactor.enable(passwordPayload as { password?: string });
+    const { data, error } = await authClient.twoFactor.enable({
+      ...passwordPayload,
+      method: "totp",
+    });
 
     if (error) {
       setError(friendlyTwoFactorError(error, "Failed to enable 2FA."));
@@ -711,11 +715,16 @@ export default function SettingsPanel({ initialUser }: SettingsPanelProps) {
       return;
     }
 
-    if (data) {
-      setTotpUri(data.totpURI);
-      setBackupCodes(data.backupCodes);
-      setStep("setup");
+    const enrollment = readTotpEnrollment(data);
+    if (!enrollment) {
+      setError("Authenticator setup did not return the required details. Please try again.");
+      setLoading(false);
+      return;
     }
+
+    setTotpUri(enrollment.totpURI);
+    setBackupCodes(enrollment.backupCodes);
+    setStep("setup");
     setLoading(false);
   };
 
