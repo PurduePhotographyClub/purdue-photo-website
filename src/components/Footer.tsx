@@ -33,16 +33,25 @@ function isExternalHref(href: string) {
   return /^https?:\/\//i.test(href);
 }
 
-export default function Footer() {
-  const border = "border-neutral-800";
-  const subText = "text-neutral-500";
-  const mutedText = "text-neutral-600";
-  const faintText = "text-neutral-700";
-  const linkHover = "hover:text-white focus-visible:text-white";
-  const focusRing = "focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400";
+interface FooterProps {
+  theme?: "default" | "film-event";
+}
+
+export default function Footer({ theme = "default" }: FooterProps) {
+  const isFilmEvent = theme === "film-event";
+  const border = isFilmEvent ? "border-black/25" : "border-neutral-800";
+  const subText = isFilmEvent ? "text-black/80" : "text-neutral-500";
+  const mutedText = isFilmEvent ? "text-black/65" : "text-neutral-600";
+  const faintText = isFilmEvent ? "text-black/65" : "text-neutral-700";
+  const linkHover = isFilmEvent
+    ? "hover:text-black focus-visible:text-black"
+    : "hover:text-white focus-visible:text-white";
+  const focusRing = isFilmEvent
+    ? "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-black"
+    : "focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400";
 
   return (
-    <footer className={`border-t ${border} py-16 px-6 transition-colors duration-500`}>
+    <footer className={`border-t ${border} py-16 px-6 transition-colors duration-500 ${isFilmEvent ? "bg-[#ffcf2f] text-black" : ""}`}>
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
           <div>

@@ -7,39 +7,52 @@ import DonateWidget from '../components/DonateWidget';
 import CookieConsent from '../components/CookieConsent';
 
 interface Props {
+  description?: string;
   robots?: string;
   showFloatingWidgets?: boolean;
+  theme?: 'default' | 'film-event';
   title?: string;
 }
 
 const {
+  description = 'Purdue Photography Club - Where analog tradition meets digital innovation. Est. 1934.',
   robots,
   showFloatingWidgets = true,
+  theme = 'default',
   title = 'Purdue Photography Club',
 } = Astro.props;
+
+const isFilmEvent = theme === 'film-event';
 ---
 
 <!doctype html>
-<html lang="en" class="dark overflow-x-hidden">
+<html lang="en" class:list={['dark overflow-x-hidden', { 'film-event-theme': isFilmEvent }]}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
-    <meta name="description" content="Purdue Photography Club - Where analog tradition meets digital innovation. Est. 1934." />
+    <meta name="description" content={description} />
+    {isFilmEvent && <meta name="theme-color" content="#f79400" />}
     {robots && <meta name="robots" content={robots} />}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
   </head>
-  <body class="bg-neutral-950 text-neutral-100 overflow-x-hidden" style="font-family: 'Space Mono', monospace;">
+  <body
+    class:list={[
+      'overflow-x-hidden',
+      isFilmEvent ? 'bg-[#f4eee5] text-[#171717]' : 'bg-neutral-950 text-neutral-100',
+    ]}
+    style="font-family: 'Space Mono', monospace;"
+  >
     <!-- Filterable content wrapper -->
     <div id="filter-content" class="transition-[filter] duration-500">
       <!-- Film grain overlay -->
       <div data-film-grain class="pointer-events-none fixed inset-0 z-50 opacity-[0.03] transition-opacity duration-500" style="background-image: url(&quot;data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E&quot;); background-repeat: repeat;"></div>
 
-      <Header client:load />
+      <Header theme={theme} client:load />
       <main class="pt-20">
         <slot />
       </main>
-      <Footer client:load />
+      <Footer theme={theme} client:load />
     </div>
     <!-- Filter widget lives OUTSIDE the filtered wrapper -->
     {showFloatingWidgets && <DonateWidget client:load />}

@@ -37,32 +37,41 @@ export function useFeaturedEvents(): FeaturedEvents {
   );
 }
 
-export default function LiveEventBar({ featuredEvents }: { featuredEvents: FeaturedEvents }) {
+export default function LiveEventBar({
+  featuredEvents,
+  theme = "default",
+}: {
+  featuredEvents: FeaturedEvents;
+  theme?: "default" | "film-event";
+}) {
   const { currentEvents: liveEvents, upcomingEvent } = featuredEvents;
   const event = liveEvents[0] ?? upcomingEvent;
 
   if (!event) return null;
 
   const isLive = liveEvents.length > 0;
+  const isFilmEventTheme = theme === "film-event";
   const statusLabel = isLive ? "Live now" : "Next event";
 
   return (
     <div
       role="status"
       aria-live="polite"
-      className="border-t border-white/20 bg-black text-white"
+      className={isFilmEventTheme
+        ? "border-t border-black/25 bg-[#ffcf2f] text-black"
+        : "border-t border-white/20 bg-black text-white"}
     >
       <a
         href="/events#upcoming-events"
         aria-label={`${statusLabel}: ${event.title}. ${formatEventDateTime(event)}`}
-        className="grid min-h-11 w-full grid-cols-[1fr_auto] items-center gap-3 px-4 py-2 text-[10px] uppercase tracking-[0.18em] focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-2px] focus-visible:outline-white sm:px-6 sm:text-[11px]"
+        className={`grid min-h-11 w-full grid-cols-[1fr_auto] items-center gap-3 px-4 py-2 text-[10px] uppercase tracking-[0.18em] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] sm:px-6 sm:text-[11px] ${isFilmEventTheme ? "focus-visible:outline-black" : "focus-visible:outline-white"}`}
       >
         <span className="flex min-w-0 items-center gap-2 sm:gap-3">
-          <span className={`inline-flex size-2 shrink-0 ${isLive ? "bg-white" : "border border-white"}`} aria-hidden="true" />
+          <span className={`inline-flex size-2 shrink-0 ${isLive ? (isFilmEventTheme ? "bg-black" : "bg-white") : (isFilmEventTheme ? "border border-black" : "border border-white")}`} aria-hidden="true" />
           <span className="shrink-0 font-bold">{statusLabel}</span>
-          <span className="min-w-0 truncate normal-case tracking-[0.02em] text-neutral-200">{event.title}</span>
+          <span className={`min-w-0 truncate normal-case tracking-[0.02em] ${isFilmEventTheme ? "text-black/75" : "text-neutral-200"}`}>{event.title}</span>
         </span>
-        <span className="hidden shrink-0 items-center gap-2 text-[10px] text-neutral-400 md:flex">
+        <span className={`hidden shrink-0 items-center gap-2 text-[10px] md:flex ${isFilmEventTheme ? "text-black/65" : "text-neutral-400"}`}>
           <span>{formatEventDateTime(event)}</span>
           {isLive && liveEvents.length > 1 && <span>+{liveEvents.length - 1} more</span>}
           <ArrowRight size={13} aria-hidden="true" />

@@ -10,6 +10,7 @@ import {
   splitEvents,
   type WebsiteEvent,
 } from "@/lib/events";
+import { findFilmEvent } from "@/lib/film-event";
 import { useEventClock } from "@/hooks/useEventClock";
 import { fetchPublicJson, PUBLIC_EVENTS_SWR_OPTIONS } from "@/lib/http";
 import EventPhotoGalleryDialog from "@/components/events/EventPhotoGalleryDialog";
@@ -164,6 +165,7 @@ function SectionHeader({ count, eyebrow, title }: { count: number; eyebrow: stri
 function TimelineEvent({ event, featured, index, now }: { event: WebsiteEvent; featured?: boolean; index: number; now: Date }) {
   const parts = formatEventDay(event.date);
   const isLive = getEventStatus(event, now) === "live";
+  const isSpecialFilmEvent = Boolean(findFilmEvent([event]));
 
   return (
     <article className={`group relative flex min-h-72 flex-col overflow-hidden border border-neutral-800 bg-white/[0.02] p-5 transition-colors hover:border-neutral-600 ${featured ? "md:col-span-2 xl:col-span-2 md:min-h-80 md:p-7" : ""}`}>
@@ -187,6 +189,11 @@ function TimelineEvent({ event, featured, index, now }: { event: WebsiteEvent; f
         <h3 className={`${featured ? "text-3xl" : "text-xl"} tracking-wider text-neutral-100 group-hover:text-white`} style={{ fontFamily: "'Playfair Display', serif" }}>{event.title}</h3>
         {event.description && <p className="mt-3 max-w-3xl text-xs leading-relaxed tracking-wider text-neutral-500 select-text">{event.description}</p>}
         <EventMeta event={event} />
+        {isSpecialFilmEvent && (
+          <a href="/film-event" className="mt-6 inline-flex min-h-11 w-fit items-center gap-2 border border-amber-300 bg-amber-300 px-4 text-[10px] uppercase tracking-[0.16em] text-black transition-colors hover:bg-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-3 focus-visible:outline-amber-300">
+            Open film event guide <ArrowRight size={12} />
+          </a>
+        )}
       </div>
     </article>
   );
@@ -214,6 +221,7 @@ function DiscordInfoCard() {
 function ArchiveEvent({ event, index, onOpenPhotos }: { event: WebsiteEvent; index: number; onOpenPhotos: (event: WebsiteEvent) => void }) {
   const parts = formatEventDay(event.date);
   const coverSrc = event.coverPhoto?.thumbnailUrl ?? event.coverPhoto?.imageUrl;
+  const isSpecialFilmEvent = Boolean(findFilmEvent([event]));
 
   return (
     <article className="group flex min-h-56 flex-col overflow-hidden border border-neutral-800 bg-white/[0.02] transition-colors hover:border-neutral-600">
@@ -238,6 +246,11 @@ function ArchiveEvent({ event, index, onOpenPhotos }: { event: WebsiteEvent; ind
         <button type="button" onClick={() => onOpenPhotos(event)} className="mt-5 inline-flex min-h-11 w-fit items-center gap-2 border border-neutral-800 px-4 text-[10px] uppercase tracking-[0.16em] text-neutral-400 transition-colors hover:border-neutral-600 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-neutral-400">
           View event photos <ArrowRight size={12} />
         </button>
+      )}
+      {isSpecialFilmEvent && (
+        <a href="/film-event" className="mt-3 inline-flex min-h-11 w-fit items-center gap-2 border border-amber-300 px-4 text-[10px] uppercase tracking-[0.16em] text-amber-200 transition-colors hover:bg-amber-300 hover:text-black focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-amber-300">
+          Film event page <ArrowRight size={12} />
+        </a>
       )}
       </div>
     </article>
