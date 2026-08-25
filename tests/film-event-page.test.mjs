@@ -32,6 +32,8 @@ test("/film-event uses a route-scoped campaign theme", async () => {
   assert.match(header, /text-amber-300/);
   assert.doesNotMatch(header, /border-amber-300/);
   assert.doesNotMatch(header, /↗/);
+  assert.match(route, /Want to attend development\?/);
+  assert.match(route, /Purdue email when your film is next in the queue/);
 });
 
 test("the page uses the supplied artwork as responsive decorative assets", async () => {
