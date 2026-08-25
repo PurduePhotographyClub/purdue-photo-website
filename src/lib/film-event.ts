@@ -95,9 +95,7 @@ export const FILM_EVENT_STEPS = [
     details: [
       "Development takes place the following day.",
       "Free development and scans.",
-      "Participants are encouraged to be present while the negatives come to life.",
-      "You will be notified when your film is next in the queue.",
-      "Attendance is optional.",
+      "Attendance is optional. You will receive a notification at your Purdue email when your film is next in the queue.",
     ],
     note: null,
     numberAsset: "/film-event/four.png",

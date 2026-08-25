@@ -40,9 +40,13 @@ test("film event content preserves the schedule and participation rules", async 
   const copy = JSON.stringify(FILM_EVENT_STEPS);
   assert.match(copy, /point-and-shoot film camera/i);
   assert.match(copy, /Use the full roll of film/i);
-  assert.match(copy, /encouraged to be present/i);
-  assert.match(copy, /notified when your film is next in the queue/i);
-  assert.match(copy, /Attendance is optional/i);
+  assert.doesNotMatch(copy, /encouraged to be present/i);
+  assert.doesNotMatch(copy, /You will be notified when your film is next in the queue/i);
+  assert.doesNotMatch(copy, /"Attendance is optional\."/i);
+  assert.match(
+    copy,
+    /Attendance is optional\. You will receive a notification at your Purdue email when your film is next in the queue\./i,
+  );
 
   assert.deepEqual(FILM_EVENT_RETURN_DETAILS.returnWindows, [
     "Tuesday, Sept. 1–Friday, Sept. 4: return your camera while the Knowledge Lab is open.",
