@@ -38,6 +38,8 @@ const moreNavLinks = navLinks.filter((link) =>
   ["/competitions", "/facilities", "/membership", "/merch"].includes(link.to)
 );
 
+const specialEventLink = { to: "/film-event", label: "Film event" };
+
 const socialLinks = [
   { href: "https://www.instagram.com/purduephotoclub/", label: "Instagram", icon: InstagramIcon },
   { href: "/discord", label: "Discord", icon: DiscordIcon },
@@ -55,6 +57,14 @@ function getCurrentPath() {
   return typeof window === "undefined" ? "/" : window.location.pathname;
 }
 
+function isNavLinkActive(linkPath: string, currentPath: string) {
+  const normalizedPath = currentPath.length > 1
+    ? currentPath.replace(/\/+$/, "")
+    : currentPath;
+  return normalizedPath === linkPath ||
+    (linkPath === "/events" && normalizedPath === "/film-event");
+}
+
 function DiscordIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -68,7 +78,11 @@ function isExternalHref(href: string) {
   return /^https?:\/\//i.test(href);
 }
 
-export default function Header() {
+interface HeaderProps {
+  theme?: "default" | "film-event";
+}
+
+export default function Header({ theme = "default" }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dashboardOpen, setDashboardOpen] = useState(false);
   const [publicProfileHref, setPublicProfileHref] = useState<string | null>(null);
@@ -166,26 +180,34 @@ export default function Header() {
       return;
     }
     const controller = new AbortController();
+    let isActive = true;
 
-    void (async () => {
-      try {
-        const response = await fetchApi("/api/profile", {
-          cache: "no-store",
-          signal: controller.signal,
-        });
+    void fetchApi("/api/profile", {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (!isActive) return null;
         if (!response.ok) {
           setPublicProfileHref(null);
-          return;
+          return null;
         }
-        const normalized = normalizeProfileResponse(await response.json(), "PPC member");
+        return response.json();
+      })
+      .then((payload) => {
+        if (!isActive || payload === null) return;
+        const normalized = normalizeProfileResponse(payload, "PPC member");
         const href = getPublicProfileHref(normalized.profile);
         setPublicProfileHref(updateProfileLinkCache(storage, currentUserId, href));
-      } catch {
-        if (!controller.signal.aborted) setPublicProfileHref(null);
-      }
-    })();
+      })
+      .catch(() => {
+        if (isActive && !controller.signal.aborted) setPublicProfileHref(null);
+      });
 
-    return () => controller.abort();
+    return () => {
+      isActive = false;
+      controller.abort();
+    };
   }, [currentUserId, dashboardOpen]);
 
   useEffect(() => {
@@ -242,27 +264,49 @@ export default function Header() {
     window.location.href = "/login";
   };
 
-  const navBg = "bg-neutral-950/90";
-  const border = "border-neutral-800";
+  const isFilmEvent = theme === "film-event";
+  const navBg = isFilmEvent ? "bg-[#f79400]/95" : "bg-neutral-950/90";
+  const panelBg = isFilmEvent ? "bg-[#f79400]" : "bg-neutral-950";
+  const border = isFilmEvent ? "border-black/25" : "border-neutral-800";
   const navLayer = menuOpen || dashboardOpen ? "z-[110]" : "z-40";
-  const linkActive = "text-white";
-  const linkInactive = "text-neutral-500";
-  const linkHover = "hover:text-white focus-visible:text-white";
-  const socialColor = "text-neutral-500 hover:text-white focus-visible:text-white";
-  const mutedText = "text-neutral-600";
-  const logoText = "text-neutral-300";
-  const focusRing = "focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400";
+  const linkActive = isFilmEvent ? "text-black" : "text-white";
+  const linkInactive = isFilmEvent ? "text-black/65" : "text-neutral-500";
+  const linkHover = isFilmEvent
+    ? "hover:text-black focus-visible:text-black"
+    : "hover:text-white focus-visible:text-white";
+  const socialColor = isFilmEvent
+    ? "text-black/65 hover:text-black focus-visible:text-black"
+    : "text-neutral-500 hover:text-white focus-visible:text-white";
+  const mutedText = isFilmEvent ? "text-black/60" : "text-neutral-600";
+  const logoText = isFilmEvent ? "text-black/80" : "text-neutral-300";
+  const slashText = isFilmEvent
+    ? "text-black/35 transition-colors group-hover:text-black/70"
+    : "text-neutral-700 transition-colors group-hover:text-neutral-500";
+  const focusRing = isFilmEvent
+    ? "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-black"
+    : "focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400";
   const iconControl = `inline-flex min-h-11 min-w-11 items-center justify-center ${linkInactive} ${linkHover} ${focusRing} transition-colors`;
   const socialControl = `inline-flex min-h-10 min-w-10 items-center justify-center ${socialColor} ${focusRing} transition-colors`;
-  const menuLinkBase = `group flex min-h-12 items-center justify-between border ${border} bg-white/[0.02] px-4 py-3 text-xs uppercase tracking-[0.18em] transition-colors hover:border-neutral-600 hover:bg-white/[0.04] focus-visible:border-neutral-400 focus-visible:outline-none`;
-  const compactMenuLinkBase = `group flex min-h-11 items-center justify-between border ${border} bg-white/[0.02] px-4 py-3 text-[11px] uppercase tracking-[0.16em] transition-colors hover:border-neutral-600 hover:bg-white/[0.04] focus-visible:border-neutral-400 focus-visible:outline-none`;
+  const menuInteraction = isFilmEvent
+    ? "bg-black/[0.025] hover:border-black/60 hover:bg-black/[0.06] focus-visible:border-black"
+    : "bg-white/[0.02] hover:border-neutral-600 hover:bg-white/[0.04] focus-visible:border-neutral-400";
+  const menuLinkBase = `group flex min-h-12 items-center justify-between border ${border} ${menuInteraction} px-4 py-3 text-xs uppercase tracking-[0.18em] transition-colors focus-visible:outline-none`;
+  const compactMenuLinkBase = `group flex min-h-11 items-center justify-between border ${border} ${menuInteraction} px-4 py-3 text-[11px] uppercase tracking-[0.16em] transition-colors focus-visible:outline-none`;
+  const specialEventLinkClass = isFilmEvent
+    ? `font-semibold text-black underline decoration-black/45 underline-offset-4 transition-colors hover:text-black/70 focus-visible:text-black ${focusRing}`
+    : `font-semibold text-amber-300 underline decoration-amber-300/60 underline-offset-4 transition-colors hover:text-amber-200 focus-visible:text-amber-200 ${focusRing}`;
 
   return (
     <>
       <nav ref={navRef} className={`fixed top-0 left-0 right-0 ${navLayer} ${navBg} backdrop-blur-sm border-b ${border} transition-colors duration-500`}>
         <div className="flex h-20 w-full items-center justify-between px-6">
           <a href="/" className={`flex min-h-11 items-center gap-3 flex-shrink-0 ${focusRing}`}>
-            <img src="/ppc-logo.webp" alt="PPC Logo" className="size-10 rounded-full brightness-[1.8] invert" style={{ mixBlendMode: "screen" }} />
+            <img
+              src="/ppc-logo.webp"
+              alt="PPC Logo"
+              className={`size-10 rounded-full ${isFilmEvent ? "contrast-125" : "brightness-[1.8] invert"}`}
+              style={isFilmEvent ? undefined : { mixBlendMode: "screen" }}
+            />
             <span className={`text-sm tracking-[0.2em] uppercase ${logoText} hidden 2xl:inline`} style={{ fontFamily: "'Playfair Display', serif" }}>
               Purdue Photography Club
             </span>
@@ -274,14 +318,22 @@ export default function Header() {
               <a
                 key={link.to}
                 href={link.to}
-                aria-current={currentPath === link.to ? "page" : undefined}
+                aria-current={isNavLinkActive(link.to, currentPath) ? "page" : undefined}
                 className={`text-[11px] tracking-[0.15em] uppercase transition-colors ${linkHover} whitespace-nowrap ${
-                  currentPath === link.to ? linkActive : linkInactive
+                  isNavLinkActive(link.to, currentPath) ? linkActive : linkInactive
                 } ${focusRing}`}
               >
                 {link.label}
               </a>
             ))}
+            <a
+              href={specialEventLink.to}
+              aria-label="Special event: Film event"
+              aria-current={isNavLinkActive(specialEventLink.to, currentPath) ? "page" : undefined}
+              className={`${specialEventLinkClass} hidden text-[11px] uppercase tracking-[0.15em] lg:inline`}
+            >
+              {specialEventLink.label}
+            </a>
           </div>
 
           {/* Social, dashboard, and menu controls */}
@@ -344,11 +396,15 @@ export default function Header() {
           </div>
         </div>
 
-        {showEventBar && <LiveEventBar featuredEvents={featuredEvents} />}
+        {showEventBar && (
+          isFilmEvent
+            ? <LiveEventBar featuredEvents={featuredEvents} theme="film-event" />
+            : <LiveEventBar featuredEvents={featuredEvents} />
+        )}
 
         {/* Dashboard dropdown */}
         {dashboardOpen && !session && (
-          <div id="dashboard-menu" className={`border-t ${border} bg-neutral-950`}>
+          <div id="dashboard-menu" className={`border-t ${border} ${panelBg}`}>
             <div className="mx-auto max-w-6xl px-6 py-5">
               <p className={`text-xs tracking-[0.2em] uppercase ${logoText} mb-1`}>Member Area</p>
               <p className={`text-[10px] tracking-wider ${mutedText} mb-5`}>
@@ -384,7 +440,7 @@ export default function Header() {
             role="menu"
             aria-label="Account"
             onKeyDown={handleAccountMenuKeyDown}
-            className={`absolute right-4 top-full grid w-[calc(100vw-2rem)] max-w-xs gap-2 border ${border} bg-neutral-950 p-2 shadow-2xl shadow-black/40 sm:right-6`}
+            className={`absolute right-4 top-full grid w-[calc(100vw-2rem)] max-w-xs gap-2 border ${border} ${panelBg} p-2 shadow-2xl shadow-black/40 sm:right-6`}
           >
             {publicProfileHref && (
               <a
@@ -395,7 +451,7 @@ export default function Header() {
                 className={`${compactMenuLinkBase} ${linkInactive}`}
               >
                 View profile
-                <span aria-hidden="true" className="text-neutral-700 transition-colors group-hover:text-neutral-500">/</span>
+                <span aria-hidden="true" className={slashText}>/</span>
               </a>
             )}
             <a
@@ -406,7 +462,7 @@ export default function Header() {
               className={`${compactMenuLinkBase} ${linkInactive}`}
             >
               Dashboard
-              <span aria-hidden="true" className="text-neutral-700 transition-colors group-hover:text-neutral-500">/</span>
+              <span aria-hidden="true" className={slashText}>/</span>
             </a>
             <button
               type="button"
@@ -416,17 +472,26 @@ export default function Header() {
               className={`${compactMenuLinkBase} ${linkInactive} w-full`}
             >
               Sign out
-              <span aria-hidden="true" className="text-neutral-700 transition-colors group-hover:text-neutral-500">/</span>
+              <span aria-hidden="true" className={slashText}>/</span>
             </button>
           </div>
         )}
 
         {/* Mobile nav */}
         {menuOpen && (
-          <div id="site-menu" className={`border-t ${border} bg-neutral-950`}>
+          <div id="site-menu" className={`border-t ${border} ${panelBg}`}>
             <div className="max-h-[calc(100dvh-5rem)] min-h-[calc(100dvh-5rem)] overflow-y-auto px-4 py-5 sm:px-6 lg:min-h-0">
               <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-[1fr_320px] lg:items-start">
                 <div className="lg:hidden">
+                  <a
+                    href={specialEventLink.to}
+                    onClick={() => setMenuOpen(false)}
+                    aria-label="Special event: Film event"
+                    aria-current={isNavLinkActive(specialEventLink.to, currentPath) ? "page" : undefined}
+                    className={`${specialEventLinkClass} mb-5 inline-flex min-h-11 items-center text-xs uppercase tracking-[0.18em]`}
+                  >
+                    {specialEventLink.label}
+                  </a>
                   <p className={`mb-3 text-[10px] uppercase tracking-[0.28em] ${mutedText}`}>Site Menu</p>
                   <div className="grid gap-2 sm:grid-cols-2">
                 {navLinks.map((link) => (
@@ -434,13 +499,13 @@ export default function Header() {
                     key={link.to}
                     href={link.to}
                     onClick={() => setMenuOpen(false)}
-                    aria-current={currentPath === link.to ? "page" : undefined}
+                    aria-current={isNavLinkActive(link.to, currentPath) ? "page" : undefined}
                     className={`${menuLinkBase} ${
-                      currentPath === link.to ? linkActive : linkInactive
+                      isNavLinkActive(link.to, currentPath) ? linkActive : linkInactive
                     }`}
                   >
                     {link.label}
-                    <span aria-hidden="true" className="text-neutral-700 transition-colors group-hover:text-neutral-500">/</span>
+                    <span aria-hidden="true" className={slashText}>/</span>
                   </a>
                 ))}
                   </div>
@@ -453,13 +518,13 @@ export default function Header() {
                     key={link.to}
                     href={link.to}
                     onClick={() => setMenuOpen(false)}
-                    aria-current={currentPath === link.to ? "page" : undefined}
+                    aria-current={isNavLinkActive(link.to, currentPath) ? "page" : undefined}
                     className={`${compactMenuLinkBase} ${
-                      currentPath === link.to ? linkActive : linkInactive
+                      isNavLinkActive(link.to, currentPath) ? linkActive : linkInactive
                     }`}
                   >
                     {link.label}
-                    <span aria-hidden="true" className="text-neutral-700 transition-colors group-hover:text-neutral-500">/</span>
+                    <span aria-hidden="true" className={slashText}>/</span>
                   </a>
                 ))}
                   </div>
@@ -481,7 +546,7 @@ export default function Header() {
                           <social.icon size={14} />
                           {social.label}
                         </span>
-                        <span aria-hidden="true" className="text-neutral-700 transition-colors group-hover:text-neutral-500">/</span>
+                        <span aria-hidden="true" className={slashText}>/</span>
                       </a>
                     ))}
                   </div>

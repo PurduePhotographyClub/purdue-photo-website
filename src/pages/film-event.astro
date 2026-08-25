@@ -1,0 +1,363 @@
+---
+import FilmEventReturnDetails from '../components/FilmEventReturnDetails';
+import Layout from '../layouts/Layout.astro';
+import { FILM_EVENT_DETAILS, FILM_EVENT_STEPS } from '../lib/film-event';
+
+const eventStructuredData = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "Event",
+  name: FILM_EVENT_DETAILS.title,
+  startDate: "2026-08-29T13:00:00-04:00",
+  endDate: "2026-08-29T16:00:00-04:00",
+  eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+  eventStatus: "https://schema.org/EventScheduled",
+  isAccessibleForFree: true,
+  location: {
+    "@type": "Place",
+    name: "Wilmeth Active Learning Center (WALC)",
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "West Lafayette",
+      addressRegion: "IN",
+      streetAddress: "340 Centennial Mall Drive",
+    },
+  },
+  organizer: {
+    "@type": "Organization",
+    name: "Purdue Photography Club",
+    url: "https://purduephotoclub.org",
+  },
+  url: "https://purduephotoclub.org/film-event",
+});
+---
+
+<Layout
+  title="Film Event | Purdue Photography Club"
+  description="Borrow a point-and-shoot film camera outside WALC on Saturday, August 29, 2026, then return it by Saturday, September 5, 2026 for free development and scans."
+  showFloatingWidgets={false}
+  theme="film-event"
+>
+  <script type="application/ld+json" set:html={eventStructuredData} />
+
+  <div class="film-event-page overflow-x-hidden bg-[#f4eee5] text-[#171717]">
+    <section class="hero-stage relative isolate overflow-hidden border-b-2 border-black px-6 py-12 sm:py-16 lg:px-10 lg:py-20">
+      <p class="vertical-rail hidden xl:block" aria-hidden="true">
+        Shoot a roll · Free development + scans
+      </p>
+
+      <div class="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)] lg:items-center">
+        <div class="relative z-10">
+          <p class="mb-6 w-fit border-2 border-black bg-[#ffcf2f] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] sm:text-xs">
+            Saturday · Aug. 29 · 2026
+          </p>
+
+          <h1 class="hero-title max-w-4xl font-bold text-balance">
+            <span>Purdue</span>
+            <span class="text-[#ef8700]">Photo Club</span>
+            <span><mark>Film</mark> Event</span>
+          </h1>
+
+          <p class="mt-7 max-w-2xl text-sm font-bold leading-7 sm:text-base sm:leading-8">
+            Take a point-and-shoot camera for the week. Use the whole roll, return it during the posted windows, and join us for free development and scans.
+          </p>
+
+          <div class="mt-9 flex flex-wrap gap-3">
+            <a
+              href="#how-it-works"
+              class="inline-flex min-h-12 items-center border-2 border-black bg-[#ffcf2f] px-6 py-3 text-[11px] font-bold uppercase tracking-[0.17em] transition-transform hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-black motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+            >
+              How it works
+            </a>
+            <a
+              href="#return-plan"
+              class="inline-flex min-h-12 items-center border-2 border-black bg-transparent px-6 py-3 text-[11px] font-bold uppercase tracking-[0.17em] transition-colors hover:bg-black hover:text-[#f4eee5] focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-black motion-reduce:transition-none"
+            >
+              Return plan
+            </a>
+          </div>
+        </div>
+
+        <div class="hero-camera-stage relative min-h-[390px] sm:min-h-[520px] lg:min-h-[620px]">
+          <img
+            src="/film-event/camera.png"
+            alt=""
+            aria-hidden="true"
+            width="500"
+            height="500"
+            class="hero-camera absolute left-1/2 top-1/2 z-10 w-[min(118%,650px)] max-w-none drop-shadow-[16px_20px_0_rgba(0,0,0,0.16)]"
+            fetchpriority="high"
+            decoding="async"
+          />
+          <div class="absolute bottom-1 left-1/2 z-20 w-[min(88%,390px)] -translate-x-1/2 rotate-[-2deg] border-[3px] border-black bg-[#ffcf2f] px-5 py-4 text-center shadow-[8px_8px_0_#171717] sm:bottom-5">
+            <p class="text-2xl font-bold uppercase tracking-[-0.04em] sm:text-3xl">1–4 PM</p>
+            <p class="mt-1 text-xs font-bold uppercase tracking-[0.13em]">Outside WALC</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="relative mx-auto mt-8 grid max-w-7xl gap-7 border-t-2 border-black pt-8 lg:grid-cols-[minmax(260px,0.72fr)_minmax(0,1.28fr)] lg:items-end">
+        <div class="camera-box-stage relative min-h-[240px] sm:min-h-[300px]">
+          <img
+            src="/film-event/lomography-box.png"
+            alt="Lomography reloadable film camera package"
+            width="500"
+            height="500"
+            class="camera-box absolute -bottom-10 left-0 w-[min(82vw,390px)] -rotate-[7deg] drop-shadow-[12px_14px_0_rgba(0,0,0,0.14)] motion-reduce:transition-none"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+        <div class="grid gap-5 sm:grid-cols-2">
+          <div class="border-2 border-black bg-[#ef8700] p-6 sm:p-8">
+            <p class="text-[11px] font-bold uppercase tracking-[0.18em]">While supplies last</p>
+            <p class="mt-3 text-2xl font-bold leading-tight sm:text-3xl">One camera per participant.</p>
+          </div>
+          <div class="border-2 border-black bg-[#ff5f45] p-6 sm:p-8">
+            <p class="text-[11px] font-bold uppercase tracking-[0.18em]">Return deadline</p>
+            <p class="mt-3 text-2xl font-bold leading-tight sm:text-3xl">Sept. 5 by 5 PM</p>
+            <p class="mt-3 text-xs font-bold leading-6">{FILM_EVENT_DETAILS.cameraPolicy}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="how-it-works" class="px-6 py-20 sm:py-24 lg:px-10 lg:py-28">
+      <div class="mx-auto max-w-7xl">
+        <div class="mb-14 flex flex-col gap-6 border-b-[5px] border-[#ef8700] pb-8 md:flex-row md:items-end md:justify-between">
+          <h2 class="text-5xl font-bold leading-none tracking-[-0.045em] text-balance sm:text-6xl lg:text-7xl">
+            How it <span class="text-[#ef8700]">works</span>
+          </h2>
+          <p class="max-w-md text-sm font-bold leading-7 text-pretty">
+            Pick up the camera, shoot the whole roll, return it during the posted windows, then join us for development if you want to watch the negatives come to life.
+          </p>
+        </div>
+
+        <ol aria-label="How the film event works" class="steps-list">
+          {FILM_EVENT_STEPS.map((step) => (
+            <li
+              class="step-row scroll-mt-40"
+              data-step={step.number}
+              id={step.number === 3 ? 'return-plan' : undefined}
+            >
+              <div class="step-number-wrap" aria-hidden="true">
+                <img
+                  src={step.numberAsset}
+                  alt=""
+                  width="500"
+                  height="500"
+                  class="step-number"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
+
+              <div class="step-copy">
+                <h3 class="text-3xl font-bold leading-tight tracking-[-0.035em] sm:text-4xl">
+                  {step.title}
+                </h3>
+                <time datetime={step.dateTime} class="mt-4 block text-sm font-bold text-[#d76f00]">
+                  {step.schedule}
+                </time>
+                <div class="mt-5 space-y-2 text-sm font-bold leading-7">
+                  {step.details.map((detail) => <p>{detail}</p>)}
+                </div>
+                {step.number === 3 && (
+                  <div class="mt-7">
+                    <FilmEventReturnDetails client:load />
+                  </div>
+                )}
+                {step.note && (
+                  <p class="mt-6 w-fit bg-[#ff5f45] px-4 py-3 text-sm font-bold leading-6">
+                    {step.note}
+                  </p>
+                )}
+              </div>
+
+            </li>
+          ))}
+        </ol>
+
+        <aside class="mt-20 grid overflow-hidden border-2 border-black lg:grid-cols-[0.9fr_1.1fr]" aria-labelledby="development-attendance-title">
+          <div class="bg-[#ef8700] p-7 sm:p-10">
+            <p class="text-[11px] font-bold uppercase tracking-[0.2em]">Sunday · Sept. 6</p>
+            <h2 id="development-attendance-title" class="mt-3 text-3xl font-bold leading-tight tracking-[-0.035em] sm:text-4xl">
+              Want to attend development?
+            </h2>
+          </div>
+          <div class="bg-[#ffcf2f] p-7 text-sm font-bold leading-7 sm:p-10">
+            <p>Participants are encouraged to be present.</p>
+            <p>You’ll be notified when your film is next in the queue.</p>
+            <p class="mt-3 w-fit border-2 border-black px-3 py-1.5">Attendance is optional.</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </div>
+</Layout>
+
+<style>
+  .film-event-page {
+    --film-ink: #171717;
+    --film-orange: #ef8700;
+    --film-yellow: #ffcf2f;
+    font-family: 'Space Mono', ui-monospace, monospace;
+  }
+
+  .hero-stage {
+    min-height: calc(100svh - 5rem);
+  }
+
+  .hero-title {
+    font-family: 'Space Mono', ui-monospace, monospace;
+    font-size: clamp(3rem, 7.2vw, 6rem);
+    letter-spacing: -0.04em;
+    line-height: 0.93;
+  }
+
+  .hero-title > span {
+    display: block;
+  }
+
+  .hero-title mark {
+    background: transparent;
+    color: var(--film-yellow);
+  }
+
+  .hero-camera {
+    transform: translate(-50%, -50%) rotate(8deg);
+    animation: camera-settle 850ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .vertical-rail {
+    position: absolute;
+    left: max(1rem, calc((100vw - 92rem) / 2));
+    top: 50%;
+    z-index: 20;
+    transform: translate(-90%, -50%) rotate(180deg);
+    writing-mode: vertical-rl;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .steps-list {
+    display: grid;
+    width: 100%;
+    max-width: 48rem;
+    margin-inline: auto;
+    gap: clamp(2.5rem, 4vw, 4rem);
+  }
+
+  .step-row {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    text-align: center;
+  }
+
+  .step-copy {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .step-number-wrap {
+    display: grid;
+    width: clamp(5rem, 7vw, 6rem);
+    height: clamp(5rem, 7vw, 6rem);
+    align-items: center;
+    justify-items: center;
+  }
+
+  .step-number {
+    width: clamp(5rem, 7vw, 6rem);
+    height: clamp(5rem, 7vw, 6rem);
+    object-fit: contain;
+  }
+
+  .step-row[data-step='1'] .step-number {
+    transform: rotate(-3deg);
+  }
+
+  .step-row[data-step='2'] .step-number {
+    transform: rotate(3deg);
+  }
+
+  .step-row[data-step='3'] .step-number {
+    transform: rotate(-2deg);
+  }
+
+  .step-row[data-step='4'] .step-number {
+    transform: rotate(2deg);
+  }
+
+  @keyframes camera-settle {
+    from {
+      opacity: 0.3;
+      transform: translate(-42%, -46%) rotate(15deg) scale(0.92);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%) rotate(8deg) scale(1);
+    }
+  }
+
+  @media (max-width: 639px) {
+    .hero-title {
+      font-size: clamp(2.75rem, 14.5vw, 4.25rem);
+    }
+
+    .hero-camera-stage {
+      margin: 1.5rem 0 0;
+      min-height: 340px;
+    }
+
+    .hero-camera {
+      width: min(108%, 430px);
+    }
+
+    .camera-box-stage {
+      min-height: 260px;
+    }
+
+    .camera-box {
+      bottom: 0;
+      width: min(82vw, 330px);
+    }
+
+    .step-number-wrap {
+      width: 5rem;
+      height: 5rem;
+    }
+
+    .step-number {
+      width: 5rem;
+      height: 5rem;
+    }
+  }
+
+  @media (min-width: 640px) and (max-width: 1023px) {
+    .hero-camera-stage {
+      margin-top: 4rem;
+      min-height: 680px;
+    }
+
+    .hero-camera {
+      position: relative;
+      inset: auto;
+      display: block;
+      margin-inline: auto;
+      width: min(88vw, 580px);
+      transform: rotate(8deg);
+      animation: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-camera {
+      animation: none;
+    }
+  }
+</style>
