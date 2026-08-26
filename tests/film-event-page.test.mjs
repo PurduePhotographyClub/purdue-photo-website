@@ -16,6 +16,7 @@ test("/film-event uses a route-scoped campaign theme", async () => {
   assert.match(route, /title=["']Film Event \| Purdue Photography Club["']/);
   assert.match(route, /showFloatingWidgets=\{false\}/);
   assert.match(route, /<FilmEventReturnDetails\s+client:load\s*\/>/);
+  assert.match(route, /Shoot a roll · Free development \+ scans · FUNDED BY SOGA/);
   assert.doesNotMatch(route, /step-arrow|arrow\.png/);
   assert.doesNotMatch(route, /<FilmEventGallery\s+client:visible\s*\/>/);
   assert.doesNotMatch(route, /id=["']member-photos["']/);
