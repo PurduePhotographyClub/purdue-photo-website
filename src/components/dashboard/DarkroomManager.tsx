@@ -25,6 +25,7 @@ interface Stats {
 interface LogEntry {
   id: string;
   userId: string;
+  filmStockId: string | null;
   userName: string;
   filmStockName: string;
   process: string;
@@ -70,6 +71,7 @@ interface LogResponse {
 }
 
 interface Props {
+  currentUserId: string;
   userRole: string;
   userTier: string | null;
 }
@@ -103,7 +105,11 @@ interface DarkroomManagerState {
   newFilmIso: string;
   newFilmProcess: string;
   addingFilm: boolean;
+  editingFilmStock: FilmStockOption | null;
+  deleteFilmStockId: string | null;
+  deletingFilmStock: boolean;
   deleteLogId: string | null;
+  editingLogId: string | null;
   deletingLog: boolean;
   filmRequests: FilmRequestEntry[];
   requestRolls: number;
@@ -136,7 +142,11 @@ const initialDarkroomManagerState: DarkroomManagerState = {
   newFilmIso: "",
   newFilmProcess: "C-41",
   addingFilm: false,
+  editingFilmStock: null,
+  deleteFilmStockId: null,
+  deletingFilmStock: false,
   deleteLogId: null,
+  editingLogId: null,
   deletingLog: false,
   filmRequests: [],
   requestRolls: 5,
@@ -154,7 +164,7 @@ export default function DarkroomManager(props: Props) {
   return <DarkroomManagerContent viewModel={viewModel} />;
 }
 
-function useDarkroomManagerViewModel({ userRole, userTier }: Props) {
+function useDarkroomManagerViewModel({ currentUserId, userRole, userTier }: Props) {
   const [state, dispatchState] = useReducer(
     keyedStateReducer<DarkroomManagerState>,
     initialDarkroomManagerState,
@@ -184,7 +194,11 @@ function useDarkroomManagerViewModel({ userRole, userTier }: Props) {
     newFilmIso,
     newFilmProcess,
     addingFilm,
+    editingFilmStock,
+    deleteFilmStockId,
+    deletingFilmStock,
     deleteLogId,
+    editingLogId,
     deletingLog,
     filmRequests,
     requestRolls,
@@ -216,7 +230,11 @@ function useDarkroomManagerViewModel({ userRole, userTier }: Props) {
     setNewFilmIso,
     setNewFilmProcess,
     setAddingFilm,
+    setEditingFilmStock,
+    setDeleteFilmStockId,
+    setDeletingFilmStock,
     setDeleteLogId,
+    setEditingLogId,
     setDeletingLog,
     setFilmRequests,
     setRequestRolls,
@@ -247,7 +265,11 @@ function useDarkroomManagerViewModel({ userRole, userTier }: Props) {
     setNewFilmIso: createKeyedStateSetter(dispatchState, "newFilmIso"),
     setNewFilmProcess: createKeyedStateSetter(dispatchState, "newFilmProcess"),
     setAddingFilm: createKeyedStateSetter(dispatchState, "addingFilm"),
+    setEditingFilmStock: createKeyedStateSetter(dispatchState, "editingFilmStock"),
+    setDeleteFilmStockId: createKeyedStateSetter(dispatchState, "deleteFilmStockId"),
+    setDeletingFilmStock: createKeyedStateSetter(dispatchState, "deletingFilmStock"),
     setDeleteLogId: createKeyedStateSetter(dispatchState, "deleteLogId"),
+    setEditingLogId: createKeyedStateSetter(dispatchState, "editingLogId"),
     setDeletingLog: createKeyedStateSetter(dispatchState, "deletingLog"),
     setFilmRequests: createKeyedStateSetter(dispatchState, "filmRequests"),
     setRequestRolls: createKeyedStateSetter(dispatchState, "requestRolls"),
@@ -315,24 +337,50 @@ function useDarkroomManagerViewModel({ userRole, userTier }: Props) {
     return filmStocks.filter((s) => s.name.toLowerCase().includes(q));
   }, [filmSearch, filmStocks]);
 
+  const handleEditLog = (log: LogEntry) => {
+    setEditingLogId(log.id);
+    setFilmStockId(log.filmStockId ?? "");
+    setFilmSearch(log.filmStockId ? log.filmStockName : "");
+    setFormat(log.format === "120" ? "120" : "35mm");
+    setRollCount(log.rollCount);
+    setIsoShotAt(log.isoShotAt?.toString() ?? "");
+    setExpired(log.expired);
+    setPushPull(log.pushPull);
+    setNotes(log.notes ?? "");
+    setError("");
+    setSuccess("");
+  };
+
   const handleSubmitLog = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!filmStockId) { setError("Please select a film stock."); return; }
+    const isEditing = Boolean(editingLogId);
+    if (!filmStockId && !isEditing) { setError("Please select a film stock."); return; }
     setError("");
     setSuccess("");
     setSubmitting(true);
     try {
-      const res = await fetchApi("/api/darkroom", {
-        method: "POST",
+      const body: Record<string, unknown> = {
+        format,
+        rollCount,
+        isoShotAt: isoShotAt || null,
+        expired,
+        pushPull,
+        notes: notes || null,
+      };
+      if (filmStockId) body.filmStockId = filmStockId;
+      const res = await fetchApi(isEditing ? `/api/darkroom/${editingLogId}` : "/api/darkroom", {
+        method: isEditing ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filmStockId, format, rollCount, isoShotAt: isoShotAt || null, expired, pushPull, notes: notes || null }),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
-        const data = await readJson<LogResponse>(res);
-        setSuccess("Development logged successfully!");
-        setCredits(data.remainingCredits);
+        if (!isEditing) {
+          const data = await readJson<LogResponse>(res);
+          setCredits(data.remainingCredits);
+        }
+        setSuccess(isEditing ? "Development log updated." : "Development logged successfully!");
         resetForm();
-        fetchAll();
+        void fetchAll();
       } else {
         setError(await readErrorMessage(res, "Failed to submit log."));
       }
@@ -352,7 +400,7 @@ function useDarkroomManagerViewModel({ userRole, userTier }: Props) {
       if (res.ok) {
         setSuccess("Log entry deleted.");
         setDeleteLogId(null);
-        fetchAll();
+        void fetchAll();
       } else {
         setError(await readErrorMessage(res, "Failed to delete log."));
       }
@@ -363,34 +411,96 @@ function useDarkroomManagerViewModel({ userRole, userTier }: Props) {
     }
   };
 
-  const handleAddFilmStock = async () => {
+  const handleSaveFilmStock = async () => {
     setError("");
     setAddingFilm(true);
+    const isEditing = Boolean(editingFilmStock);
     try {
-      const res = await fetchApi("/api/darkroom/film-stocks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newFilmName, brand: newFilmBrand || null, iso: newFilmIso || null, process: newFilmProcess }),
-      });
+      const res = await fetchApi(
+        isEditing ? `/api/darkroom/film-stocks/${editingFilmStock?.id}` : "/api/darkroom/film-stocks",
+        {
+          method: isEditing ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: newFilmName, brand: newFilmBrand || null, iso: newFilmIso || null, process: newFilmProcess }),
+        },
+      );
       if (res.ok) {
         const stock = await readJson<FilmStockOption>(res);
-        setFilmStocks((prev) => [...prev, stock].sort((a, b) => a.name.localeCompare(b.name)));
+        setFilmStocks((prev) => isEditing
+          ? prev.map((item) => item.id === stock.id ? stock : item).sort((a, b) => a.name.localeCompare(b.name))
+          : [...prev, stock].sort((a, b) => a.name.localeCompare(b.name)));
         setFilmStockId(stock.id);
         setFilmSearch(stock.name);
+        setEditingFilmStock(null);
         setNewFilmName("");
         setNewFilmBrand("");
         setNewFilmIso("");
         setShowAddFilm(false);
         setShowDropdown(false);
-        setSuccess("Film stock added!");
+        setSuccess(isEditing ? "Film stock updated." : "Film stock added!");
       } else {
-        setError(await readErrorMessage(res, "Failed to add film stock."));
+        setError(await readErrorMessage(res, isEditing ? "Failed to update film stock." : "Failed to add film stock."));
       }
     } catch {
-      setError("Failed to add film stock.");
+      setError(isEditing ? "Failed to update film stock." : "Failed to add film stock.");
     } finally {
       setAddingFilm(false);
     }
+  };
+
+  const handleEditFilmStock = (stock: FilmStockOption) => {
+    setEditingFilmStock(stock);
+    setNewFilmName(stock.name);
+    setNewFilmBrand(stock.brand ?? "");
+    setNewFilmIso(stock.iso?.toString() ?? "");
+    setNewFilmProcess(stock.process);
+    setShowAddFilm(true);
+    setShowDropdown(false);
+  };
+
+  const handleDeleteFilmStock = async () => {
+    if (!deleteFilmStockId) return;
+    setDeletingFilmStock(true);
+    setError("");
+    try {
+      const res = await fetchApi(`/api/darkroom/film-stocks/${deleteFilmStockId}`, { method: "DELETE" });
+      if (res.ok) {
+        setFilmStocks((prev) => prev.filter((stock) => stock.id !== deleteFilmStockId));
+        if (filmStockId === deleteFilmStockId) {
+          setFilmStockId("");
+          setFilmSearch("");
+        }
+        setEditingFilmStock(null);
+        setShowAddFilm(false);
+        setDeleteFilmStockId(null);
+        setSuccess("Film stock deleted. Existing logs now show No assigned.");
+      } else {
+        setError(await readErrorMessage(res, "Failed to delete film stock."));
+      }
+    } catch {
+      setError("Failed to delete film stock.");
+    } finally {
+      setDeletingFilmStock(false);
+    }
+  };
+
+  const handleCancelFilmStockForm = () => {
+    setEditingFilmStock(null);
+    setNewFilmName("");
+    setNewFilmBrand("");
+    setNewFilmIso("");
+    setNewFilmProcess("C-41");
+    setShowAddFilm(false);
+  };
+
+  const handleAddFilmStock = () => {
+    setEditingFilmStock(null);
+    setNewFilmName("");
+    setNewFilmBrand("");
+    setNewFilmIso("");
+    setNewFilmProcess("C-41");
+    setShowAddFilm(true);
+    setShowDropdown(false);
   };
 
   const resetForm = () => {
@@ -402,6 +512,12 @@ function useDarkroomManagerViewModel({ userRole, userTier }: Props) {
     setExpired(false);
     setPushPull(0);
     setNotes("");
+    setEditingLogId(null);
+  };
+
+  const handleCancelLogEdit = () => {
+    resetForm();
+    setError("");
   };
 
   const selectedStock = filmStocks.find((s) => s.id === filmStockId);
@@ -421,7 +537,7 @@ function useDarkroomManagerViewModel({ userRole, userTier }: Props) {
         setSuccess("Film request submitted! An officer will review it soon.");
         setRequestRolls(5);
         setRequestReason("");
-        fetchAll();
+        void fetchAll();
       } else {
         setError(await readErrorMessage(res, "Failed to submit request."));
       }
@@ -437,12 +553,18 @@ function useDarkroomManagerViewModel({ userRole, userTier }: Props) {
   return {
     activeTab,
     addingFilm,
+    currentUserId,
     canLog,
+    canManageFilmStocks: hasStaffAccess,
     canSchedule,
     credits,
+    deleteFilmStockId,
     deleteLogId,
+    deletingFilmStock,
     deletingLog,
     dropdownRef,
+    editingFilmStock,
+    editingLogId,
     error,
     expired,
     filmRequests,
@@ -451,7 +573,13 @@ function useDarkroomManagerViewModel({ userRole, userTier }: Props) {
     filteredStocks,
     format,
     handleAddFilmStock,
+    handleCancelFilmStockForm,
+    handleCancelLogEdit,
+    handleDeleteFilmStock,
     handleDeleteLog,
+    handleEditFilmStock,
+    handleEditLog,
+    handleSaveFilmStock,
     handleSubmitLog,
     handleSubmitRequest,
     hasPendingRequest,
@@ -471,6 +599,7 @@ function useDarkroomManagerViewModel({ userRole, userTier }: Props) {
     selectedStock,
     selectClass,
     setActiveTab,
+    setDeleteFilmStockId,
     setDeleteLogId,
     setError,
     setExpired,
@@ -505,12 +634,17 @@ function DarkroomManagerContent({ viewModel }: { viewModel: ReturnType<typeof us
     activeTab,
     addingFilm,
     canLog,
+    canManageFilmStocks,
     canSchedule,
     credits,
+    deleteFilmStockId,
     deleteLogId,
+    deletingFilmStock,
     deletingLog,
     dropdownRef,
     error,
+    editingFilmStock,
+    editingLogId,
     expired,
     filmRequests,
     filmSearch,
@@ -518,7 +652,13 @@ function DarkroomManagerContent({ viewModel }: { viewModel: ReturnType<typeof us
     filteredStocks,
     format,
     handleAddFilmStock,
+    handleCancelFilmStockForm,
+    handleCancelLogEdit,
+    handleDeleteFilmStock,
     handleDeleteLog,
+    handleEditFilmStock,
+    handleEditLog,
+    handleSaveFilmStock,
     handleSubmitLog,
     handleSubmitRequest,
     hasPendingRequest,
@@ -537,6 +677,7 @@ function DarkroomManagerContent({ viewModel }: { viewModel: ReturnType<typeof us
     selectedStock,
     selectClass,
     setActiveTab,
+    setDeleteFilmStockId,
     setDeleteLogId,
     setError,
     setExpired,
@@ -608,7 +749,10 @@ function DarkroomManagerContent({ viewModel }: { viewModel: ReturnType<typeof us
           <DevelopmentLogPanel
             addingFilm={addingFilm}
             canLog={canLog}
+            canManageFilmStocks={canManageFilmStocks}
             dropdownRef={dropdownRef}
+            editingFilmStock={editingFilmStock}
+            editingLogId={editingLogId}
             expired={expired}
             filmSearch={filmSearch}
             filmStockId={filmStockId}
@@ -628,7 +772,7 @@ function DarkroomManagerContent({ viewModel }: { viewModel: ReturnType<typeof us
             showAddFilm={showAddFilm}
             showDropdown={showDropdown}
             submitting={submitting}
-            onAddFilmStock={handleAddFilmStock}
+            onAddFilmStock={handleSaveFilmStock}
             onExpiredChange={setExpired}
             onFilmBrandChange={setNewFilmBrand}
             onFilmIsoChange={setNewFilmIso}
@@ -640,13 +784,11 @@ function DarkroomManagerContent({ viewModel }: { viewModel: ReturnType<typeof us
               setShowDropdown(true);
             }}
             onFormatChange={setFormat}
-            onHideAddFilm={() => setShowAddFilm(false)}
+            onHideAddFilm={handleCancelFilmStockForm}
+            onCancelLogEdit={handleCancelLogEdit}
             onIsoShotAtChange={setIsoShotAt}
             onNotesChange={setNotes}
-            onOpenAddFilm={() => {
-              setShowAddFilm(true);
-              setShowDropdown(false);
-            }}
+            onOpenAddFilm={handleAddFilmStock}
             onPushPullChange={setPushPull}
             onRollCountChange={setRollCount}
             onSelectStock={(stock) => {
@@ -654,13 +796,16 @@ function DarkroomManagerContent({ viewModel }: { viewModel: ReturnType<typeof us
               setFilmSearch(stock.name);
               setShowDropdown(false);
             }}
+            onEditFilmStock={handleEditFilmStock}
+            onDeleteFilmStock={(stock) => setDeleteFilmStockId(stock.id)}
             onShowDropdownChange={setShowDropdown}
             onSubmitLog={handleSubmitLog}
           />
           <RecentDevelopmentLogs
-            canLog={canLog}
+            currentUserId={viewModel.currentUserId}
             recentLogs={recentLogs}
             userRole={userRole}
+            onEditLog={handleEditLog}
             onDeleteLog={setDeleteLogId}
           />
         </>
@@ -670,6 +815,12 @@ function DarkroomManagerContent({ viewModel }: { viewModel: ReturnType<typeof us
         deletingLog={deletingLog}
         onCancel={() => setDeleteLogId(null)}
         onDelete={handleDeleteLog}
+      />
+      <DeleteFilmStockModal
+        deleteFilmStockId={deleteFilmStockId}
+        deletingFilmStock={deletingFilmStock}
+        onCancel={() => setDeleteFilmStockId(null)}
+        onDelete={handleDeleteFilmStock}
       />
     </div>
   );
@@ -1018,7 +1169,10 @@ function FormatProgress({ label, pct, rolls, tone }: { label: string; pct: numbe
 interface DevelopmentLogPanelProps {
   addingFilm: boolean;
   canLog: boolean;
+  canManageFilmStocks: boolean;
   dropdownRef: RefObject<HTMLDivElement | null>;
+  editingFilmStock: FilmStockOption | null;
+  editingLogId: string | null;
   expired: boolean;
   filmSearch: string;
   filmStockId: string;
@@ -1046,6 +1200,7 @@ interface DevelopmentLogPanelProps {
   onFilmProcessChange: (value: string) => void;
   onFilmSearchChange: (value: string) => void;
   onFormatChange: (value: DarkroomManagerState["format"]) => void;
+  onCancelLogEdit: () => void;
   onHideAddFilm: () => void;
   onIsoShotAtChange: (value: string) => void;
   onNotesChange: (value: string) => void;
@@ -1053,6 +1208,8 @@ interface DevelopmentLogPanelProps {
   onPushPullChange: (value: number) => void;
   onRollCountChange: (value: number) => void;
   onSelectStock: (stock: FilmStockOption) => void;
+  onEditFilmStock: (stock: FilmStockOption) => void;
+  onDeleteFilmStock: (stock: FilmStockOption) => void;
   onShowDropdownChange: (value: boolean) => void;
   onSubmitLog: (event: FormEvent<HTMLFormElement>) => void | Promise<void>;
 }
@@ -1060,7 +1217,10 @@ interface DevelopmentLogPanelProps {
 function DevelopmentLogPanel({
   addingFilm,
   canLog,
+  canManageFilmStocks,
   dropdownRef,
+  editingFilmStock,
+  editingLogId,
   expired,
   filmSearch,
   filmStockId,
@@ -1088,6 +1248,7 @@ function DevelopmentLogPanel({
   onFilmProcessChange,
   onFilmSearchChange,
   onFormatChange,
+  onCancelLogEdit,
   onHideAddFilm,
   onIsoShotAtChange,
   onNotesChange,
@@ -1095,10 +1256,12 @@ function DevelopmentLogPanel({
   onPushPullChange,
   onRollCountChange,
   onSelectStock,
+  onEditFilmStock,
+  onDeleteFilmStock,
   onShowDropdownChange,
   onSubmitLog,
 }: DevelopmentLogPanelProps) {
-  if (!canLog) {
+  if (!canLog && !editingLogId) {
     return (
       <AccessUpsellPanel
         eyebrow="Facilities unlock"
@@ -1121,8 +1284,11 @@ function DevelopmentLogPanel({
           filmSearch={filmSearch}
           filteredStocks={filteredStocks}
           inputClass={inputClass}
+          canManageFilmStocks={canManageFilmStocks}
           showDropdown={showDropdown}
           onAddNew={onOpenAddFilm}
+          onEditFilmStock={onEditFilmStock}
+          onDeleteFilmStock={onDeleteFilmStock}
           onSearchChange={onFilmSearchChange}
           onSelectStock={onSelectStock}
           onShowDropdownChange={onShowDropdownChange}
@@ -1131,6 +1297,7 @@ function DevelopmentLogPanel({
         {showAddFilm && (
           <AddFilmStockForm
             addingFilm={addingFilm}
+            editingFilmStock={editingFilmStock}
             inputClass={inputClass}
             newFilmBrand={newFilmBrand}
             newFilmIso={newFilmIso}
@@ -1193,34 +1360,45 @@ function DevelopmentLogPanel({
           <input id="DarkroomManager-notes-optional" aria-label="Any extra details" type="text" placeholder="Any extra details" value={notes} onChange={(e) => onNotesChange(e.target.value)} className={inputClass} />
         </div>
 
-        <button type="submit" disabled={submitting || !filmStockId}
+        <button type="submit" disabled={submitting || (!filmStockId && !editingLogId)}
           className="px-6 py-2.5 bg-white text-black text-[10px] tracking-[0.15em] uppercase hover:bg-neutral-200 transition-colors disabled:opacity-50">
-          {submitting ? "Submitting" : "Submit Log"}
+          {submitting ? "Saving" : editingLogId ? "Save Log Changes" : "Submit Log"}
         </button>
+        {editingLogId && (
+          <button type="button" onClick={onCancelLogEdit} className="ml-3 text-[10px] text-neutral-600 hover:text-white transition-colors">
+            Cancel log edit
+          </button>
+        )}
       </form>
     </div>
   );
 }
 
 interface FilmStockPickerProps {
+  canManageFilmStocks: boolean;
   dropdownRef: RefObject<HTMLDivElement | null>;
   filmSearch: string;
   filteredStocks: FilmStockOption[];
   inputClass: string;
   showDropdown: boolean;
   onAddNew: () => void;
+  onEditFilmStock: (stock: FilmStockOption) => void;
+  onDeleteFilmStock: (stock: FilmStockOption) => void;
   onSearchChange: (value: string) => void;
   onSelectStock: (stock: FilmStockOption) => void;
   onShowDropdownChange: (value: boolean) => void;
 }
 
 function FilmStockPicker({
+  canManageFilmStocks,
   dropdownRef,
   filmSearch,
   filteredStocks,
   inputClass,
   showDropdown,
   onAddNew,
+  onEditFilmStock,
+  onDeleteFilmStock,
   onSearchChange,
   onSelectStock,
   onShowDropdownChange,
@@ -1242,14 +1420,21 @@ function FilmStockPicker({
             <p className="px-3 py-2 text-xs text-neutral-600">No matches</p>
           ) : (
             filteredStocks.map((stock) => (
-              <button
-                key={stock.id}
-                type="button"
-                onClick={() => onSelectStock(stock)}
-                className="block w-full text-left px-3 py-2 text-xs text-neutral-300 hover:bg-white/5 transition-colors"
-              >
-                {stock.name} <span className="text-neutral-600 ml-1">({stock.process})</span>
-              </button>
+              <div key={stock.id} className="flex items-center border-b border-neutral-900 last:border-0">
+                <button
+                  type="button"
+                  onClick={() => onSelectStock(stock)}
+                  className="flex-1 min-w-0 text-left px-3 py-2 text-xs text-neutral-300 hover:bg-white/5 transition-colors"
+                >
+                  {stock.name} <span className="text-neutral-600 ml-1">({stock.process})</span>
+                </button>
+                {canManageFilmStocks && (
+                  <div className="flex items-center gap-2 px-2">
+                    <button type="button" aria-label={`Edit film stock ${stock.name}`} onClick={() => onEditFilmStock(stock)} className="text-[9px] uppercase tracking-wider text-neutral-500 hover:text-white">Edit</button>
+                    <button type="button" aria-label={`Delete film stock ${stock.name}`} onClick={() => onDeleteFilmStock(stock)} className="text-[9px] uppercase tracking-wider text-red-300 hover:text-red-200">Delete</button>
+                  </div>
+                )}
+              </div>
             ))
           )}
           <button
@@ -1267,6 +1452,7 @@ function FilmStockPicker({
 
 interface AddFilmStockFormProps {
   addingFilm: boolean;
+  editingFilmStock: FilmStockOption | null;
   inputClass: string;
   newFilmBrand: string;
   newFilmIso: string;
@@ -1283,6 +1469,7 @@ interface AddFilmStockFormProps {
 
 function AddFilmStockForm({
   addingFilm,
+  editingFilmStock,
   inputClass,
   newFilmBrand,
   newFilmIso,
@@ -1298,7 +1485,7 @@ function AddFilmStockForm({
 }: AddFilmStockFormProps) {
   return (
     <div className="border border-dashed border-neutral-700 p-4 space-y-3">
-      <p className="text-[10px] tracking-wider uppercase text-neutral-500">Add New Film Stock</p>
+      <p className="text-[10px] tracking-wider uppercase text-neutral-500">{editingFilmStock ? "Edit Film Stock" : "Add New Film Stock"}</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <input aria-label="Film name" type="text" placeholder="Film name (e.g. Kodak Gold 200)" value={newFilmName} onChange={(e) => onFilmNameChange(e.target.value)} required className={inputClass} />
         <input aria-label="Brand" type="text" placeholder="Brand (optional)" value={newFilmBrand} onChange={(e) => onFilmBrandChange(e.target.value)} className={inputClass} />
@@ -1313,7 +1500,7 @@ function AddFilmStockForm({
       </div>
       <div className="flex gap-3">
         <button type="button" onClick={onAddFilmStock} disabled={addingFilm || !newFilmName.trim()} className="px-4 py-2 bg-white text-black text-[10px] tracking-[0.1em] uppercase hover:bg-neutral-200 transition-colors disabled:opacity-50">
-          {addingFilm ? "Adding" : "Add Film"}
+          {addingFilm ? "Saving" : editingFilmStock ? "Save Film Stock" : "Add Film"}
         </button>
         <button type="button" onClick={onCancel} className="text-[10px] text-neutral-600 hover:text-white transition-colors">Cancel</button>
       </div>
@@ -1322,13 +1509,14 @@ function AddFilmStockForm({
 }
 
 interface RecentDevelopmentLogsProps {
-  canLog: boolean;
+  currentUserId: string;
   recentLogs: LogEntry[];
   userRole: string;
+  onEditLog: (log: LogEntry) => void;
   onDeleteLog: (logId: string) => void;
 }
 
-function RecentDevelopmentLogs({ canLog, recentLogs, userRole, onDeleteLog }: RecentDevelopmentLogsProps) {
+function RecentDevelopmentLogs({ currentUserId, recentLogs, userRole, onEditLog, onDeleteLog }: RecentDevelopmentLogsProps) {
   return (
     <div>
       <p className="text-[9px] tracking-[0.3em] uppercase text-neutral-600 mb-4">Recent Logs</p>
@@ -1340,8 +1528,8 @@ function RecentDevelopmentLogs({ canLog, recentLogs, userRole, onDeleteLog }: Re
             <div key={log.id} className="bg-white/[0.02] border border-neutral-800 p-4 flex items-center gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm text-neutral-200">{log.filmStockName}</span>
-                  <span className="text-[9px] px-1.5 py-0.5 border border-neutral-800 text-neutral-500">{log.process}</span>
+                  <span className="text-sm text-neutral-200">{log.filmStockName || "No assigned"}</span>
+                  <span className="text-[9px] px-1.5 py-0.5 border border-neutral-800 text-neutral-500">{log.process || "No assigned"}</span>
                   <span className="text-[10px] text-neutral-400">{log.format}</span>
                   <span className="text-[10px] text-neutral-400">×{log.rollCount}</span>
                   {log.expired && <span className="text-[10px] text-amber-500">Expired</span>}
@@ -1353,10 +1541,11 @@ function RecentDevelopmentLogs({ canLog, recentLogs, userRole, onDeleteLog }: Re
                   <span className="text-[12px] text-neutral-400">{new Date(log.createdAt).toLocaleDateString()}</span>
                 </div>
               </div>
-              {(userRole === "admin" || userRole === "officer" || (canLog && log.userId === "self")) && (
-                <button type="button" onClick={() => onDeleteLog(log.id)} className="text-[10px] text-red-200 hover:text-red-400 transition-colors flex-shrink-0">
-                  Delete
-                </button>
+              {(userRole === "admin" || userRole === "officer" || log.userId === currentUserId) && (
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <button type="button" onClick={() => onEditLog(log)} className="text-[10px] text-neutral-400 hover:text-white transition-colors">Edit</button>
+                  <button type="button" onClick={() => onDeleteLog(log.id)} className="text-[10px] text-red-200 hover:text-red-400 transition-colors">Delete</button>
+                </div>
               )}
             </div>
           ))}
@@ -1404,6 +1593,44 @@ function DeleteLogModal({ deleteLogId, deletingLog, onCancel, onDelete }: Delete
             disabled={deletingLog}
             className="px-4 py-2 border border-neutral-800 text-[10px] tracking-wider uppercase text-neutral-500 hover:text-neutral-300 transition-colors disabled:opacity-50"
           >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface DeleteFilmStockModalProps {
+  deleteFilmStockId: string | null;
+  deletingFilmStock: boolean;
+  onCancel: () => void;
+  onDelete: () => void | Promise<void>;
+}
+
+function DeleteFilmStockModal({ deleteFilmStockId, deletingFilmStock, onCancel, onDelete }: DeleteFilmStockModalProps) {
+  if (!deleteFilmStockId) return null;
+
+  return (
+    <div className="fixed inset-0 z-[120] flex h-dvh w-dvw items-center justify-center bg-black/80 p-4">
+      <button type="button" aria-label="Close delete film stock dialog" className="absolute inset-0 cursor-default" onMouseDown={onCancel} />
+      <div className="relative z-10 bg-neutral-950 border border-red-900/30 p-6 max-w-sm w-full">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm tracking-wider text-red-400">Delete Film Stock</h3>
+          <button type="button" aria-label="Close delete film stock dialog" disabled={deletingFilmStock} onClick={onCancel} className="text-neutral-600 hover:text-neutral-400 disabled:opacity-50">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <p className="text-xs text-neutral-400 mb-6">
+          Delete this film stock? Existing logs will be kept and show No assigned.
+        </p>
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={onDelete} disabled={deletingFilmStock} className="px-4 py-2 bg-red-600 text-[10px] tracking-wider uppercase text-white hover:bg-red-700 transition-colors disabled:opacity-50">
+            {deletingFilmStock ? "Deleting" : "Delete Film Stock"}
+          </button>
+          <button type="button" onClick={onCancel} disabled={deletingFilmStock} className="px-4 py-2 border border-neutral-800 text-[10px] tracking-wider uppercase text-neutral-500 hover:text-neutral-300 transition-colors disabled:opacity-50">
             Cancel
           </button>
         </div>

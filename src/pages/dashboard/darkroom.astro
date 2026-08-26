@@ -16,6 +16,6 @@ const user = Astro.locals.user!;
       Film development stats and logging.
     </p>
 
-    <DarkroomManager client:load userRole={user.role || 'member'} userTier={user.tier} />
+    <DarkroomManager client:load currentUserId={user.id} userRole={user.role || 'member'} userTier={user.tier} />
   </div>
 </DashboardLayout>
