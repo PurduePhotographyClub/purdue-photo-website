@@ -88,6 +88,17 @@ const eventStructuredData = JSON.stringify({
             fetchpriority="high"
             decoding="async"
           />
+          <figure class="soga-credit" aria-label="Film event support from SOGA">
+            <figcaption>With support from</figcaption>
+            <img
+              src="/film-event/soga-logo.png"
+              alt="SOGA logo"
+              width="214"
+              height="238"
+              loading="eager"
+              decoding="async"
+            />
+          </figure>
           <div class="absolute bottom-1 left-1/2 z-20 w-[min(88%,390px)] -translate-x-1/2 rotate-[-2deg] border-[3px] border-black bg-[#ffcf2f] px-5 py-4 text-center shadow-[8px_8px_0_#171717] sm:bottom-5">
             <p class="text-2xl font-bold uppercase tracking-[-0.04em] sm:text-3xl">1–4 PM</p>
             <p class="mt-1 text-xs font-bold uppercase tracking-[0.13em]">Outside WALC</p>
@@ -232,6 +243,40 @@ const eventStructuredData = JSON.stringify({
     animation: camera-settle 850ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
+  .soga-credit {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 30;
+    display: flex;
+    width: 8.75rem;
+    flex-direction: column;
+    align-items: center;
+    border: 2px solid var(--film-ink);
+    background: white;
+    padding: 0.7rem 0.7rem 0.8rem;
+    box-shadow: 8px 8px 0 var(--film-ink);
+    transform: rotate(4deg);
+  }
+
+  .soga-credit figcaption {
+    width: 100%;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .soga-credit img {
+    display: block;
+    width: 100%;
+    height: 5.25rem;
+    margin-top: 0.35rem;
+    object-fit: cover;
+    object-position: center;
+  }
+
   .vertical-rail {
     position: absolute;
     left: max(1rem, calc((100vw - 92rem) / 2));
@@ -320,6 +365,17 @@ const eventStructuredData = JSON.stringify({
 
     .hero-camera {
       width: min(108%, 430px);
+    }
+
+    .soga-credit {
+      top: 0;
+      right: 0;
+      width: 7.75rem;
+      padding: 0.6rem 0.6rem 0.7rem;
+    }
+
+    .soga-credit img {
+      height: 4.5rem;
     }
 
     .camera-box-stage {

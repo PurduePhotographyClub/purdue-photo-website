@@ -42,6 +42,7 @@ test("the page uses the supplied artwork as responsive decorative assets", async
   const assets = [
     "lomography-box.png",
     "camera.png",
+    "soga-logo.png",
     "one.png",
     "two.png",
     "three.png",
@@ -70,6 +71,10 @@ test("the page uses the supplied artwork as responsive decorative assets", async
     assert.match(source, new RegExp(`/film-event/${asset.replace(".", "\\.")}`));
   }
   assert.match(route, /<ol[^>]*aria-label=["']How the film event works["']/);
+  assert.match(route, /class=["'][^"']*soga-credit[^"']*["']/);
+  assert.match(route, /src=["']\/film-event\/soga-logo\.png["']/);
+  assert.match(route, /alt=["']SOGA logo["']/);
+  assert.match(route, /With support from/);
   assert.match(route, /data-step=\{step\.number\}/);
   assert.doesNotMatch(route, /step-arrow|arrow\.png/);
   assert.match(route, /motion-reduce:/);
