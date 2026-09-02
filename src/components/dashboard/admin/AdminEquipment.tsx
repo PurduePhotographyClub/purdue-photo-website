@@ -6,6 +6,7 @@ import {
 } from "react";
 import { fetchApi, readErrorMessage, readJson } from "@/lib/http";
 import BestBuyEquipmentLookup, { type EquipmentAutofill } from "@/components/dashboard/BestBuyEquipmentLookup";
+import EquipmentScanner from "@/components/dashboard/admin/EquipmentScanner";
 import { EQUIPMENT_CATEGORIES, getEquipmentCategoryLabel, normalizeEquipmentCategory } from "@/lib/equipment";
 
 // ========================
@@ -75,7 +76,7 @@ interface HistoryResponse {
   history?: AuditEntry[];
 }
 
-type View = "ppc" | "loans" | "history";
+type View = "scanner" | "ppc" | "loans" | "history";
 
 interface EquipmentForm {
   name: string;
@@ -142,7 +143,7 @@ const initialAdminEquipmentState: AdminEquipmentState = {
   search: "",
   showAddPpc: false,
   success: "",
-  view: "ppc",
+  view: "scanner",
 };
 
 function adminEquipmentReducer(state: AdminEquipmentState, action: AdminEquipmentAction): AdminEquipmentState {
@@ -176,6 +177,7 @@ const ACTION_LABELS: Record<string, string> = {
   deleted: "Deleted",
   loan_requested: "Loan Requested",
   loan_approved: "Loan Approved",
+  loan_checked_out: "Loan Checked Out",
   loan_rejected: "Loan Rejected",
   return_requested: "Return Requested",
   loan_returned: "Loan Returned",
@@ -212,6 +214,7 @@ const actionColor: Record<string, string> = {
   deleted: "text-red-400",
   loan_requested: "text-yellow-400",
   loan_approved: "text-green-400",
+  loan_checked_out: "text-blue-400",
   loan_rejected: "text-red-400",
   return_requested: "text-orange-400",
   loan_returned: "text-neutral-400",
@@ -675,7 +678,11 @@ function useAdminEquipmentViewModel() {
       if (res.ok) {
         setApprovingId(null);
         setApproveDueDate("");
-        setSuccess(`Loan ${action === "return" ? "return submitted" : action === "confirm_return" ? "return confirmed" : action === "reject" ? "rejected" : "approved"} successfully`);
+        setSuccess(
+          action === "approve"
+            ? "Loan approved. Scan the item at pickup to check it out."
+            : `Loan ${action === "return" ? "return submitted" : action === "confirm_return" ? "return confirmed" : "rejected"} successfully`,
+        );
         refresh();
       } else {
         setError(await readErrorMessage(res, `Failed to ${action} loan.`));
@@ -741,7 +748,11 @@ function useAdminEquipmentViewModel() {
               {item.condition}
             </span>
           )}
-          {item.isAvailable ? (
+          {item.activeLoan?.status === "approved" ? (
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-blue-500/10 border border-blue-900/40 text-[9px] tracking-[0.1em] uppercase text-blue-400">
+              <span className="size-1.5 rounded-full bg-blue-400" /> Awaiting Checkout
+            </span>
+          ) : item.isAvailable ? (
             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-green-500/10 border border-green-900/40 text-[9px] tracking-[0.1em] uppercase text-green-400">
               <span className="size-1.5 rounded-full bg-green-400" /> Available
             </span>
@@ -937,6 +948,7 @@ function useAdminEquipmentViewModel() {
     loans,
     ppcForm,
     ppcItems,
+    refresh,
     renderEquipmentCard,
     renderHistoryTab,
     saving,
@@ -985,6 +997,7 @@ function AdminEquipmentContent({ viewModel }: { viewModel: ReturnType<typeof use
     loans,
     ppcForm,
     ppcItems,
+    refresh,
     renderEquipmentCard,
     renderHistoryTab,
     saving,
@@ -1060,10 +1073,15 @@ function AdminEquipmentContent({ viewModel }: { viewModel: ReturnType<typeof use
 
       {/* Tab bar */}
       <div className="flex border-b border-neutral-800 overflow-x-auto">
+        <button type="button" className={tabClass(view === "scanner")} onClick={() => handleViewChange("scanner")}>Scan Station</button>
         <button type="button" className={tabClass(view === "ppc")} onClick={() => handleViewChange("ppc")}>PPC ({ppcItems.length})</button>
         <button type="button" className={tabClass(view === "loans")} onClick={() => handleViewChange("loans")}>Loan Requests ({loans.length})</button>
         <button type="button" className={tabClass(view === "history")} onClick={() => handleViewChange("history")}>History</button>
       </div>
+
+      {view === "scanner" && (
+        <EquipmentScanner items={items} onCompleted={refresh} />
+      )}
 
       {/* Search (for equipment tabs) */}
       {view === "ppc" && (
@@ -1152,6 +1170,9 @@ function AdminEquipmentContent({ viewModel }: { viewModel: ReturnType<typeof use
                       )}
                       {loan.status === "active" && (
                         <button type="button" onClick={() => handleLoanAction(loan.id, "return")} className={btnOutline}>Mark Returned</button>
+                      )}
+                      {loan.status === "approved" && (
+                        <span className="text-[10px] uppercase tracking-[0.1em] text-blue-400">Awaiting scan checkout</span>
                       )}
                       {loan.status === "pending_return" && (
                         <button type="button" onClick={() => handleLoanAction(loan.id, "confirm_return")} className="px-3 py-1.5 bg-white text-black text-[10px] tracking-[0.1em] uppercase hover:bg-neutral-200 transition-colors">Confirm Return</button>
