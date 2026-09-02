@@ -1080,7 +1080,7 @@ function AdminEquipmentContent({ viewModel }: { viewModel: ReturnType<typeof use
       </div>
 
       {view === "scanner" && (
-        <EquipmentScanner items={items} onCompleted={refresh} />
+        <EquipmentScanner onCompleted={refresh} />
       )}
 
       {/* Search (for equipment tabs) */}
