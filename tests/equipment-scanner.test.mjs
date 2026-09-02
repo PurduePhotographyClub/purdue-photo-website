@@ -16,12 +16,14 @@ test("the PPC scanner uses keyboard HID input with an explicit checkout or retur
 
   assert.match(scanner, /type ScanAction = "checkout" \| "return"/);
   assert.match(scanner, /<form[\s\S]*onSubmit=/);
-  assert.match(scanner, /autoFocus/);
   assert.match(scanner, /inputRef\.current\?\.focus\(\)/);
   assert.match(scanner, /fetchApi\("\/api\/equipment\/scan"/);
   assert.match(scanner, /aria-live="polite"/);
-  assert.match(scanner, /Code 128/);
-  assert.match(scanner, /Enter suffix/);
+  assert.match(scanner, /Desk mode/);
+  assert.match(scanner, /Scan or type an asset tag/);
+  assert.doesNotMatch(scanner, /NETUM setup/);
+  assert.doesNotMatch(scanner, /Code 128 label values/);
+  assert.doesNotMatch(scanner, /Enter suffix/);
   assert.doesNotMatch(scanner, /navigator\.bluetooth|requestDevice/);
 });
 
@@ -33,6 +35,18 @@ test("scanner results keep the selected mode so duplicate scans cannot reverse a
   assert.doesNotMatch(scanner, /setAction\(action === "checkout" \? "return"/);
 });
 
+test("checkout supports an approved request or an explicit walk-up borrower and due date", async () => {
+  const scanner = await readFile(scannerPath, "utf8");
+
+  assert.match(scanner, /Walk-up checkout/);
+  assert.match(scanner, /Search members by name or email/);
+  assert.match(scanner, /type="date"/);
+  assert.match(scanner, /borrowerId/);
+  assert.match(scanner, /dueDate/);
+  assert.match(scanner, /direct_checkout_details_required/);
+  assert.match(scanner, /\/api\/equipment\/scan\?search=/);
+});
+
 test("the admin equipment page exposes the scan station and refreshes after a scan", async () => {
   const adminEquipment = await readFile(adminEquipmentPath, "utf8");
 
@@ -40,4 +54,5 @@ test("the admin equipment page exposes the scan station and refreshes after a sc
   assert.match(adminEquipment, /type View = "scanner" \| "ppc" \| "loans" \| "history"/);
   assert.match(adminEquipment, />Scan Station</);
   assert.match(adminEquipment, /<EquipmentScanner[\s\S]*onCompleted=\{refresh\}/);
+  assert.doesNotMatch(adminEquipment, /<EquipmentScanner\s+items=/);
 });
