@@ -16,12 +16,14 @@ test("the PPC scanner uses keyboard HID input with an explicit checkout or retur
 
   assert.match(scanner, /type ScanAction = "checkout" \| "return"/);
   assert.match(scanner, /<form[\s\S]*onSubmit=/);
-  assert.match(scanner, /autoFocus/);
   assert.match(scanner, /inputRef\.current\?\.focus\(\)/);
   assert.match(scanner, /fetchApi\("\/api\/equipment\/scan"/);
   assert.match(scanner, /aria-live="polite"/);
-  assert.match(scanner, /Code 128/);
-  assert.match(scanner, /Enter suffix/);
+  assert.match(scanner, /Desk mode/);
+  assert.match(scanner, /Scan or type an asset tag/);
+  assert.doesNotMatch(scanner, /NETUM setup/);
+  assert.doesNotMatch(scanner, /Code 128 label values/);
+  assert.doesNotMatch(scanner, /Enter suffix/);
   assert.doesNotMatch(scanner, /navigator\.bluetooth|requestDevice/);
 });
 
