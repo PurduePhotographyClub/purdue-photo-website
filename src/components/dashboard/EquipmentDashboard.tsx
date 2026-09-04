@@ -6,7 +6,9 @@ import {
 } from "react";
 import { Lock, UserRound } from "lucide-react";
 import useSWR from "swr";
+import ModalDialog from "@/components/ModalDialog";
 import AccessUpsellPanel from "@/components/dashboard/AccessUpsellPanel";
+import EquipmentDetailsModal from "@/components/dashboard/EquipmentDetailsModal";
 import MarkdownMessage from "@/components/dashboard/MarkdownMessage";
 import {
   fetchApi,
@@ -148,6 +150,7 @@ interface EquipmentDashboardState {
   expandedLoans: Set<string>;
   approvingId: string | null;
   approveDueDate: string;
+  detailsTarget: EquipmentItem | null;
   deleteTarget: EquipmentItem | null;
   deleting: boolean;
   editTarget: EquipmentItem | null;
@@ -199,6 +202,7 @@ const initialEquipmentDashboardState: EquipmentDashboardState = {
   expandedLoans: new Set(),
   approvingId: null,
   approveDueDate: "",
+  detailsTarget: null,
   deleteTarget: null,
   deleting: false,
   editTarget: null,
@@ -390,10 +394,15 @@ function BorrowEquipmentModal({
   const isPersonalGear = item.ownerId !== null;
 
   return (
-    <div className="fixed inset-0 z-[120] flex h-dvh w-dvw items-center justify-center bg-black/75 px-4 backdrop-blur-sm">
-      <button type="button" aria-label="Close borrow request dialog" className="absolute inset-0 cursor-default" onMouseDown={onClose} />
-      <div className="relative z-10 w-full max-w-2xl rounded-sm border border-neutral-800 bg-neutral-950 shadow-2xl shadow-black/60">
-        <div className="space-y-5 p-5 sm:p-6">
+    <ModalDialog
+      ariaLabel={`Borrow ${item.name}`}
+      className="flex items-end justify-center bg-black/75 p-2 backdrop-blur-sm sm:items-center sm:p-6"
+      onClose={onClose}
+      preventClose={borrowSubmitting}
+    >
+      <button type="button" tabIndex={-1} aria-label="Close borrow request dialog" className="absolute inset-0 cursor-default" onMouseDown={() => !borrowSubmitting && onClose()} />
+      <div className="relative z-10 max-h-[calc(100dvh-1rem)] w-full max-w-2xl overflow-y-auto rounded-sm border border-neutral-800 bg-neutral-950 shadow-2xl shadow-black/60 sm:max-h-[calc(100dvh-3rem)]">
+        <div className="space-y-5 px-5 pt-5 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6">
           <div className="space-y-3">
             <p className="text-[9px] uppercase tracking-[0.3em] text-neutral-500">Borrow Request</p>
             <div className="space-y-1.5">
@@ -420,6 +429,13 @@ function BorrowEquipmentModal({
               <p className="text-xs text-neutral-300">{isPersonalGear ? "Personal gear" : "PPC equipment"}</p>
             </div>
           </div>
+
+          {item.description && (
+            <div className="border border-neutral-800 bg-white/[0.02] p-4">
+              <p className="mb-2 text-[10px] uppercase tracking-[0.18em] text-neutral-500">Description</p>
+              <p className="whitespace-pre-wrap break-words text-xs leading-5 text-neutral-300">{item.description}</p>
+            </div>
+          )}
 
           {isPersonalGear && (
             <div className="border border-neutral-800 bg-white/[0.02] p-4">
@@ -449,7 +465,7 @@ function BorrowEquipmentModal({
           </div>
         </div>
       </div>
-    </div>
+    </ModalDialog>
   );
 }
 
@@ -721,6 +737,7 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
     expandedLoans,
     approvingId,
     approveDueDate,
+    detailsTarget,
     deleteTarget,
     deleting,
     editTarget,
@@ -745,6 +762,7 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
     setExpandedLoans,
     setApprovingId,
     setApproveDueDate,
+    setDetailsTarget,
     setDeleteTarget,
     setDeleting,
     setEditTarget,
@@ -768,6 +786,7 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
     setExpandedLoans: createKeyedStateSetter(dispatchState, "expandedLoans"),
     setApprovingId: createKeyedStateSetter(dispatchState, "approvingId"),
     setApproveDueDate: createKeyedStateSetter(dispatchState, "approveDueDate"),
+    setDetailsTarget: createKeyedStateSetter(dispatchState, "detailsTarget"),
     setDeleteTarget: createKeyedStateSetter(dispatchState, "deleteTarget"),
     setDeleting: createKeyedStateSetter(dispatchState, "deleting"),
     setEditTarget: createKeyedStateSetter(dispatchState, "editTarget"),
@@ -1143,7 +1162,7 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
 
           {/* Description, only show standalone when no active loan collapsible */}
           {item.description && !(!item.isAvailable && item.activeLoan && (isAdmin || isItemOwner)) && (
-            <p className="max-h-12 overflow-hidden text-[11px] leading-relaxed text-neutral-500">{item.description}</p>
+            <p className="line-clamp-3 break-words text-[11px] leading-relaxed text-neutral-500">{item.description}</p>
           )}
 
           {!isPpcItem && item.lenderTerms && (
@@ -1151,6 +1170,18 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
               <p className="text-[10px] leading-relaxed text-neutral-500">Terms</p>
               <MarkdownMessage value={item.lenderTerms} className={BORROWING_TERMS_PREVIEW_CLASS} />
             </div>
+          )}
+
+          {(item.description || item.lenderTerms) && (
+            <button
+              type="button"
+              aria-haspopup="dialog"
+              aria-label={`View full details for ${item.name}`}
+              onClick={() => setDetailsTarget(item)}
+              className="min-h-11 self-start text-[10px] uppercase tracking-[0.14em] text-neutral-400 underline decoration-neutral-700 underline-offset-4 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
+            >
+              View Details
+            </button>
           )}
 
           {/* Loan info (admin or owner) */}
@@ -1469,6 +1500,7 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
     clearMessages,
     closeBorrowModal,
     confirmDelete,
+    detailsTarget,
     deleteTarget,
     deleting,
     editForm,
@@ -1488,6 +1520,7 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
     selectClass,
     setActiveTab,
     setBorrowNotes,
+    setDetailsTarget,
     setDeleteTarget,
     setEditForm,
     setEditTarget,
@@ -1499,6 +1532,7 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
     success,
     termsAccepted,
     termsData,
+    userId,
   };
 }
 
@@ -1515,6 +1549,7 @@ function EquipmentDashboardContent({ viewModel }: { viewModel: ReturnType<typeof
     clearMessages,
     closeBorrowModal,
     confirmDelete,
+    detailsTarget,
     deleteTarget,
     deleting,
     editForm,
@@ -1534,6 +1569,7 @@ function EquipmentDashboardContent({ viewModel }: { viewModel: ReturnType<typeof
     selectClass,
     setActiveTab,
     setBorrowNotes,
+    setDetailsTarget,
     setDeleteTarget,
     setEditForm,
     setEditTarget,
@@ -1545,6 +1581,7 @@ function EquipmentDashboardContent({ viewModel }: { viewModel: ReturnType<typeof
     success,
     termsAccepted,
     termsData,
+    userId,
   } = viewModel;
 
   return (
@@ -1562,6 +1599,13 @@ function EquipmentDashboardContent({ viewModel }: { viewModel: ReturnType<typeof
         onNotesChange={setBorrowNotes}
         equipmentItems={equipmentItems}
       />
+      {detailsTarget && (
+        <EquipmentDetailsModal
+          item={detailsTarget}
+          isOwner={detailsTarget.ownerId === userId}
+          onClose={() => setDetailsTarget(null)}
+        />
+      )}
       <EquipmentDeleteModal
         btnOutline={btnOutline}
         deleteTarget={deleteTarget}
