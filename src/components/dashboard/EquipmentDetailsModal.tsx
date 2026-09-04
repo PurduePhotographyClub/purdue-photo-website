@@ -45,7 +45,7 @@ export default function EquipmentDetailsModal({
         tabIndex={-1}
         aria-label="Close equipment details backdrop"
         className="absolute inset-0 cursor-default"
-        onMouseDown={onClose}
+        onClick={onClose}
       />
       <section className="relative z-10 max-h-[calc(100dvh-1rem)] w-full max-w-2xl overflow-y-auto border border-neutral-800 bg-neutral-950 sm:max-h-[calc(100dvh-3rem)]">
         <header className="sticky top-0 z-20 flex items-start justify-between gap-4 border-b border-neutral-800 bg-neutral-950 px-4 py-4 sm:px-5">

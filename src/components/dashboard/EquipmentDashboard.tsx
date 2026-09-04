@@ -400,7 +400,7 @@ function BorrowEquipmentModal({
       onClose={onClose}
       preventClose={borrowSubmitting}
     >
-      <button type="button" tabIndex={-1} aria-label="Close borrow request dialog" className="absolute inset-0 cursor-default" onMouseDown={() => !borrowSubmitting && onClose()} />
+      <button type="button" tabIndex={-1} aria-label="Close borrow request dialog" className="absolute inset-0 cursor-default" onClick={() => !borrowSubmitting && onClose()} />
       <div className="relative z-10 max-h-[calc(100dvh-1rem)] w-full max-w-2xl overflow-y-auto rounded-sm border border-neutral-800 bg-neutral-950 shadow-2xl shadow-black/60 sm:max-h-[calc(100dvh-3rem)]">
         <div className="space-y-5 px-5 pt-5 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6">
           <div className="space-y-3">
@@ -458,8 +458,8 @@ function BorrowEquipmentModal({
           </FormField>
 
           <div className="flex flex-col-reverse gap-3 border-t border-neutral-800 pt-4 sm:flex-row sm:justify-end">
-            <button type="button" onClick={onClose} disabled={borrowSubmitting} className={btnOutline}>Cancel</button>
-            <button type="button" onClick={() => onBorrow(item.id)} disabled={borrowSubmitting} className={`${btnPrimary} disabled:opacity-50`}>
+            <button type="button" onClick={onClose} disabled={borrowSubmitting} className={`${btnOutline} min-h-11`}>Cancel</button>
+            <button type="button" onClick={() => onBorrow(item.id)} disabled={borrowSubmitting} className={`${btnPrimary} min-h-11 disabled:opacity-50`}>
               {borrowSubmitting ? "Submitting" : "Submit Request"}
             </button>
           </div>
