@@ -19,21 +19,29 @@ const detailsModalSource = await readFile(
   "utf8",
 );
 
-test("equipment cards expose an explicit way to read complete item details", () => {
-  assert.match(dashboardSource, /detailsTarget:\s*EquipmentItem\s*\|\s*null/);
+test("equipment cards truncate descriptions and use explicit buttons for complete text", () => {
+  assert.match(dashboardSource, /detailsTarget:\s*EquipmentDetailsTarget\s*\|\s*null/);
+  assert.match(dashboardSource, /const hasDescription = hasDisplayText\(item\.description\)/);
+  assert.match(dashboardSource, /line-clamp-3[^\n]+\{item\.description\}/);
+  assert.doesNotMatch(
+    dashboardSource,
+    /\{item\.description && !\(!item\.isAvailable && item\.activeLoan && \(isAdmin \|\| isItemOwner\)\) && \(/,
+  );
   assert.match(
     dashboardSource,
-    /aria-label=\{`View full details for \$\{item\.name\}`\}/,
+    /aria-label=\{`View full description for \$\{item\.name\}`\}/,
   );
-  assert.match(dashboardSource, /onClick=\{\(\) => setDetailsTarget\(item\)\}/);
-  assert.match(dashboardSource, />\s*View Details\s*</);
+  assert.match(dashboardSource, />\s*View Description\s*</);
+  assert.match(dashboardSource, /aria-label=\{`View borrowing terms for \$\{item\.name\}`\}/);
+  assert.match(dashboardSource, />\s*View Terms\s*</);
+  assert.doesNotMatch(dashboardSource, /BORROWING_TERMS_PREVIEW_CLASS/);
   assert.match(dashboardSource, /<EquipmentDetailsModal/);
 });
 
-test("equipment details modal renders complete descriptions and member terms in a mobile-safe dialog", () => {
+test("equipment details modal renders the requested full text in a mobile-safe dialog", () => {
   const description = `Description start ${"camera kit contents ".repeat(70)}description end`;
   const lenderTerms = `**Terms start**\n\n${"Keep every piece protected. ".repeat(55)}Terms end`;
-  const html = renderToStaticMarkup(
+  const descriptionHtml = renderToStaticMarkup(
     createElement(EquipmentDetailsModal, {
       isOwner: false,
       item: {
@@ -49,15 +57,38 @@ test("equipment details modal renders complete descriptions and member terms in 
         ownerName: "Club Member",
       },
       onClose: () => {},
+      section: "description",
+    }),
+  );
+  const termsHtml = renderToStaticMarkup(
+    createElement(EquipmentDetailsModal, {
+      isOwner: false,
+      item: {
+        assetTag: null,
+        category: "camera",
+        condition: "good",
+        description,
+        isAvailable: true,
+        lenderTerms,
+        model: "F-1",
+        name: "Long-copy camera kit",
+        ownerId: "member-1",
+        ownerName: "Club Member",
+      },
+      onClose: () => {},
+      section: "terms",
     }),
   );
 
-  assert.match(html, /aria-label="Equipment details for Long-copy camera kit"/);
-  assert.ok(html.includes(description));
-  assert.match(html, /<strong[^>]*>Terms start<\/strong>/);
-  assert.match(html, /Terms end/);
+  assert.match(descriptionHtml, /aria-label="Description for Long-copy camera kit"/);
+  assert.ok(descriptionHtml.includes(description));
+  assert.doesNotMatch(descriptionHtml, /Terms start/);
+  assert.match(termsHtml, /aria-label="Borrowing terms for Long-copy camera kit"/);
+  assert.match(termsHtml, /<strong[^>]*>Terms start<\/strong>/);
+  assert.match(termsHtml, /Terms end/);
+  assert.doesNotMatch(termsHtml, /Description start/);
   assert.match(detailsModalSource, /<ModalDialog/);
-  assert.match(detailsModalSource, /ariaLabel=\{`Equipment details for \$\{item\.name\}`\}/);
+  assert.match(detailsModalSource, /ariaLabel=\{`\$\{sectionLabel\} for \$\{item\.name\}`\}/);
   assert.match(detailsModalSource, /max-h-\[calc\(100dvh-1rem\)\]/);
   assert.match(detailsModalSource, /overflow-y-auto/);
   assert.match(detailsModalSource, /pb-\[max\(1rem,env\(safe-area-inset-bottom\)\)\]/);
@@ -65,7 +96,7 @@ test("equipment details modal renders complete descriptions and member terms in 
     detailsModalSource,
     /whitespace-pre-wrap break-words[^"]*">\s*\{item\.description\}/,
   );
-  assert.match(detailsModalSource, /<MarkdownMessage[\s\S]*value=\{item\.lenderTerms\}/);
+  assert.match(detailsModalSource, /<MarkdownMessage[\s\S]*value=\{item\.lenderTerms \?\? ""\}/);
   assert.doesNotMatch(detailsModalSource, /max-h-(?:12|14)|line-clamp/);
   assert.match(detailsModalSource, /aria-label="Close equipment details backdrop"[\s\S]*onClick=\{onClose\}/);
 });
