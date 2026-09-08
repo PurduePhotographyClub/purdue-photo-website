@@ -9,6 +9,7 @@ import useSWR from "swr";
 import ModalDialog from "@/components/ModalDialog";
 import AccessUpsellPanel from "@/components/dashboard/AccessUpsellPanel";
 import EquipmentDetailsModal from "@/components/dashboard/EquipmentDetailsModal";
+import EquipmentPagination from "@/components/dashboard/EquipmentPagination";
 import MarkdownMessage from "@/components/dashboard/MarkdownMessage";
 import {
   fetchApi,
@@ -18,6 +19,7 @@ import {
 } from "@/lib/http";
 import { EQUIPMENT_CATEGORIES, EQUIPMENT_CATEGORY_FILTERS, getEquipmentCategoryLabel, normalizeEquipmentCategory } from "@/lib/equipment";
 import { canRequestEquipmentItem, getEquipmentRequestAccess } from "@/lib/equipment-membership-access";
+import { getEquipmentPage } from "@/lib/equipment-pagination";
 import { createKeyedStateSetter, keyedStateReducer } from "@/lib/reducer-state";
 
 // ========================
@@ -105,6 +107,12 @@ const EMPTY_EQUIPMENT: EquipmentItem[] = [];
 
 type Tab = "ppc" | "personal" | "loans";
 type PersonalSubTab = "browse" | "manage";
+type EquipmentDetailSection = "description" | "terms";
+
+interface EquipmentDetailsTarget {
+  item: EquipmentItem;
+  section: EquipmentDetailSection;
+}
 
 interface EquipmentEditForm {
   name: string;
@@ -130,10 +138,12 @@ interface EquipmentDashboardState {
   ppcEquipment: EquipmentItem[];
   ppcSearch: string;
   ppcCategory: string;
+  ppcPage: number;
   ppcLoading: boolean;
   personalEquipment: EquipmentItem[];
   personalSearch: string;
   personalCategory: string;
+  personalPage: number;
   personalSubTab: PersonalSubTab;
   personalLoading: boolean;
   myLoans: LoanItem[];
@@ -150,7 +160,7 @@ interface EquipmentDashboardState {
   expandedLoans: Set<string>;
   approvingId: string | null;
   approveDueDate: string;
-  detailsTarget: EquipmentItem | null;
+  detailsTarget: EquipmentDetailsTarget | null;
   deleteTarget: EquipmentItem | null;
   deleting: boolean;
   editTarget: EquipmentItem | null;
@@ -182,10 +192,12 @@ const initialEquipmentDashboardState: EquipmentDashboardState = {
   ppcEquipment: [],
   ppcSearch: "",
   ppcCategory: "",
+  ppcPage: 1,
   ppcLoading: true,
   personalEquipment: [],
   personalSearch: "",
   personalCategory: "",
+  personalPage: 1,
   personalSubTab: "browse",
   personalLoading: true,
   myLoans: [],
@@ -228,7 +240,6 @@ const EQUIPMENT_TERMS_SWR_OPTIONS = {
 };
 const EMPTY_BORROWING_TERMS_MESSAGE = "This member did not add additional terms. Coordinate details in the loan thread if approved.";
 const BORROWING_TERMS_BODY_CLASS = "space-y-2 text-xs leading-relaxed text-neutral-400";
-const BORROWING_TERMS_PREVIEW_CLASS = "mt-1 space-y-1 text-[10px] leading-relaxed text-neutral-400";
 
 const CONDITIONS = ["excellent", "good", "fair", "poor"];
 
@@ -361,6 +372,10 @@ function getLoanLenderLabel(loan: Pick<LoanItem, "equipmentOwnerId" | "lenderNam
   }
 
   return loan.isLender ? "You" : loan.lenderName || "Member";
+}
+
+function hasDisplayText(value: string | null) {
+  return Boolean(value?.trim());
 }
 
 interface BorrowEquipmentModalProps {
@@ -723,8 +738,10 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
     activeTab,
     ppcSearch,
     ppcCategory,
+    ppcPage,
     personalSearch,
     personalCategory,
+    personalPage,
     personalSubTab,
     loanSubTab,
     error,
@@ -748,8 +765,10 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
     setActiveTab,
     setPpcSearch,
     setPpcCategory,
+    setPpcPage,
     setPersonalSearch,
     setPersonalCategory,
+    setPersonalPage,
     setPersonalSubTab,
     setLoanSubTab,
     setError,
@@ -772,8 +791,10 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
     setActiveTab: createKeyedStateSetter(dispatchState, "activeTab"),
     setPpcSearch: createKeyedStateSetter(dispatchState, "ppcSearch"),
     setPpcCategory: createKeyedStateSetter(dispatchState, "ppcCategory"),
+    setPpcPage: createKeyedStateSetter(dispatchState, "ppcPage"),
     setPersonalSearch: createKeyedStateSetter(dispatchState, "personalSearch"),
     setPersonalCategory: createKeyedStateSetter(dispatchState, "personalCategory"),
+    setPersonalPage: createKeyedStateSetter(dispatchState, "personalPage"),
     setPersonalSubTab: createKeyedStateSetter(dispatchState, "personalSubTab"),
     setLoanSubTab: createKeyedStateSetter(dispatchState, "loanSubTab"),
     setError: createKeyedStateSetter(dispatchState, "error"),
@@ -898,12 +919,47 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
     () => personalEquipment.filter((item) => item.ownerId === userId).length,
     [personalEquipment, userId],
   );
+  const visiblePersonalGear = personalSubTab === "manage" ? myPersonalGear : personalGearToBorrow;
+  const ppcPageData = useMemo(
+    () => getEquipmentPage(filteredPpc, ppcPage),
+    [filteredPpc, ppcPage],
+  );
+  const personalPageData = useMemo(
+    () => getEquipmentPage(visiblePersonalGear, personalPage),
+    [personalPage, visiblePersonalGear],
+  );
+
+  useEffect(() => {
+    if (ppcPage !== ppcPageData.page) setPpcPage(ppcPageData.page);
+    if (personalPage !== personalPageData.page) setPersonalPage(personalPageData.page);
+  }, [personalPage, personalPageData.page, ppcPage, ppcPageData.page, setPersonalPage, setPpcPage]);
 
   // ========================
   // Actions
   // ========================
 
   const clearMessages = () => { setError(""); setSuccess(""); };
+  const handlePpcSearchChange = (value: string) => {
+    setPpcSearch(value);
+    setPpcPage(1);
+  };
+  const handlePpcCategoryChange = (value: string) => {
+    setPpcCategory(value);
+    setPpcPage(1);
+  };
+  const handlePersonalSearchChange = (value: string) => {
+    setPersonalSearch(value);
+    setPersonalPage(1);
+  };
+  const handlePersonalCategoryChange = (value: string) => {
+    setPersonalCategory(value);
+    setPersonalPage(1);
+  };
+  const handlePersonalSubTabChange = (value: PersonalSubTab) => {
+    setPersonalSubTab(value);
+    setPersonalPage(1);
+    clearMessages();
+  };
 
   const handleAddPersonal = async () => {
     if (!personalForm.name.trim()) return;
@@ -918,6 +974,7 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
         setShowAddPersonal(false);
         setPersonalForm(emptyPersonalEquipmentForm);
         setPersonalSubTab("manage");
+        setPersonalPage(1);
         setSuccess("Personal equipment listed successfully");
         refreshAll();
       } else {
@@ -1109,6 +1166,8 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
     const canDelete = !hasActiveLoan(item);
     const isPpcItem = item.ownerId === null;
     const canBorrowThisItem = canRequestEquipmentItem(equipmentAccess, isPpcItem);
+    const hasDescription = hasDisplayText(item.description);
+    const hasTerms = !isPpcItem && hasDisplayText(item.lenderTerms);
 
     return (
       <div key={item.id} className="group flex h-full flex-col overflow-hidden rounded-sm border border-neutral-800 bg-neutral-950/70 shadow-sm shadow-black/20 transition-colors hover:border-neutral-700 hover:bg-white/[0.03]">
@@ -1160,28 +1219,35 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
             </span>
           </div>
 
-          {/* Description, only show standalone when no active loan collapsible */}
-          {item.description && !(!item.isAvailable && item.activeLoan && (isAdmin || isItemOwner)) && (
+          {hasDescription && (
             <p className="line-clamp-3 break-words text-[11px] leading-relaxed text-neutral-500">{item.description}</p>
           )}
 
-          {!isPpcItem && item.lenderTerms && (
-            <div className="max-h-14 overflow-hidden border-l border-neutral-800 pl-3">
-              <p className="text-[10px] leading-relaxed text-neutral-500">Terms</p>
-              <MarkdownMessage value={item.lenderTerms} className={BORROWING_TERMS_PREVIEW_CLASS} />
+          {(hasDescription || hasTerms) && (
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
+              {hasDescription && (
+                <button
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-label={`View full description for ${item.name}`}
+                  onClick={() => setDetailsTarget({ item, section: "description" })}
+                  className="min-h-11 text-[10px] uppercase tracking-[0.14em] text-neutral-400 underline decoration-neutral-700 underline-offset-4 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
+                >
+                  View Description
+                </button>
+              )}
+              {hasTerms && (
+                <button
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-label={`View borrowing terms for ${item.name}`}
+                  onClick={() => setDetailsTarget({ item, section: "terms" })}
+                  className="min-h-11 text-[10px] uppercase tracking-[0.14em] text-neutral-400 underline decoration-neutral-700 underline-offset-4 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
+                >
+                  View Terms
+                </button>
+              )}
             </div>
-          )}
-
-          {(item.description || item.lenderTerms) && (
-            <button
-              type="button"
-              aria-haspopup="dialog"
-              aria-label={`View full details for ${item.name}`}
-              onClick={() => setDetailsTarget(item)}
-              className="min-h-11 self-start text-[10px] uppercase tracking-[0.14em] text-neutral-400 underline decoration-neutral-700 underline-offset-4 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
-            >
-              View Details
-            </button>
           )}
 
           {/* Loan info (admin or owner) */}
@@ -1222,15 +1288,15 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
         <EquipmentSearchBar
           category={ppcCategory}
           inputClass={inputClass}
-          onCategoryChange={setPpcCategory}
-          onChange={setPpcSearch}
+          onCategoryChange={handlePpcCategoryChange}
+          onChange={handlePpcSearchChange}
           placeholder="Search by asset tag, name, model"
           selectClass={selectClass}
           value={ppcSearch}
         />
       </div>
 
-      <p className="text-[9px] tracking-[0.3em] uppercase text-neutral-600">
+      <p id="ppc-equipment-results" className="scroll-mt-6 text-[9px] tracking-[0.3em] uppercase text-neutral-600">
         {ppcLoading ? "Loading" : `${filteredPpc.length} item${filteredPpc.length !== 1 ? "s" : ""}`}
       </p>
 
@@ -1238,12 +1304,25 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
         <p className="text-xs text-neutral-600">No PPC equipment found.</p>
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {filteredPpc.map((item) =>
+          {ppcPageData.items.map((item) =>
             renderEquipmentCard(item, {
               showBorrowButton: true,
             })
           )}
         </div>
+      )}
+
+      {!ppcLoading && (
+        <EquipmentPagination
+          ariaLabel="PPC equipment pagination"
+          onPageChange={(page) => {
+            setPpcPage(page);
+            document.getElementById("ppc-equipment-results")?.scrollIntoView({ block: "start" });
+          }}
+          page={ppcPageData.page}
+          totalItems={ppcPageData.totalItems}
+          totalPages={ppcPageData.totalPages}
+        />
       )}
     </div>
   );
@@ -1253,7 +1332,6 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
   // ========================
 
   const renderPersonalTab = () => {
-    const visiblePersonalGear = personalSubTab === "manage" ? myPersonalGear : personalGearToBorrow;
     const emptyMessage = personalSubTab === "manage"
       ? "You have not listed personal gear yet."
       : "No personal gear from other members matches this search.";
@@ -1262,10 +1340,10 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
       <div className="space-y-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex overflow-x-auto border-b border-neutral-800">
-            <button type="button" className={tabClass(personalSubTab === "browse")} onClick={() => { setPersonalSubTab("browse"); clearMessages(); }}>
+            <button type="button" className={tabClass(personalSubTab === "browse")} onClick={() => handlePersonalSubTabChange("browse")}>
               Browse Gear ({personalGearToBorrow.length})
             </button>
-            <button type="button" className={tabClass(personalSubTab === "manage")} onClick={() => { setPersonalSubTab("manage"); clearMessages(); }}>
+            <button type="button" className={tabClass(personalSubTab === "manage")} onClick={() => handlePersonalSubTabChange("manage")}>
               Manage My Gear ({myPersonalGearCount})
             </button>
           </div>
@@ -1277,14 +1355,14 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
         <EquipmentSearchBar
           category={personalCategory}
           inputClass={inputClass}
-          onCategoryChange={setPersonalCategory}
-          onChange={setPersonalSearch}
+          onCategoryChange={handlePersonalCategoryChange}
+          onChange={handlePersonalSearchChange}
           placeholder={personalSubTab === "manage" ? "Search your gear" : "Search member gear"}
           selectClass={selectClass}
           value={personalSearch}
         />
 
-        <p className="text-[9px] tracking-[0.3em] uppercase text-neutral-600">
+        <p id="personal-equipment-results" className="scroll-mt-6 text-[9px] tracking-[0.3em] uppercase text-neutral-600">
           {personalLoading ? "Loading" : `${visiblePersonalGear.length} item${visiblePersonalGear.length !== 1 ? "s" : ""}`}
         </p>
 
@@ -1294,7 +1372,7 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
           </div>
         ) : (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {visiblePersonalGear.map((item) => (
+            {personalPageData.items.map((item) => (
               renderEquipmentCard(item, {
                 showBorrowButton: personalSubTab === "browse",
                 showDeleteButton: personalSubTab === "manage",
@@ -1303,6 +1381,19 @@ function useEquipmentDashboardViewModel({ userRole, userTier, userId }: Props) {
               })
             ))}
           </div>
+        )}
+
+        {!personalLoading && (
+          <EquipmentPagination
+            ariaLabel="Personal equipment pagination"
+            onPageChange={(page) => {
+              setPersonalPage(page);
+              document.getElementById("personal-equipment-results")?.scrollIntoView({ block: "start" });
+            }}
+            page={personalPageData.page}
+            totalItems={personalPageData.totalItems}
+            totalPages={personalPageData.totalPages}
+          />
         )}
       </div>
     );
@@ -1601,9 +1692,10 @@ function EquipmentDashboardContent({ viewModel }: { viewModel: ReturnType<typeof
       />
       {detailsTarget && (
         <EquipmentDetailsModal
-          item={detailsTarget}
-          isOwner={detailsTarget.ownerId === userId}
+          item={detailsTarget.item}
+          isOwner={detailsTarget.item.ownerId === userId}
           onClose={() => setDetailsTarget(null)}
+          section={detailsTarget.section}
         />
       )}
       <EquipmentDeleteModal
