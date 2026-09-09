@@ -8,6 +8,7 @@ const navLinks = [
   { to: "/facilities", label: "Facilities" },
   { to: "/membership", label: "Membership" },
   { to: "/events", label: "Events" },
+  { to: "/exposure-triangle", label: "Exposure Guide" },
   { to: "/request", label: "Request" },
   { to: "/report", label: "Report a Concern" },
 ];

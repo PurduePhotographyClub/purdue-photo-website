@@ -1,0 +1,195 @@
+---
+import ExposureScene from './ExposureScene.astro';
+import { APERTURES, SHUTTERS, ISOS, LIGHTING, DEFAULT_SETTINGS, calculateExposure, formatStops } from './model.mjs';
+
+interface Props { id?: string }
+const { id = 'exposure-simulator' } = Astro.props;
+const initial = calculateExposure(DEFAULT_SETTINGS);
+const controls = [
+  { key: 'aperture', label: 'Aperture', values: APERTURES, value: `f/${APERTURES[initial.aperture]}`, ends: ['f/1.4 · Wider', 'f/22 · Narrower'], effect: initial.apertureEffect },
+  { key: 'shutter', label: 'Shutter speed', values: SHUTTERS, value: `${SHUTTERS[initial.shutter]} s`, ends: ['1/8000 s · Faster', '1 s · Slower'], effect: initial.shutterEffect },
+  { key: 'iso', label: 'ISO', values: ISOS, value: `ISO ${ISOS[initial.iso]}`, ends: ['100 · Less grain', '12800 · More grain'], effect: initial.isoEffect },
+] as const;
+---
+
+<exposure-simulator id={id} class="exposure-simulator not-content block min-w-0 scroll-mt-24 border border-neutral-800 bg-white/[0.02] lg:col-span-2" aria-labelledby={`${id}-title`}>
+  <div class="flex flex-wrap items-center justify-between gap-4 border-b border-neutral-800 px-5 py-5 sm:px-7">
+    <div class="space-y-1">
+      <h2 id={`${id}-title`} class="text-2xl tracking-wider text-neutral-100">Try the Exposure Triangle</h2>
+      <p class="text-sm leading-relaxed tracking-wide text-neutral-400">Compare settings at 0 stops to see focus, motion, and noise.</p>
+    </div>
+    <button data-reset type="button" disabled class="min-h-11 border border-neutral-700 px-5 text-xs uppercase tracking-[0.2em] text-neutral-300 transition-colors duration-200 hover:border-white hover:bg-white hover:text-black focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400 disabled:cursor-not-allowed disabled:opacity-50">Reset</button>
+  </div>
+  <div class="grid min-w-0 @3xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+    <div class="min-w-0 border-b border-neutral-800 @3xl:border-r @3xl:border-b-0">
+      <div class="exposure-preview relative overflow-hidden bg-[#234f60]">
+        <ExposureScene id={id} />
+        <canvas data-sensor-preview hidden aria-hidden="true" class="pointer-events-none absolute inset-0 size-full"></canvas>
+        <div class="exposure-viewfinder pointer-events-none absolute inset-4 border border-white/40" aria-hidden="true">
+          <span class="absolute top-2 left-3 font-mono text-[0.65rem] tracking-[0.18em] text-[#fff]">M · PREVIEW</span>
+          <svg class="absolute top-1/2 left-1/2 size-12 -translate-x-1/2 -translate-y-1/2 text-[#fff]/70" viewBox="0 0 40 40" fill="none" stroke="currentColor"><path d="M1 12V1h11m16 0h11v11m0 16v11H28m-16 0H1V28" /></svg>
+        </div>
+      </div>
+      <div class="space-y-4 border-t border-neutral-800 px-5 py-4 sm:px-6">
+        <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
+          <span class="text-neutral-400">Exposure meter</span>
+          <span data-meter-label class="font-mono text-neutral-100">{initial.meterLabel}</span>
+        </div>
+        <div class="mx-2" aria-hidden="true">
+          <div class="relative h-3 border-b border-neutral-600">
+            <div class="absolute inset-0 flex justify-between">{Array.from({ length: 13 }, (_, i) => <span class:list={['w-px bg-neutral-600', i % 2 ? 'mt-2' : 'mt-0']} />)}</div>
+            <span data-meter-pointer class="absolute bottom-[-4px] h-5 w-0.5 -translate-x-1/2 bg-white" style="left:50%"></span>
+          </div>
+          <div class="mt-2 flex justify-between font-mono text-xs text-neutral-400"><span>−3</span><span>−2</span><span>−1</span><span>0</span><span>+1</span><span>+2</span><span>+3</span></div>
+        </div>
+        <p data-render-error hidden role="status" class="text-sm text-amber-300">The noise preview could not load. Reload the page to try again.</p>
+        <fieldset data-lighting disabled class="flex flex-wrap items-center gap-2">
+          <legend class="mb-2 text-xs font-medium text-neutral-400">Scene light <span data-scene-ev class="font-mono">· EV {initial.sceneEV}</span></legend>
+          {Object.entries(LIGHTING).map(([key, light]) => <label class="exposure-light cursor-pointer">
+            <input type="radio" class="peer sr-only" name={`${id}-lighting`} value={key} checked={key === initial.lighting} />
+            <span class="inline-flex min-h-11 items-center border border-neutral-700 px-4 text-xs uppercase tracking-[0.14em] text-neutral-400 transition-colors duration-200 peer-checked:border-white peer-checked:bg-white peer-checked:text-black peer-focus-visible:outline peer-focus-visible:outline-1 peer-focus-visible:outline-offset-4 peer-focus-visible:outline-neutral-400 hover:border-neutral-500 hover:text-neutral-100 peer-checked:hover:text-black">{light.label}</span>
+          </label>)}
+        </fieldset>
+      </div>
+    </div>
+    <fieldset data-settings disabled class="grid min-w-0 content-start gap-5 px-5 py-5 sm:px-6">
+      <legend class="sr-only">Camera settings</legend>
+      {controls.map((control) => <div class="exposure-control text-neutral-100">
+        <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
+          <label for={`${id}-${control.key}`} class="text-xs uppercase tracking-[0.18em] text-neutral-300">{control.label}</label>
+          <output data-value={control.key} for={`${id}-${control.key}`} class="font-mono">{control.value}</output>
+        </div>
+        <input id={`${id}-${control.key}`} data-setting={control.key} type="range" min="0" max={control.values.length - 1} step="1" value={initial[control.key]} aria-valuetext={control.value} aria-describedby={`${id}-${control.key}-effect`} class="my-1 block min-h-11 w-full cursor-pointer accent-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400" />
+        <div class="flex justify-between gap-2 text-xs text-neutral-400" aria-hidden="true"><span>{control.ends[0]}</span><span>{control.ends[1]}</span></div>
+        <p id={`${id}-${control.key}-effect`} data-effect={control.key} class="mt-2! text-sm leading-6 text-neutral-300">{control.effect}</p>
+      </div>)}
+      <svg data-triangle class="mx-auto block w-full max-w-80" viewBox="0 0 360 310" role="img" aria-labelledby={`${id}-triangle-title`}>
+        <title id={`${id}-triangle-title`} data-triangle-title>Current settings: f/8, 1/500 s, ISO 100. 0 stops.</title>
+        <path d="M180 78 62 216 298 216Z" fill="none" stroke="currentColor" stroke-width="1.5" class="text-neutral-600" />
+        <g text-anchor="middle" font-family="Space Mono, monospace" font-size="13" fill="currentColor">
+          <g class="text-neutral-200">
+            <circle cx="180" cy="78" r="4" />
+            <text x="180" y="18">Aperture</text>
+            <text data-triangle-value="aperture" x="180" y="39" font-family="monospace">f/8</text>
+            <text data-triangle-stops="aperture" x="180" y="60" font-size="11">0 stops</text>
+          </g>
+          <g class="text-neutral-300">
+            <circle cx="62" cy="216" r="4" />
+            <text x="62" y="240">Shutter speed</text>
+            <text data-triangle-value="shutter" x="62" y="261" font-family="monospace">1/500 s</text>
+            <text data-triangle-stops="shutter" x="62" y="282" font-size="11">0 stops</text>
+          </g>
+          <g class="text-neutral-400">
+            <circle cx="298" cy="216" r="4" />
+            <text x="298" y="240">ISO</text>
+            <text data-triangle-value="iso" x="298" y="261" font-family="monospace">ISO 100</text>
+            <text data-triangle-stops="iso" x="298" y="282" font-size="11">0 stops</text>
+          </g>
+          <text x="180" y="157" class="text-neutral-400" font-size="11">Brightness</text>
+          <text data-triangle-total x="180" y="181" class="text-neutral-100" font-family="monospace" font-size="18">0 stops</text>
+        </g>
+      </svg>
+      <p data-triangle-reference class="text-xs leading-5 text-neutral-400">Stop changes from f/8 · 1/500 s · ISO 100. Scene light: 0 stops.</p>
+    </fieldset>
+  </div>
+  <div class="space-y-2 border-t border-neutral-800 px-5 py-4 text-sm leading-6 text-neutral-400 sm:px-6">
+    <p><strong class="text-neutral-200">Try this:</strong> close the aperture one stop, then slow the shutter one stop. The brightness stays the same; focus and motion change.</p>
+    <noscript><p>Enable JavaScript to use the simulator. The exposure lessons below are available without it.</p></noscript>
+  </div>
+  <p data-announcement role="status" aria-live="polite" aria-atomic="true" class="sr-only"></p>
+</exposure-simulator>
+
+<script>
+  import { APERTURES, SHUTTERS, ISOS, DEFAULT_SETTINGS, calculateExposure, formatStops, exposureTransferTable } from './model.mjs';
+
+  import { ExposureRenderer } from './renderer.mjs';
+
+  class ExposureSimulator extends HTMLElement {
+    private cleanup?: () => void;
+    connectedCallback() {
+      if (this.dataset.ready) return;
+      this.dataset.ready = 'true';
+      const sliders = [...this.querySelectorAll<HTMLInputElement>('[data-setting]')];
+      const lights = [...this.querySelectorAll<HTMLInputElement>('input[type="radio"]')];
+      const canvas = this.querySelector<HTMLCanvasElement>('[data-sensor-preview]')!;
+      const scene = this.querySelector<SVGSVGElement>('.exposure-scene')!;
+      const error = this.querySelector<HTMLElement>('[data-render-error]')!;
+      let renderer: ExposureRenderer | undefined;
+      try { renderer = new ExposureRenderer(scene, canvas); }
+      catch (cause) { error.hidden = false; console.error('Exposure preview initialization failed:', cause); }
+      let frame = 0;
+      let announcementTimer: ReturnType<typeof setTimeout>;
+
+      const update = (announce = true) => {
+        const settings = Object.fromEntries(sliders.map((slider) => [slider.dataset.setting, slider.valueAsNumber]));
+        const result = calculateExposure({ ...DEFAULT_SETTINGS, ...settings, lighting: lights.find((light) => light.checked)?.value ?? DEFAULT_SETTINGS.lighting });
+        const values = { aperture: `f/${APERTURES[result.aperture]}`, shutter: `${SHUTTERS[result.shutter]} s`, iso: `ISO ${ISOS[result.iso]}` };
+        sliders.forEach((slider) => {
+          const key = slider.dataset.setting as keyof typeof values;
+          slider.setAttribute('aria-valuetext', values[key]);
+          this.querySelector(`[data-value="${key}"]`)!.textContent = values[key];
+          this.querySelector(`[data-triangle-value="${key}"]`)!.textContent = values[key];
+          this.querySelector(`[data-triangle-stops="${key}"]`)!.textContent = formatStops(result.contributions[key]);
+          this.querySelector(`[data-effect="${key}"]`)!.textContent = result[`${key}Effect`];
+        });
+        const transferTable = exposureTransferTable(result.stops).join(' ');
+        this.querySelectorAll('[data-exposure-channel]').forEach((channel) => channel.setAttribute('tableValues', transferTable));
+        this.querySelector('[data-background-blur]')!.setAttribute('stdDeviation', String(result.backgroundBlur));
+        this.querySelector('[data-foreground-blur]')!.setAttribute('stdDeviation', String(result.foregroundBlur));
+        this.querySelector('[data-motion-blur]')!.setAttribute('stdDeviation', `${result.motionBlur} 0`);
+        this.querySelector('[data-meter-label]')!.textContent = result.meterLabel;
+        this.querySelector<HTMLElement>('[data-meter-pointer]')!.style.left = `${result.meterPosition}%`;
+        this.querySelector('[data-scene-ev]')!.textContent = `· EV ${result.sceneEV}`;
+        this.querySelector('[data-triangle-total]')!.textContent = formatStops(result.stops);
+        this.querySelector('[data-triangle-title]')!.textContent = `Current settings: ${Object.values(values).join(', ')}. ${result.meterLabel}.`;
+        this.querySelector('[data-triangle-reference]')!.textContent = `Stop changes from f/8 · 1/500 s · ISO 100. Scene light: ${formatStops(result.contributions.lighting)}.`;
+        renderer?.invalidate();
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => {
+          renderer?.render(result).then((rendered) => { if (rendered) error.hidden = true; }).catch((cause) => {
+            renderer?.invalidate();
+            error.hidden = false;
+            console.error('Exposure preview rendering failed:', cause);
+          });
+        });
+        clearTimeout(announcementTimer);
+        if (announce) announcementTimer = setTimeout(() => {
+          this.querySelector('[data-announcement]')!.textContent = `${result.meterLabel}. ${result.apertureEffect}. ${result.shutterEffect}. ${result.isoEffect}.`;
+        }, 200);
+      };
+
+      this.querySelectorAll<HTMLFieldSetElement>('fieldset').forEach((fieldset) => { fieldset.disabled = false; });
+      const onInput = () => update();
+      this.addEventListener('input', onInput);
+      const reset = this.querySelector<HTMLButtonElement>('[data-reset]')!;
+      reset.disabled = false;
+      const onReset = () => {
+        sliders.forEach((slider) => { slider.value = String(DEFAULT_SETTINGS[slider.dataset.setting as 'aperture' | 'shutter' | 'iso']); });
+        lights.forEach((light) => { light.checked = light.value === DEFAULT_SETTINGS.lighting; });
+        update();
+      };
+      reset.addEventListener('click', onReset);
+      let lastWidth = 0;
+      const observer = new ResizeObserver(([entry]) => {
+        const width = Math.round(entry.contentRect.width);
+        if (width === lastWidth) return;
+        lastWidth = width;
+        update(false);
+      });
+      observer.observe(scene);
+      this.cleanup = () => {
+        observer.disconnect();
+        renderer?.invalidate();
+        cancelAnimationFrame(frame);
+        clearTimeout(announcementTimer);
+        this.removeEventListener('input', onInput);
+        reset.removeEventListener('click', onReset);
+        delete this.dataset.ready;
+      };
+      update(false);
+    }
+    disconnectedCallback() { this.cleanup?.(); }
+  }
+
+  if (!customElements.get('exposure-simulator')) customElements.define('exposure-simulator', ExposureSimulator);
+</script>

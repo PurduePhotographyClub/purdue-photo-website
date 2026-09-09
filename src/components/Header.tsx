@@ -28,6 +28,7 @@ const navLinks = [
   { to: "/facilities", label: "Facilities" },
   { to: "/membership", label: "Membership" },
   { to: "/merch", label: "Merch" },
+  { to: "/exposure-triangle", label: "Exposure Guide" },
   { to: "/request", label: "Request a Photographer" },
 ];
 
@@ -35,7 +36,7 @@ const primaryNavLinks = navLinks.filter((link) =>
   ["/events", "/gallery", "/members", "/request"].includes(link.to)
 );
 const moreNavLinks = navLinks.filter((link) =>
-  ["/competitions", "/facilities", "/membership", "/merch"].includes(link.to)
+  ["/competitions", "/facilities", "/membership", "/merch", "/exposure-triangle"].includes(link.to)
 );
 
 const specialEventLink = { to: "/film-event", label: "Film event" };
@@ -512,7 +513,7 @@ export default function Header({ theme = "default" }: HeaderProps) {
               </div>
                 <div className="hidden lg:block">
                   <p className={`mb-3 text-[10px] uppercase tracking-[0.28em] ${mutedText}`}>More Routes</p>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 gap-2 xl:grid-cols-5">
                 {moreNavLinks.map((link) => (
                   <a
                     key={link.to}
