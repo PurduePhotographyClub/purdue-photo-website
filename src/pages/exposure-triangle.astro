@@ -1,0 +1,23 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ExposureSimulator from '../components/exposure/ExposureSimulator.astro';
+import '../styles/exposure.css';
+---
+
+<Layout
+  title="Exposure Triangle | Purdue Photography Club"
+  description="Try aperture, shutter speed, and ISO with an interactive exposure triangle. See how each setting changes brightness, depth of field, motion, and grain."
+  showFloatingWidgets={false}
+>
+  <section class="exposure-page @container mx-auto w-full max-w-6xl px-6 py-16 md:py-24">
+    <header class="mb-12 text-center md:mb-16">
+      <p class="mb-4 text-xs uppercase tracking-[0.4em] text-neutral-500">Photography guide</p>
+      <h1 class="text-4xl tracking-wider text-neutral-100 md:text-5xl">Exposure Triangle</h1>
+      <p class="mx-auto mt-4 max-w-2xl text-sm leading-relaxed tracking-wider text-neutral-400">Explore aperture, shutter speed, and ISO, then try the same settings on your camera.</p>
+    </header>
+    <ExposureSimulator />
+    <div class="mt-10 flex justify-center">
+      <a class="inline-flex min-h-11 items-center border border-neutral-700 px-6 py-3 text-xs uppercase tracking-[0.2em] text-neutral-300 transition-colors duration-200 hover:border-white hover:bg-white hover:text-black focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400" href="https://wiki.purduephotoclub.org/photography/basics/#exposure-triangle">Read the full exposure lesson</a>
+    </div>
+  </section>
+</Layout>

@@ -1,0 +1,115 @@
+---
+import { calculateExposure } from './model.mjs';
+interface Props { id: string }
+const initial = calculateExposure();
+const { id } = Astro.props;
+const mountainRidge = 'M-20 267 40 191 62 183 130 91 155 121 169 115 230 197 255 167 321 67 342 41 365 75 377 72 440 151 466 177 489 153 525 204 602 132 623 146 650 130 717 190 743 184 820 258 820 354-20 354Z';
+const lakeEdge = 'M-10 326 C98 312 224 335 333 331 S533 323 641 310 S756 298 810 306 L810 510-10 510Z';
+const birdOutline = 'M78 1 59-5 C54-13 45-11 37-4 L23 3 12 1 C-3-15-15-44-39-54 L-66-78 C-59-43-40-10-15 7 L-31 7-60-2-48 10-59 20-32 18 Q-18 28-4 26 C-20 39-39 51-60 56 C-28 60 8 40 23 23 Q38 24 51 15 Q57 13 61 7Z';
+---
+
+<svg class="exposure-scene block aspect-[8/5] w-full" viewBox="0 0 800 500" role="img" aria-labelledby={`${id}-scene-title ${id}-scene-description`}>
+  <title id={`${id}-scene-title`}>Exposure preview: birds flying over a mountain lake</title>
+  <desc id={`${id}-scene-description`}>The mountains change sharpness with aperture, the birds blur with a slower shutter, and higher ISO adds grain.</desc>
+  <defs>
+    <clipPath id={`${id}-mountain-clip`}>
+      <path d={mountainRidge} />
+    </clipPath>
+    <clipPath id={`${id}-lake-clip`}>
+      <path d={lakeEdge} />
+    </clipPath>
+    <clipPath id={`${id}-bird-clip`}>
+      <path d={birdOutline} />
+    </clipPath>
+    <!-- The transfer table already decodes and re-encodes sRGB; keep this filter in sRGB. -->
+    <filter id={`${id}-exposure`} x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feComponentTransfer>
+        <feFuncR data-exposure-channel type="table" tableValues="0 1" />
+        <feFuncG data-exposure-channel type="table" tableValues="0 1" />
+        <feFuncB data-exposure-channel type="table" tableValues="0 1" />
+      </feComponentTransfer>
+    </filter>
+    <linearGradient id={`${id}-sky`} x2="0" y2="1">
+      <stop stop-color="#87b7c5" />
+      <stop offset="1" stop-color="#ecedd8" />
+    </linearGradient>
+    <linearGradient id={`${id}-water`} x2="0.2" y2="1">
+      <stop stop-color="#719d9d" />
+      <stop offset="1" stop-color="#234f60" />
+    </linearGradient>
+    <filter id={`${id}-motion`} filterUnits="userSpaceOnUse" x="-800" y="-500" width="2400" height="1500">
+      <feGaussianBlur data-motion-blur stdDeviation={`${initial.motionBlur} 0`} />
+    </filter>
+    <filter id={`${id}-background`} x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur data-background-blur stdDeviation={initial.backgroundBlur} />
+    </filter>
+    <filter id={`${id}-foreground`} x="-50%" y="-100%" width="200%" height="300%">
+      <feGaussianBlur data-foreground-blur stdDeviation={initial.foregroundBlur} />
+    </filter>
+    <g id={`${id}-pine`}>
+      <path d="M-2-16H2V0H-2Z" fill="#3e5147" />
+      <path d="M0-76-10-52-6-53-18-34-12-36-27-12 Q-14-7 0-10 Q14-7 27-12 L12-36 18-34 6-53 10-52Z" fill="currentColor" />
+      <path d="M0-76V-10 Q-14-7-27-12 L-12-36-18-34-6-53-10-52Z" fill="#8fa58a" opacity="0.12" />
+    </g>
+    <g id={`${id}-bird`}>
+      <path d={birdOutline} fill="#f2eddf" />
+      <g clip-path={`url(#${id}-bird-clip)`}>
+        <path d="M-4 26 C-20 39-39 51-60 56 C-28 60 8 40 23 23 Q10 18-4 26Z" fill="#404d50" />
+        <path d="M12 1 C-3-15-15-44-39-54 L-66-78 C-59-43-40-10-15 7 Q-1 19 23 9Z" fill="#2a3439" />
+        <path d="M-4 10 C-23-6-40-30-48-53 C-28-41-8-32 4-10 L16 7 Q5 13-4 10Z" fill="#c8ccc4" />
+        <path d="M-32 18 Q-15 21 0 19 T36 15 Q26 28 6 29 L-18 26Z" fill="#d9ddd2" />
+        <path d="M58-6 79 1 59 8Z" fill="#d3aa69" />
+      </g>
+      <circle cx="52" cy="-2" r="1.8" fill="#192d36" />
+    </g>
+  </defs>
+  <g data-sensor-source filter={`url(#${id}-exposure)`}>
+    <rect width="800" height="500" fill={`url(#${id}-sky)`} />
+    <g filter={`url(#${id}-background)`}>
+      <circle cx="670" cy="69" r="29" fill="#f5edc7" opacity="0.9" />
+      <path d={mountainRidge} fill="#9aafab" />
+      <g clip-path={`url(#${id}-mountain-clip)`}>
+        <path d="M130 91 145 168 194 222 251 293 295 354H450L230 197 169 115 155 121Z" fill="#809995" />
+        <path d="M342 41 351 113 381 166 396 222 460 303 550 354H695L525 204 489 153 466 177 440 151 377 72 365 75Z" fill="#768f8b" />
+        <path d="M602 132 588 206 553 246 542 304 630 354H830V240L650 130 623 146Z" fill="#829a96" />
+        <path d="M58 163 130 91 184 142 173 157 156 145 142 158 129 128 111 151 103 146 82 174Z" fill="#e8e8d9" />
+        <path d="M263 139 321 67 342 41 365 75 377 72 421 127 398 119 388 128 371 102 365 112 346 79 330 109 320 103 301 135 289 127 273 152Z" fill="#eeeddf" />
+        <path d="M579 153 602 132 623 146 650 130 675 152 650 149 638 160 621 157 606 146 591 161Z" fill="#ccd6c8" />
+      </g>
+      <path d="M-20 270 Q40 224 96 235 T224 252 Q288 264 346 221 T470 222 Q522 247 584 226 T718 233 L820 210V370H-20Z" fill="#668780" />
+      <path d="M-20 288 Q82 257 177 284 T358 281 Q450 266 531 285 T701 270 L820 249V381H-20Z" fill="#456e65" />
+      {Array.from({ length: 40 }, (_, index) => {
+        const x = index * 22 - 18;
+        const base = 304 + Math.sin(index * 0.7) * 7;
+        const scale = 0.42 + ((index * 7) % 9) * 0.045;
+        return <use href={`#${id}-pine`} transform={`translate(${x} ${base}) scale(${scale * 0.8} ${scale})`} style="color:#3e685f" />;
+      })}
+      {Array.from({ length: 27 }, (_, index) => {
+        const x = index * 32 - 12 + Math.sin(index * 2.3) * 7;
+        const base = 316 + Math.sin(x / 160) * 7 - Math.max(0, x - 470) * 0.05;
+        const scale = 0.65 + ((index * 5) % 7) * 0.07;
+        return <use href={`#${id}-pine`} transform={`translate(${x} ${base}) scale(${scale * 0.72} ${scale})`} style={`color:${index % 3 ? '#2b554d' : '#355f54'}`} />;
+      })}
+      <path d={lakeEdge} fill={`url(#${id}-water)`} />
+      <g stroke="#c6d9c5" fill="none" opacity="0.3" clip-path={`url(#${id}-lake-clip)`}>
+        {Array.from({ length: 26 }, (_, index) => {
+          const x = (index * 137) % 800;
+          const y = 338 + index * 6;
+          return <path d={`M${x} ${y}h${25 + index * 2}m12 3h20`} />;
+        })}
+      </g>
+      <path d="M-10 325 C35 316 84 319 124 324 C154 327 181 328 204 337 C191 344 171 345 151 348 C96 359 54 380-10 389Z" fill="#c7b68a" />
+      <path d="M-10 325 C35 316 84 319 124 324 C154 327 181 328 204 337 C173 333 157 335 133 332 C76 326 31 330-10 340Z" fill="#85916c" />
+      <path d="M204 337 C191 344 171 345 151 348 C96 359 54 380-10 389" fill="none" stroke="#a89d7c" stroke-width="3" />
+    </g>
+    <g filter={`url(#${id}-motion)`}>
+      <use href={`#${id}-bird`} transform="translate(272 274) scale(0.55) rotate(-8)" />
+      <use href={`#${id}-bird`} transform="translate(413 262) scale(0.8) rotate(12)" />
+      <use href={`#${id}-bird`} transform="translate(541 238) scale(1.2) rotate(-5)" />
+    </g>
+    <g fill="#173e43" filter={`url(#${id}-foreground)`}>
+      <path d="M0 457 Q45 437 114 464 L203 500H0Z" />
+      <path d="M49 482 36 404 56 468 76 425 65 485Z M94 490 107 429 110 481 134 450 120 500Z" />
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,13 @@
+body:has(.exposure-page) [data-film-grain] {
+  display: none;
+}
+
+.exposure-page {
+  color-scheme: dark;
+}
+
+.exposure-page h1,
+.exposure-page h2 {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+}
