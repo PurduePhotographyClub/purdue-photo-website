@@ -9,8 +9,8 @@ import {
   type CompetitionPage,
 } from "@/lib/competition-data";
 import { fetchPublicJson, PUBLIC_API_SWR_OPTIONS } from "@/lib/http";
+import { getCompetitionDiscordUrl } from "@/lib/competition-discord";
 
-const DISCORD_COMPETITION_URL = "https://discord.com/channels/1182061172309106708/1338662150054608897";
 const COMPETITIONS_PAGE_SIZE = 12;
 const COMPETITIONS_SWR_OPTIONS = {
   ...PUBLIC_API_SWR_OPTIONS,
@@ -49,6 +49,7 @@ interface CompetitionRow {
   submissionDeadline: string | null;
   theme: string | null;
   title: string;
+  discordForumChannelId: string | null;
 }
 
 interface Winner {
@@ -79,6 +80,8 @@ interface OpenCompetition {
   theme: string;
   title: string;
   year: number;
+  discordForumUrl: string | null;
+  status: "judging" | "open";
 }
 
 function parseCompetitionDate(value: string | null | undefined) {
@@ -108,7 +111,7 @@ function mapCompetitionRows(rows: CompetitionRow[]) {
 
   for (const competition of rows) {
     const { month, year } = parseCompetitionDate(competition.submissionDeadline || competition.createdAt);
-    if (competition.status === "open") {
+    if (competition.status === "open" || competition.status === "judging") {
       openCompetitions.push({
         description: competition.description ?? "",
         id: competition.id,
@@ -117,6 +120,8 @@ function mapCompetitionRows(rows: CompetitionRow[]) {
         theme: competition.theme || competition.title,
         title: competition.title,
         year,
+        discordForumUrl: getCompetitionDiscordUrl(competition.discordForumChannelId),
+        status: competition.status,
       });
       continue;
     }
@@ -256,20 +261,22 @@ export default function Competitions() {
         ) : (
           <>
             {openCompetitions.length > 0 && (
-              <section className="mb-20 space-y-3" aria-label="Open competitions">
+              <section className="mb-20 space-y-3" aria-label="Active competitions">
                 {openCompetitions.map((competition) => (
                   <div key={competition.id} className={`border ${border} bg-white/[0.02] p-5 sm:p-6 md:p-8`}>
                     <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
                       <div className="min-w-0">
-                        <p className={`mb-3 text-[10px] uppercase tracking-[0.3em] ${faintText}`}>Open Now</p>
+                        <p className={`mb-3 text-[10px] uppercase tracking-[0.3em] ${faintText}`}>{competition.status === "judging" ? "Voting Now" : "Open Now"}</p>
                         <h2 className={`text-2xl tracking-wider md:text-3xl ${heading}`} style={{ fontFamily: "'Playfair Display', serif" }}>{competition.title}</h2>
                         <p className={`mt-2 text-sm tracking-wider ${subText}`}>Theme: “{competition.theme}”</p>
                         {competition.description && <p className={`mt-4 max-w-2xl text-sm leading-relaxed tracking-wider ${mutedText}`}>{competition.description}</p>}
                         {competition.submissionDeadline && <p className={`mt-4 text-xs uppercase tracking-[0.2em] ${faintText}`}>Due {formatDeadline(competition.submissionDeadline)}</p>}
                       </div>
-                      <a href={DISCORD_COMPETITION_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 border border-neutral-600 px-6 py-3 text-xs uppercase tracking-[0.2em] text-neutral-200 transition-colors hover:bg-white hover:text-black focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400">
-                        Upload in Discord <ExternalLink size={12} />
-                      </a>
+                      {competition.discordForumUrl && (
+                        <a href={competition.discordForumUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 border border-neutral-600 px-6 py-3 text-xs uppercase tracking-[0.2em] text-neutral-200 transition-colors hover:bg-white hover:text-black focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400">
+                          {competition.status === "judging" ? "Vote in Discord" : "Enter in Discord"} <ExternalLink size={12} />
+                        </a>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -394,11 +401,6 @@ export default function Competitions() {
                 <p className={`text-xs leading-relaxed tracking-wider ${mutedText}`}>{item.desc}</p>
               </div>
             ))}
-          </div>
-          <div className="mt-10 text-center">
-            <a href={DISCORD_COMPETITION_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 border border-neutral-600 px-8 py-3 text-xs uppercase tracking-[0.25em] text-neutral-200 transition-colors hover:bg-white hover:text-black focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400">
-              Open Competition Channel <ExternalLink size={12} />
-            </a>
           </div>
         </section>
       </div>

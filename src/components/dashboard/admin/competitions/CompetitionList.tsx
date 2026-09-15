@@ -1,4 +1,9 @@
-import { Edit3, Plus, Trash2, Trophy } from "lucide-react";
+import { Edit3, ExternalLink, Plus, RefreshCw, Trash2, Trophy } from "lucide-react";
+import {
+  getCompetitionDiscordUrl,
+  STATUS_ACTION_LABELS,
+  STATUS_LABELS,
+} from "@/lib/competition-discord";
 import {
   STATUS_TRANSITIONS,
   adminCompetitionStatusColor,
@@ -14,6 +19,7 @@ interface CompetitionListProps {
   onDeleteRequest: (competition: Competition) => void;
   onResultEdit: (competitionId: string, result: CompetitionResult) => void;
   onResultUpload: (competitionId: string, place: number) => void;
+  onRetryDiscordSync: (competitionId: string) => void;
 }
 
 function formatDeadline(value: string) {
@@ -36,6 +42,7 @@ export default function CompetitionList({
   onDeleteRequest,
   onResultEdit,
   onResultUpload,
+  onRetryDiscordSync,
 }: CompetitionListProps) {
   if (competitions.length === 0) {
     return (
@@ -52,6 +59,8 @@ export default function CompetitionList({
         const nextStatus = STATUS_TRANSITIONS[competition.status];
         const results = (competition.results ?? []).toSorted((first, second) => first.place - second.place);
         const nextOpenPlace = ([1, 2, 3] as const).find((place) => !results.some((result) => result.place === place));
+        const discordForumUrl = getCompetitionDiscordUrl(competition.discordForumChannelId);
+        const canEnd = results.length === 3 && results.every((result) => Boolean(result.discordEntryId));
 
         return (
           <article key={competition.id} className="border border-neutral-800 bg-white/[0.02] p-4 sm:p-5">
@@ -59,25 +68,43 @@ export default function CompetitionList({
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-sm text-neutral-100">{competition.title}</h2>
-                  <span className={`text-[10px] uppercase tracking-[0.16em] ${adminCompetitionStatusColor[competition.status]}`}>{competition.status}</span>
+                  <span className={`text-[10px] uppercase tracking-[0.16em] ${adminCompetitionStatusColor[competition.status]}`}>{STATUS_LABELS[competition.status]}</span>
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                   {competition.theme && <span className="text-[10px] text-neutral-500">Theme: {competition.theme}</span>}
                   {competition.submissionDeadline && <span className="text-[10px] text-neutral-500">Due {formatDeadline(competition.submissionDeadline)}</span>}
                   <span className="text-[10px] text-neutral-600">{results.length}/3 results</span>
+                  {(discordForumUrl || competition.status !== "closed") && (
+                    <span className={`text-[10px] ${competition.discordSyncStatus === "failed" ? "text-red-400" : "text-neutral-600"}`}>
+                      Discord: {competition.discordSyncStatus}
+                    </span>
+                  )}
                 </div>
                 {competition.description && <p className="mt-3 max-w-3xl text-xs leading-relaxed text-neutral-400">{competition.description}</p>}
+                {competition.discordSyncError && <p className="mt-2 max-w-3xl text-[10px] text-red-400">{competition.discordSyncError}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-                <button
-                  type="button"
-                  disabled={!nextOpenPlace}
-                  onClick={() => nextOpenPlace && onResultUpload(competition.id, nextOpenPlace)}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 border border-neutral-800 px-3 text-[10px] uppercase tracking-[0.1em] text-neutral-300 transition-colors hover:border-neutral-600 hover:text-white disabled:cursor-not-allowed disabled:text-neutral-700"
-                >
-                  <Plus size={12} /> {nextOpenPlace ? "Add Result" : "Results Full"}
-                </button>
+                {competition.status === "judging" && (
+                  <button
+                    type="button"
+                    disabled={!nextOpenPlace}
+                    onClick={() => nextOpenPlace && onResultUpload(competition.id, nextOpenPlace)}
+                    className="inline-flex min-h-11 items-center justify-center gap-2 border border-neutral-800 px-3 text-[10px] uppercase tracking-[0.1em] text-neutral-300 transition-colors hover:border-neutral-600 hover:text-white disabled:cursor-not-allowed disabled:text-neutral-700"
+                  >
+                    <Plus size={12} /> {nextOpenPlace ? "Add Result" : "Results Full"}
+                  </button>
+                )}
+                {discordForumUrl && (
+                  <a href={discordForumUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center justify-center gap-2 border border-neutral-800 px-3 text-[10px] uppercase tracking-[0.1em] text-neutral-300 transition-colors hover:border-neutral-600 hover:text-white">
+                    Forum <ExternalLink size={12} />
+                  </a>
+                )}
+                {competition.discordSyncStatus !== "synced" && (
+                  <button type="button" onClick={() => onRetryDiscordSync(competition.id)} className="inline-flex min-h-11 items-center justify-center gap-2 border border-red-950/70 px-3 text-[10px] uppercase tracking-[0.1em] text-red-400">
+                    <RefreshCw size={12} /> {competition.discordSyncStatus === "failed" ? "Retry Discord Sync" : "Sync Discord Forum"}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => onCompetitionEdit(competition)}
@@ -88,10 +115,12 @@ export default function CompetitionList({
                 {nextStatus && (
                   <button
                     type="button"
+                    disabled={nextStatus === "closed" && !canEnd}
+                    title={nextStatus === "closed" && !canEnd ? "Assign all three places to Discord entries first." : undefined}
                     onClick={() => onAdvanceStatus(competition.id, nextStatus)}
-                    className="min-h-11 border border-neutral-800 px-3 text-[10px] uppercase tracking-[0.1em] text-neutral-300 transition-colors hover:border-neutral-600 hover:text-white"
+                    className="min-h-11 border border-neutral-800 px-3 text-[10px] uppercase tracking-[0.1em] text-neutral-300 transition-colors hover:border-neutral-600 hover:text-white disabled:cursor-not-allowed disabled:text-neutral-700"
                   >
-                    Move to {nextStatus}
+                    {STATUS_ACTION_LABELS[nextStatus]}
                   </button>
                 )}
                 <button

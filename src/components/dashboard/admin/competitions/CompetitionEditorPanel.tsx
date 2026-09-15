@@ -1,8 +1,4 @@
 import { Edit3, Loader2, Plus, X } from "lucide-react";
-import {
-  STATUS_OPTIONS,
-  type CompetitionStatus,
-} from "./types";
 
 interface CompetitionEditorPanelProps {
   deadline: string;
@@ -14,11 +10,9 @@ interface CompetitionEditorPanelProps {
   onDeadlineChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onSave: (event: React.FormEvent) => void;
-  onStatusChange: (status: CompetitionStatus) => void;
   onThemeChange: (value: string) => void;
   onTitleChange: (value: string) => void;
   saving: boolean;
-  status: CompetitionStatus;
   theme: string;
   title: string;
 }
@@ -33,11 +27,9 @@ export default function CompetitionEditorPanel({
   onDeadlineChange,
   onDescriptionChange,
   onSave,
-  onStatusChange,
   onThemeChange,
   onTitleChange,
   saving,
-  status,
   theme,
   title,
 }: CompetitionEditorPanelProps) {
@@ -49,7 +41,7 @@ export default function CompetitionEditorPanel({
             {editingCompetitionId ? "Edit Competition" : "New Competition"}
           </h2>
           <p className="mt-1 text-[10px] leading-relaxed text-neutral-500">
-            {editingCompetitionId ? "Update the archive details or publishing status." : "Start as a draft, then publish when the details are ready."}
+            {editingCompetitionId ? "Update the competition details. Change its stage from the competition list." : "Start as a draft, then open entries when the details are ready."}
           </p>
         </div>
         <button
@@ -64,7 +56,7 @@ export default function CompetitionEditorPanel({
       </div>
 
       <form onSubmit={onSave} className="space-y-4">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3">
           <label className="space-y-1.5">
             <span className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Title</span>
             <input aria-label="Title" type="text" maxLength={160} value={title} onChange={(event) => onTitleChange(event.target.value)} required className={inputClass} />
@@ -84,12 +76,6 @@ export default function CompetitionEditorPanel({
           <label className="space-y-1.5">
             <span className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Submission deadline</span>
             <input aria-label="Submission deadline" type="date" value={deadline} onChange={(event) => onDeadlineChange(event.target.value)} className={inputClass} />
-          </label>
-          <label className="space-y-1.5">
-            <span className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Status</span>
-            <select aria-label="Competition status" value={status} onChange={(event) => onStatusChange(event.target.value as CompetitionStatus)} className={inputClass}>
-              {STATUS_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
-            </select>
           </label>
         </div>
 

@@ -36,6 +36,7 @@ function changeAdminCompetitionPage(
 import {
   emptyResultForm,
   type Competition,
+  type CompetitionDiscordEntry,
   type CompetitionResult,
   type CompetitionStatus,
   type Member,
@@ -68,7 +69,6 @@ interface AdminCompetitionsState {
   resultForm: ResultFormState;
   resultPreview: string | null;
   savingMetadata: boolean;
-  status: CompetitionStatus;
   success: string;
   theme: string;
   title: string;
@@ -93,7 +93,6 @@ const initialAdminCompetitionsState: AdminCompetitionsState = {
   resultForm: emptyResultForm,
   resultPreview: null,
   savingMetadata: false,
-  status: "draft",
   success: "",
   theme: "",
   title: "",
@@ -117,6 +116,10 @@ async function fetchCompetitionMembers([url, search]: readonly [string, string])
     url,
     COMPETITION_MEMBER_SEARCH_PAGE_SIZE,
   );
+}
+
+async function fetchDiscordCompetitionEntries(url: string) {
+  return fetchJson<CompetitionDiscordEntry[]>(url);
 }
 
 async function prepareCompetitionResultImages(
@@ -170,7 +173,6 @@ export function useAdminCompetitions() {
     resultForm,
     resultPreview,
     savingMetadata,
-    status,
     success,
     theme,
     title,
@@ -193,7 +195,6 @@ export function useAdminCompetitions() {
   const setResultForm = createKeyedStateSetter(dispatchState, "resultForm");
   const setResultPreview = createKeyedStateSetter(dispatchState, "resultPreview");
   const setSavingMetadata = createKeyedStateSetter(dispatchState, "savingMetadata");
-  const setStatus = createKeyedStateSetter(dispatchState, "status");
   const setSuccess = createKeyedStateSetter(dispatchState, "success");
   const setTheme = createKeyedStateSetter(dispatchState, "theme");
   const setTitle = createKeyedStateSetter(dispatchState, "title");
@@ -228,6 +229,14 @@ export function useAdminCompetitions() {
     fetchCompetitionMembers,
     PUBLIC_API_SWR_OPTIONS,
   );
+  const discordEntriesUrl = uploadingFor
+    ? `/api/competitions/discord-entries?competitionId=${encodeURIComponent(uploadingFor)}`
+    : null;
+  const { data: discordEntries = [], error: discordEntriesLoadError } = useSWR<CompetitionDiscordEntry[]>(
+    discordEntriesUrl,
+    fetchDiscordCompetitionEntries,
+    PUBLIC_API_SWR_OPTIONS,
+  );
   const members = memberPage?.members ?? [];
 
   const competitions = competitionPage?.competitions ?? [];
@@ -260,7 +269,6 @@ export function useAdminCompetitions() {
     setTheme("");
     setDescription("");
     setDeadline("");
-    setStatus("draft");
     setMetadataError("");
   };
 
@@ -275,7 +283,6 @@ export function useAdminCompetitions() {
     setTheme(competition.theme ?? "");
     setDescription(competition.description ?? "");
     setDeadline(competition.submissionDeadline?.slice(0, 10) ?? "");
-    setStatus(competition.status);
     setMetadataError("");
     setEditorOpen(true);
   };
@@ -289,16 +296,16 @@ export function useAdminCompetitions() {
       const endpoint = editingCompetitionId
         ? `/api/competitions/${editingCompetitionId}`
         : "/api/competitions";
+      const metadata = {
+        title,
+        theme: theme.trim() || null,
+        description: description.trim() || null,
+        submissionDeadline: deadline || null,
+      };
       const res = await fetchApi(endpoint, {
         method: editingCompetitionId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title,
-          theme: theme.trim() || null,
-          description: description.trim() || null,
-          submissionDeadline: deadline || null,
-          status,
-        }),
+        body: JSON.stringify(editingCompetitionId ? metadata : { ...metadata, status: "draft" }),
       });
 
       if (!res.ok) {
@@ -333,7 +340,8 @@ export function useAdminCompetitions() {
         setGeneralError(await readErrorMessage(res, "Failed to update competition status."));
         return;
       }
-      setSuccess(`Competition moved to ${nextStatus}.`);
+      const label = nextStatus === "judging" ? "Voting" : nextStatus === "closed" ? "Ended" : "Open for entries";
+      setSuccess(`Competition moved to ${label}.`);
       await refreshCompetitions();
     } catch {
       setGeneralError("Unable to update competition status. Please try again.");
@@ -388,6 +396,7 @@ export function useAdminCompetitions() {
     setUploadingFor(competitionId);
     setEditingResultId(result.id);
     setResultForm({
+      discordEntryId: result.discordEntryId ?? "",
       place: String(result.place),
       title: result.entryTitle ?? "",
       photographerName: result.pairedUserId ? "" : result.photographerName ?? "",
@@ -409,6 +418,10 @@ export function useAdminCompetitions() {
     const file = resultFileRef.current?.files?.[0];
     if (!editingResultId && !file) {
       setResultError("Choose an image before uploading a result.");
+      return;
+    }
+    if (!resultForm.discordEntryId) {
+      setResultError("Select the original Discord entry.");
       return;
     }
     if (resultForm.userId !== "manual" && !resultForm.userId) {
@@ -433,6 +446,7 @@ export function useAdminCompetitions() {
 
       const form = new FormData();
       if (editingResultId) form.append("resultId", editingResultId);
+      form.append("discordEntryId", resultForm.discordEntryId);
       form.append("place", resultForm.place);
       form.append("title", resultForm.title);
       form.append("photographerName", resultForm.photographerName);
@@ -465,6 +479,21 @@ export function useAdminCompetitions() {
     setDeleteTarget(competition);
     setDeleteConfirmation("");
     setDeleteError("");
+  };
+
+  const retryDiscordSync = async (competitionId: string) => {
+    setGeneralError("");
+    try {
+      const res = await fetchApi(`/api/competitions/${competitionId}/sync`, { method: "POST" });
+      if (!res.ok) {
+        setGeneralError(await readErrorMessage(res, "Failed to retry Discord sync."));
+        return;
+      }
+      setSuccess("Discord forum sync retried.");
+      await refreshCompetitions();
+    } catch {
+      setGeneralError("Unable to retry Discord sync. Please try again.");
+    }
   };
 
   const closeDeleteModal = () => {
@@ -519,6 +548,8 @@ export function useAdminCompetitions() {
     deleteTarget,
     deleting,
     description,
+    discordEntries,
+    discordEntriesLoadError,
     editingCompetitionId,
     editingResultId,
     editorOpen,
@@ -535,6 +566,7 @@ export function useAdminCompetitions() {
     pageNumbers,
     refreshCompetitions,
     requestDelete,
+    retryDiscordSync,
     resetMetadataEditor,
     resultError,
     resultFileRef,
@@ -547,14 +579,12 @@ export function useAdminCompetitions() {
     setDescription,
     setMemberQuery,
     setResultForm,
-    setStatus,
     setTheme,
     setTitle,
     startCompetitionCreate,
     startCompetitionEdit,
     startResultEdit,
     startResultUpload,
-    status,
     success,
     theme,
     title,
