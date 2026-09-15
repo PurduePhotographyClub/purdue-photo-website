@@ -20,6 +20,8 @@ export default function AdminCompetitions() {
     deleteTarget,
     deleting,
     description,
+    discordEntries,
+    discordEntriesLoadError,
     editingCompetitionId,
     editingResultId,
     editorOpen,
@@ -36,6 +38,7 @@ export default function AdminCompetitions() {
     pageNumbers,
     refreshCompetitions,
     requestDelete,
+    retryDiscordSync,
     resetMetadataEditor,
     resultError,
     resultFileRef,
@@ -48,14 +51,12 @@ export default function AdminCompetitions() {
     setDescription,
     setMemberQuery,
     setResultForm,
-    setStatus,
     setTheme,
     setTitle,
     startCompetitionCreate,
     startCompetitionEdit,
     startResultEdit,
     startResultUpload,
-    status,
     success,
     theme,
     title,
@@ -97,11 +98,9 @@ export default function AdminCompetitions() {
           onDeadlineChange={setDeadline}
           onDescriptionChange={setDescription}
           onSave={saveCompetition}
-          onStatusChange={setStatus}
           onThemeChange={setTheme}
           onTitleChange={setTitle}
           saving={savingMetadata}
-          status={status}
           theme={theme}
           title={title}
         />
@@ -119,6 +118,7 @@ export default function AdminCompetitions() {
           onDeleteRequest={requestDelete}
           onResultEdit={startResultEdit}
           onResultUpload={startResultUpload}
+          onRetryDiscordSync={retryDiscordSync}
         />
       )}
 
@@ -144,8 +144,9 @@ export default function AdminCompetitions() {
       {uploadingFor && activeResultCompetition && (
         <ResultUploadModal
           competition={activeResultCompetition}
+          discordEntries={discordEntries}
           editingResultId={editingResultId}
-          error={resultError || (memberLoadError ? "Unable to load members. Close this dialog and try again." : "")}
+          error={resultError || (discordEntriesLoadError ? "Unable to load Discord entries. Close this dialog and try again." : memberLoadError ? "Unable to load members. Close this dialog and try again." : "")}
           inputClass={inputClass}
           memberQuery={memberQuery}
           members={members}

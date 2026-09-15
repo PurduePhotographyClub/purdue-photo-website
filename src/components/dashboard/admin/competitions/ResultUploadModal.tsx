@@ -3,12 +3,14 @@ import { Loader2, Search, Upload, X } from "lucide-react";
 import ModalDialog from "@/components/ModalDialog";
 import type {
   Competition,
+  CompetitionDiscordEntry,
   Member,
   ResultFormState,
 } from "./types";
 
 interface ResultUploadModalProps {
   competition: Competition;
+  discordEntries: CompetitionDiscordEntry[];
   editingResultId: string | null;
   error: string;
   inputClass: string;
@@ -27,6 +29,7 @@ interface ResultUploadModalProps {
 
 export default function ResultUploadModal({
   competition,
+  discordEntries,
   editingResultId,
   error,
   inputClass,
@@ -52,6 +55,9 @@ export default function ResultUploadModal({
         .filter((member) => `${member.name} ${member.email}`.toLowerCase().includes(normalizedMemberQuery))
         .slice(0, 30)
     : [];
+  const selectedDiscordEntry = discordEntries.find(
+    (entry) => entry.id === resultForm.discordEntryId,
+  );
 
   return (
     <ModalDialog
@@ -73,6 +79,35 @@ export default function ResultUploadModal({
         </header>
 
         <div className="space-y-5 p-4 sm:p-5">
+          <label className="block space-y-1.5">
+            <span className="text-[10px] uppercase tracking-[0.15em] text-neutral-500">Original Discord entry</span>
+            <select
+              aria-label="Original Discord entry"
+              value={resultForm.discordEntryId}
+              onChange={(event) => {
+                const discordEntryId = event.target.value;
+                const entry = discordEntries.find((candidate) => candidate.id === discordEntryId);
+                onResultFormChange((previous) => entry ? {
+                  ...previous,
+                  description: entry.description,
+                  discordEntryId,
+                  photographerName: entry.discordDisplayName ?? "Discord member",
+                  title: entry.title,
+                  userId: "manual",
+                } : { ...previous, discordEntryId });
+                onMemberQueryChange("");
+              }}
+              required
+              className={inputClass}
+            >
+              <option value="">Select the post that won</option>
+              {discordEntries.map((entry) => (
+                <option key={entry.id} value={entry.id}>{entry.title} — {entry.discordDisplayName ?? "Discord member"}</option>
+              ))}
+            </select>
+            {selectedDiscordEntry && <a href={selectedDiscordEntry.discordPostUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-[10px] text-neutral-400 underline underline-offset-4">Open original post</a>}
+          </label>
+
           <div className="flex flex-col gap-4 sm:flex-row">
             <div className="aspect-[4/3] w-full overflow-hidden border border-neutral-800 bg-neutral-900 sm:w-44 sm:shrink-0">
               {resultPreview ? (

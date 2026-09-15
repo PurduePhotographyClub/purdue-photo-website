@@ -13,6 +13,7 @@ export interface CompetitionResult {
   pairedUserId: string | null;
   photographerName: string | null;
   photographerInstagram: string | null;
+  discordEntryId: string | null;
 }
 
 export interface Competition {
@@ -24,6 +25,20 @@ export interface Competition {
   submissionDeadline: string | null;
   createdAt: string;
   results?: CompetitionResult[];
+  discordForumChannelId: string | null;
+  discordSyncStatus: "pending" | "synced" | "failed";
+  discordSyncError: string | null;
+}
+
+export interface CompetitionDiscordEntry {
+  id: string;
+  attachmentUrl: string;
+  description: string;
+  discordDisplayName: string | null;
+  discordPostUrl: string;
+  discordUserId: string;
+  submittedAt: string;
+  title: string;
 }
 
 export interface Member {
@@ -39,8 +54,6 @@ export const STATUS_TRANSITIONS: Record<CompetitionStatus, CompetitionStatus | n
   closed: null,
 };
 
-export const STATUS_OPTIONS: CompetitionStatus[] = ["draft", "open", "judging", "closed"];
-
 export const adminCompetitionStatusColor: Record<CompetitionStatus, string> = {
   draft: "text-neutral-500",
   open: "text-green-400",
@@ -49,6 +62,7 @@ export const adminCompetitionStatusColor: Record<CompetitionStatus, string> = {
 };
 
 export const emptyResultForm = {
+  discordEntryId: "",
   place: "1",
   title: "",
   photographerName: "",
