@@ -284,7 +284,6 @@ export default function EquipmentScanner({ onCompleted }: EquipmentScannerProps)
               ref={inputRef}
               aria-label="Scan PPC equipment asset tag"
               autoComplete="off"
-              autoFocus
               disabled={busy}
               enterKeyHint="done"
               inputMode="text"
