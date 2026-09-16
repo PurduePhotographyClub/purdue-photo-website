@@ -21,6 +21,7 @@ test("the PPC scanner uses keyboard HID input with an explicit checkout or retur
   assert.match(scanner, /aria-live="polite"/);
   assert.match(scanner, /Desk mode/);
   assert.match(scanner, /Scan or type an asset tag/);
+  assert.doesNotMatch(scanner, /autoFocus/);
   assert.doesNotMatch(scanner, /NETUM setup/);
   assert.doesNotMatch(scanner, /Code 128 label values/);
   assert.doesNotMatch(scanner, /Enter suffix/);
@@ -54,5 +55,9 @@ test("the admin equipment page exposes the scan station and refreshes after a sc
   assert.match(adminEquipment, /type View = "scanner" \| "ppc" \| "loans" \| "history"/);
   assert.match(adminEquipment, />Scan Station</);
   assert.match(adminEquipment, /<EquipmentScanner[\s\S]*onCompleted=\{refresh\}/);
+  assert.match(adminEquipment, /aria-label="Clear equipment history search"/);
+  assert.match(adminEquipment, /aria-label="Dismiss equipment error"/);
+  assert.match(adminEquipment, /aria-label="Dismiss equipment success message"/);
+  assert.match(adminEquipment, /aria-label="Clear equipment search"/);
   assert.doesNotMatch(adminEquipment, /<EquipmentScanner\s+items=/);
 });

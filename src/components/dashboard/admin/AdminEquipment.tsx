@@ -846,7 +846,7 @@ function useAdminEquipmentViewModel() {
               className={inputClass}
             />
             {historySearch && (
-              <button type="button" onClick={() => setHistorySearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-neutral-400 text-xs">✕</button>
+              <button type="button" aria-label="Clear equipment history search" onClick={() => setHistorySearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-neutral-400 text-xs">✕</button>
             )}
           </div>
           <select aria-label="Filter equipment history by action" value={historyFilter} onChange={(e) => handleHistoryFilterChange(e.target.value)} className={`${selectClass} sm:w-52`}>
@@ -1061,13 +1061,13 @@ function AdminEquipmentContent({ viewModel }: { viewModel: ReturnType<typeof use
       {error && (
         <div className="p-3 border border-red-900/50 bg-red-900/10 text-xs text-red-400 flex justify-between items-center">
           {error}
-          <button type="button" onClick={() => setError("")} className="text-red-600 hover:text-red-400 ml-4">✕</button>
+          <button type="button" aria-label="Dismiss equipment error" onClick={() => setError("")} className="text-red-600 hover:text-red-400 ml-4">✕</button>
         </div>
       )}
       {success && (
         <div className="p-3 border border-green-900/50 bg-green-900/10 text-xs text-green-400 flex justify-between items-center">
           {success}
-          <button type="button" onClick={() => setSuccess("")} className="text-green-600 hover:text-green-400 ml-4">✕</button>
+          <button type="button" aria-label="Dismiss equipment success message" onClick={() => setSuccess("")} className="text-green-600 hover:text-green-400 ml-4">✕</button>
         </div>
       )}
 
@@ -1094,7 +1094,7 @@ function AdminEquipmentContent({ viewModel }: { viewModel: ReturnType<typeof use
             className={inputClass}
           />
           {search && (
-            <button type="button" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-neutral-400 text-xs">✕</button>
+            <button type="button" aria-label="Clear equipment search" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-neutral-400 text-xs">✕</button>
           )}
         </div>
       )}
