@@ -12,6 +12,11 @@ import {
   type CompetitionStatus,
 } from "./types";
 
+const primaryActionClass = "inline-flex min-h-11 w-full items-center justify-center gap-2 bg-white px-4 text-[10px] uppercase tracking-[0.14em] text-black transition-colors hover:bg-neutral-200 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-auto";
+const secondaryActionClass = "inline-flex min-h-11 items-center justify-center gap-2 border border-neutral-800 px-3 text-[10px] uppercase tracking-[0.12em] text-neutral-400 transition-colors hover:border-neutral-600 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 disabled:cursor-not-allowed disabled:opacity-40";
+const syncActionClass = "inline-flex min-h-11 items-center justify-center gap-2 border border-amber-900/70 px-3 text-[10px] uppercase tracking-[0.12em] text-amber-300 transition-colors hover:border-amber-700 hover:text-amber-200 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-amber-400";
+const dangerActionClass = "inline-flex min-h-11 items-center justify-center gap-2 border border-red-950/70 px-3 text-[10px] uppercase tracking-[0.12em] text-red-400 transition-colors hover:border-red-900 hover:text-red-300 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-red-400";
+
 interface CompetitionListProps {
   competitions: Competition[];
   onAdvanceStatus: (id: string, status: CompetitionStatus) => void;
@@ -60,7 +65,6 @@ export default function CompetitionList({
         const results = (competition.results ?? []).toSorted((first, second) => first.place - second.place);
         const nextOpenPlace = ([1, 2, 3] as const).find((place) => !results.some((result) => result.place === place));
         const discordForumUrl = getCompetitionDiscordUrl(competition.discordForumChannelId);
-        const canEnd = results.length === 3 && results.every((result) => Boolean(result.discordEntryId));
 
         return (
           <article key={competition.id} className="border border-neutral-800 bg-white/[0.02] p-4 sm:p-5">
@@ -84,52 +88,52 @@ export default function CompetitionList({
                 {competition.discordSyncError && <p className="mt-2 max-w-3xl text-[10px] text-red-400">{competition.discordSyncError}</p>}
               </div>
 
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-                {competition.status === "judging" && (
-                  <button
-                    type="button"
-                    disabled={!nextOpenPlace}
-                    onClick={() => nextOpenPlace && onResultUpload(competition.id, nextOpenPlace)}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 border border-neutral-800 px-3 text-[10px] uppercase tracking-[0.1em] text-neutral-300 transition-colors hover:border-neutral-600 hover:text-white disabled:cursor-not-allowed disabled:text-neutral-700"
-                  >
-                    <Plus size={12} /> {nextOpenPlace ? "Add Result" : "Results Full"}
-                  </button>
-                )}
-                {discordForumUrl && (
-                  <a href={discordForumUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center justify-center gap-2 border border-neutral-800 px-3 text-[10px] uppercase tracking-[0.1em] text-neutral-300 transition-colors hover:border-neutral-600 hover:text-white">
-                    Forum <ExternalLink size={12} />
-                  </a>
-                )}
-                {competition.discordSyncStatus !== "synced" && (
-                  <button type="button" onClick={() => onRetryDiscordSync(competition.id)} className="inline-flex min-h-11 items-center justify-center gap-2 border border-red-950/70 px-3 text-[10px] uppercase tracking-[0.1em] text-red-400">
-                    <RefreshCw size={12} /> {competition.discordSyncStatus === "failed" ? "Retry Discord Sync" : "Sync Discord Forum"}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => onCompetitionEdit(competition)}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 border border-neutral-800 px-3 text-[10px] uppercase tracking-[0.1em] text-neutral-300 transition-colors hover:border-neutral-600 hover:text-white"
-                >
-                  <Edit3 size={12} /> Edit
-                </button>
+              <div className="flex w-full flex-col gap-2 lg:w-auto lg:items-end">
                 {nextStatus && (
                   <button
                     type="button"
-                    disabled={nextStatus === "closed" && !canEnd}
-                    title={nextStatus === "closed" && !canEnd ? "Assign all three places to Discord entries first." : undefined}
                     onClick={() => onAdvanceStatus(competition.id, nextStatus)}
-                    className="min-h-11 border border-neutral-800 px-3 text-[10px] uppercase tracking-[0.1em] text-neutral-300 transition-colors hover:border-neutral-600 hover:text-white disabled:cursor-not-allowed disabled:text-neutral-700"
+                    className={primaryActionClass}
                   >
                     {STATUS_ACTION_LABELS[nextStatus]}
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={() => onDeleteRequest(competition)}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 border border-red-950/70 px-3 text-[10px] uppercase tracking-[0.1em] text-red-400 transition-colors hover:border-red-900 hover:text-red-300"
-                >
-                  <Trash2 size={12} /> Delete
-                </button>
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
+                  {competition.status === "judging" && (
+                    <button
+                      type="button"
+                      disabled={!nextOpenPlace}
+                      onClick={() => nextOpenPlace && onResultUpload(competition.id, nextOpenPlace)}
+                      className={secondaryActionClass}
+                    >
+                      <Plus size={12} /> {nextOpenPlace ? "Add Result" : "Results Full"}
+                    </button>
+                  )}
+                  {discordForumUrl && (
+                    <a href={discordForumUrl} target="_blank" rel="noopener noreferrer" className={secondaryActionClass}>
+                      Open Forum <ExternalLink size={12} />
+                    </a>
+                  )}
+                  {competition.discordSyncStatus !== "synced" && (
+                    <button type="button" onClick={() => onRetryDiscordSync(competition.id)} className={syncActionClass}>
+                      <RefreshCw size={12} /> {competition.discordSyncStatus === "failed" ? "Retry Discord Sync" : "Sync Discord Forum"}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => onCompetitionEdit(competition)}
+                    className={secondaryActionClass}
+                  >
+                    <Edit3 size={12} /> Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDeleteRequest(competition)}
+                    className={dangerActionClass}
+                  >
+                    <Trash2 size={12} /> Delete
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -162,7 +166,7 @@ export default function CompetitionList({
                           type="button"
                           aria-label={`Edit ${placeLabel(result.place)} result`}
                           onClick={() => onResultEdit(competition.id, result)}
-                          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center text-neutral-400 transition-colors hover:text-white"
+                          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center text-neutral-400 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
                         >
                           <Edit3 size={14} />
                         </button>

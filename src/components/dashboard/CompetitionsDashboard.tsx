@@ -71,14 +71,14 @@ export default function CompetitionsDashboard() {
                     href={discordForumUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex min-h-11 items-center justify-center gap-2 px-4 py-2 border border-neutral-800 text-[10px] tracking-[0.15em] uppercase text-neutral-400 hover:text-white hover:border-neutral-600 transition-colors shrink-0 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
+                    className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 bg-white px-5 text-[10px] uppercase tracking-[0.15em] text-black transition-colors hover:bg-neutral-200 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white md:w-auto"
                   >
-                    {comp.status === "judging" ? "Vote" : "Enter"} <ExternalLink size={12} />
+                    {comp.status === "judging" ? "Vote on Discord" : "Enter on Discord"} <ExternalLink size={12} />
                   </a>
                 ) : comp.status === "closed" ? (
                   <a
                     href="/competitions"
-                    className="inline-flex min-h-11 items-center justify-center gap-2 px-4 py-2 border border-neutral-800 text-[10px] tracking-[0.15em] uppercase text-neutral-400 hover:text-white hover:border-neutral-600 transition-colors shrink-0 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400"
+                    className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 border border-neutral-800 px-4 text-[10px] uppercase tracking-[0.15em] text-neutral-400 transition-colors hover:border-neutral-600 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 md:w-auto"
                   >
                     Results <Trophy size={12} />
                   </a>

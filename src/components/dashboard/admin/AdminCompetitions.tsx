@@ -73,7 +73,7 @@ export default function AdminCompetitions() {
           {competitionPage && <p className="mt-1 text-[10px] text-neutral-600">{competitionPage.meta.total} competitions total</p>}
         </div>
         {!editorOpen && (
-          <button type="button" onClick={startCompetitionCreate} className="inline-flex min-h-11 items-center justify-center gap-2 border border-neutral-700 px-4 text-[10px] uppercase tracking-[0.15em] text-neutral-200 transition-colors hover:border-neutral-500 hover:text-white">
+          <button type="button" onClick={startCompetitionCreate} className="inline-flex min-h-11 items-center justify-center gap-2 bg-white px-4 text-[10px] uppercase tracking-[0.15em] text-black transition-colors hover:bg-neutral-200 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white">
             <Plus size={13} /> New Competition
           </button>
         )}
