@@ -38,6 +38,20 @@ test("ending stays available and lifecycle actions use the dashboard button hier
   assert.match(dashboard, /bg-white[^"\n]*text-black/);
 });
 
+test("ended competitions expose a separate guarded Discord archive action", () => {
+  assert.match(hook, /\/archive/);
+  assert.match(hook, /Discord forum archived\./);
+  assert.match(admin, /Archive Forum/);
+  assert.match(
+    admin,
+    /competition\.status === "closed"[\s\S]*competition\.discordSyncStatus === "synced"[\s\S]*discordForumUrl/,
+  );
+  assert.match(
+    admin,
+    /disabled=\{archivingCompetitionId === competition\.id\}/,
+  );
+});
+
 test("results must be connected to the original Discord entry", () => {
   assert.match(hook, /discord-entries/);
   assert.match(hook, /form\.append\("discordEntryId"/);

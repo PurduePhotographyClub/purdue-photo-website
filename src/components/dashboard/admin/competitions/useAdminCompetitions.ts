@@ -53,6 +53,7 @@ const ADMIN_COMPETITIONS_SWR_OPTIONS = {
 type PreparedResultUploadImages = Awaited<ReturnType<typeof prepareGalleryUploadImages>>;
 
 interface AdminCompetitionsState {
+  archivingCompetitionId: string | null;
   deadline: string;
   deleteConfirmation: string;
   deleteError: string;
@@ -77,6 +78,7 @@ interface AdminCompetitionsState {
 }
 
 const initialAdminCompetitionsState: AdminCompetitionsState = {
+  archivingCompetitionId: null,
   deadline: "",
   deleteConfirmation: "",
   deleteError: "",
@@ -157,6 +159,7 @@ export function useAdminCompetitions() {
     initialAdminCompetitionsState,
   );
   const {
+    archivingCompetitionId,
     deadline,
     deleteConfirmation,
     deleteError,
@@ -179,6 +182,7 @@ export function useAdminCompetitions() {
     uploading,
     uploadingFor,
   } = state;
+  const setArchivingCompetitionId = createKeyedStateSetter(dispatchState, "archivingCompetitionId");
   const setDeadline = createKeyedStateSetter(dispatchState, "deadline");
   const setDeleteConfirmation = createKeyedStateSetter(dispatchState, "deleteConfirmation");
   const setDeleteError = createKeyedStateSetter(dispatchState, "deleteError");
@@ -496,6 +500,25 @@ export function useAdminCompetitions() {
     }
   };
 
+  const archiveDiscordForum = async (competitionId: string) => {
+    setArchivingCompetitionId(competitionId);
+    setGeneralError("");
+    try {
+      const res = await fetchApi(`/api/competitions/${competitionId}/archive`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        setGeneralError(await readErrorMessage(res, "Failed to archive the Discord forum."));
+        return;
+      }
+      setSuccess("Discord forum archived.");
+    } catch {
+      setGeneralError("Unable to archive the Discord forum. Please try again.");
+    } finally {
+      setArchivingCompetitionId(null);
+    }
+  };
+
   const closeDeleteModal = () => {
     if (deleting) return;
     setDeleteTarget(null);
@@ -537,6 +560,8 @@ export function useAdminCompetitions() {
   return {
     activeResultCompetition,
     advanceStatus,
+    archiveDiscordForum,
+    archivingCompetitionId,
     closeDeleteModal,
     closeResultModal,
     competitionPage,

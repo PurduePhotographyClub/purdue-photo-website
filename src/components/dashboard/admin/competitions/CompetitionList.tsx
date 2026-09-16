@@ -1,4 +1,4 @@
-import { Edit3, ExternalLink, Plus, RefreshCw, Trash2, Trophy } from "lucide-react";
+import { Archive, Edit3, ExternalLink, Plus, RefreshCw, Trash2, Trophy } from "lucide-react";
 import {
   getCompetitionDiscordUrl,
   STATUS_ACTION_LABELS,
@@ -18,8 +18,10 @@ const syncActionClass = "inline-flex min-h-11 items-center justify-center gap-2 
 const dangerActionClass = "inline-flex min-h-11 items-center justify-center gap-2 border border-red-950/70 px-3 text-[10px] uppercase tracking-[0.12em] text-red-400 transition-colors hover:border-red-900 hover:text-red-300 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-red-400";
 
 interface CompetitionListProps {
+  archivingCompetitionId: string | null;
   competitions: Competition[];
   onAdvanceStatus: (id: string, status: CompetitionStatus) => void;
+  onArchiveDiscordForum: (competitionId: string) => void;
   onCompetitionEdit: (competition: Competition) => void;
   onDeleteRequest: (competition: Competition) => void;
   onResultEdit: (competitionId: string, result: CompetitionResult) => void;
@@ -41,8 +43,10 @@ function placeLabel(place: number) {
 }
 
 export default function CompetitionList({
+  archivingCompetitionId,
   competitions,
   onAdvanceStatus,
+  onArchiveDiscordForum,
   onCompetitionEdit,
   onDeleteRequest,
   onResultEdit,
@@ -119,6 +123,21 @@ export default function CompetitionList({
                       <RefreshCw size={12} /> {competition.discordSyncStatus === "failed" ? "Retry Discord Sync" : "Sync Discord Forum"}
                     </button>
                   )}
+                  {competition.status === "closed" &&
+                    competition.discordSyncStatus === "synced" &&
+                    discordForumUrl && (
+                      <button
+                        type="button"
+                        disabled={archivingCompetitionId === competition.id}
+                        onClick={() => onArchiveDiscordForum(competition.id)}
+                        className={secondaryActionClass}
+                      >
+                        <Archive size={12} />
+                        {archivingCompetitionId === competition.id
+                          ? "Archiving..."
+                          : "Archive Forum"}
+                      </button>
+                    )}
                   <button
                     type="button"
                     onClick={() => onCompetitionEdit(competition)}
