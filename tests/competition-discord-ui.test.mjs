@@ -25,6 +25,13 @@ test("admin lifecycle presents judging as voting and closed as ended", () => {
   assert.match(hook, /\/sync/);
 });
 
+test("ended competitions still allow result uploads", () => {
+  assert.match(
+    admin,
+    /\(competition\.status === "judging" \|\| competition\.status === "closed"\)[\s\S]*Add Result/,
+  );
+});
+
 test("ending stays available and lifecycle actions use the dashboard button hierarchy", () => {
   assert.doesNotMatch(admin, /const canEnd/);
   assert.doesNotMatch(admin, /Assign all three places/);

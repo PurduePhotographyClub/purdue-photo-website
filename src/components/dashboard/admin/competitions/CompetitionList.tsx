@@ -103,7 +103,7 @@ export default function CompetitionList({
                   </button>
                 )}
                 <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
-                  {competition.status === "judging" && (
+                  {(competition.status === "judging" || competition.status === "closed") && (
                     <button
                       type="button"
                       disabled={!nextOpenPlace}
