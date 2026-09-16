@@ -9,6 +9,8 @@ export default function AdminCompetitions() {
   const {
     activeResultCompetition,
     advanceStatus,
+    archiveDiscordForum,
+    archivingCompetitionId,
     closeDeleteModal,
     closeResultModal,
     competitionPage,
@@ -113,7 +115,9 @@ export default function AdminCompetitions() {
       ) : (
         <CompetitionList
           competitions={competitions}
+          archivingCompetitionId={archivingCompetitionId}
           onAdvanceStatus={advanceStatus}
+          onArchiveDiscordForum={archiveDiscordForum}
           onCompetitionEdit={startCompetitionEdit}
           onDeleteRequest={requestDelete}
           onResultEdit={startResultEdit}
