@@ -326,8 +326,10 @@ test("gallery uploads reencode every full image to strip EXIF and produce lightw
   );
   assert.match(
     galleryImagesSource,
-    /getGalleryUploadTargetSize\(source, GALLERY_FULL_IMAGE_MAX_DIMENSION\)/,
+    /const GALLERY_UPLOAD_PROFILE: ImageUploadProfile = \{/,
   );
+  assert.match(galleryImagesSource, /maxDimension: GALLERY_FULL_IMAGE_MAX_DIMENSION/);
+  assert.match(galleryImagesSource, /return prepareUploadImages\(file, GALLERY_UPLOAD_PROFILE\)/);
   assert.match(galleryImagesSource, /GALLERY_FULL_IMAGE_TARGET_BYTES/);
   assert.match(galleryImagesSource, /fallback/);
   assert.doesNotMatch(galleryImagesSource, /:\s*file;/);

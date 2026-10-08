@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
-import { Award, ExternalLink, Film, Medal, Monitor, Trophy, X } from "lucide-react";
+import { ExternalLink, X } from "lucide-react";
 import ModalDialog from "./ModalDialog";
+import { CompetitionPlacementBadge } from "./CompetitionPlacementBadge";
 import { ImageWithFallback } from "./ImageWithFallback";
 import InstagramIcon from "./icons/InstagramIcon";
 import {
@@ -10,6 +11,8 @@ import {
 } from "@/lib/competition-data";
 import { fetchPublicJson, PUBLIC_API_SWR_OPTIONS } from "@/lib/http";
 import { getCompetitionDiscordUrl } from "@/lib/competition-discord";
+import { formatDateOnly } from "@/lib/date-only";
+import { getCompetitionWinnerSizes, getImageOrientation, getValidImageDimension } from "@/lib/image-dimensions";
 
 const COMPETITIONS_PAGE_SIZE = 12;
 const COMPETITIONS_SWR_OPTIONS = {
@@ -32,17 +35,18 @@ interface CompetitionResultRow {
   entryDescription?: string | null;
   entryId: string;
   entryTitle?: string | null;
+  height: number | null;
   imageUrl: string;
   medium?: "film" | "digital" | null;
   photographerInstagram?: string | null;
   photographerName?: string | null;
   place: number | null;
   thumbnailUrl: string | null;
+  width: number | null;
 }
 
 interface CompetitionRow {
   createdAt: string;
-  description: string | null;
   id: string;
   results?: CompetitionResultRow[];
   status: "draft" | "open" | "judging" | "closed";
@@ -53,6 +57,7 @@ interface CompetitionRow {
 }
 
 interface Winner {
+  height: number | null;
   imageUrl: string;
   instagram: string | null;
   medium: "Film" | "Digital";
@@ -60,10 +65,10 @@ interface Winner {
   place: 1 | 2 | 3;
   thumbnailUrl: string;
   title: string;
+  width: number | null;
 }
 
 interface ResultCompetition {
-  description: string;
   id: string;
   month: string;
   theme: string;
@@ -73,7 +78,6 @@ interface ResultCompetition {
 }
 
 interface OpenCompetition {
-  description: string;
   id: string;
   month: string;
   submissionDeadline: string | null;
@@ -98,13 +102,6 @@ function parseCompetitionDate(value: string | null | undefined) {
   };
 }
 
-function formatDeadline(value: string) {
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(value)
-    ? new Date(`${value}T12:00:00`)
-    : new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
-}
-
 function mapCompetitionRows(rows: CompetitionRow[]) {
   const openCompetitions: OpenCompetition[] = [];
   const competitions: ResultCompetition[] = [];
@@ -113,7 +110,6 @@ function mapCompetitionRows(rows: CompetitionRow[]) {
     const { month, year } = parseCompetitionDate(competition.submissionDeadline || competition.createdAt);
     if (competition.status === "open" || competition.status === "judging") {
       openCompetitions.push({
-        description: competition.description ?? "",
         id: competition.id,
         month,
         submissionDeadline: competition.submissionDeadline,
@@ -132,6 +128,7 @@ function mapCompetitionRows(rows: CompetitionRow[]) {
         result.place === 1 || result.place === 2 || result.place === 3)
       .sort((first, second) => first.place - second.place)
       .map((result): Winner => ({
+        height: result.height,
         imageUrl: result.imageUrl,
         instagram: result.photographerInstagram ?? null,
         medium: result.medium === "film" ? "Film" : "Digital",
@@ -139,11 +136,11 @@ function mapCompetitionRows(rows: CompetitionRow[]) {
         place: result.place,
         thumbnailUrl: result.thumbnailUrl ?? result.imageUrl,
         title: result.entryTitle || "Untitled",
+        width: result.width,
       }));
 
     if (winners.length > 0) {
       competitions.push({
-        description: competition.description ?? "",
         id: competition.id,
         month,
         theme: competition.theme || competition.title,
@@ -168,9 +165,13 @@ async function fetchCompetitionPage(url: string) {
   return normalizeCompetitionPageForUrl<CompetitionRow>(value, url, COMPETITIONS_PAGE_SIZE);
 }
 
-const placeIcons = { 1: Trophy, 2: Medal, 3: Award } as const;
-const placeLabels = { 1: "1st Place", 2: "2nd Place", 3: "3rd Place" } as const;
-const placeColors = { 1: "text-amber-400", 2: "text-neutral-300", 3: "text-amber-700" } as const;
+function getWinnerCardClass(winner: Winner) {
+  if (winner.place !== 1) return "";
+  const orientation = getImageOrientation(winner.width, winner.height);
+  if (orientation === "portrait") return "md:col-span-2 md:max-w-sm md:justify-self-center";
+  if (orientation === "unknown") return "md:col-span-2 md:max-w-2xl md:justify-self-center";
+  return "md:col-span-2";
+}
 
 export default function Competitions() {
   const [page, setPage] = useState(1);
@@ -247,10 +248,10 @@ export default function Competitions() {
             <div className="mb-12 flex flex-wrap justify-center gap-2">
               {Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-11 w-28 animate-pulse bg-neutral-800/50" />)}
             </div>
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
-              <div className="aspect-[16/10] animate-pulse bg-neutral-800/50 md:col-span-3" />
-              <div className="aspect-[4/3] animate-pulse bg-neutral-800/50" />
-              <div className="aspect-[4/3] animate-pulse bg-neutral-800/50" />
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+              <div className="min-h-56 animate-pulse bg-neutral-800/50 md:col-span-2" />
+              <div className="min-h-48 animate-pulse bg-neutral-800/50" />
+              <div className="min-h-48 animate-pulse bg-neutral-800/50" />
             </div>
           </>
         ) : status === "error" ? (
@@ -269,8 +270,7 @@ export default function Competitions() {
                         <p className={`mb-3 text-[10px] uppercase tracking-[0.3em] ${faintText}`}>{competition.status === "judging" ? "Voting Now" : "Open Now"}</p>
                         <h2 className={`text-2xl tracking-wider md:text-3xl ${heading}`} style={{ fontFamily: "'Playfair Display', serif" }}>{competition.title}</h2>
                         <p className={`mt-2 text-sm tracking-wider ${subText}`}>Theme: “{competition.theme}”</p>
-                        {competition.description && <p className={`mt-4 max-w-2xl text-sm leading-relaxed tracking-wider ${mutedText}`}>{competition.description}</p>}
-                        {competition.submissionDeadline && <p className={`mt-4 text-xs uppercase tracking-[0.2em] ${faintText}`}>Due {formatDeadline(competition.submissionDeadline)}</p>}
+                        {competition.submissionDeadline && <p className={`mt-4 text-xs uppercase tracking-[0.2em] ${faintText}`}>Due {formatDateOnly(competition.submissionDeadline)}</p>}
                       </div>
                       {competition.discordForumUrl && (
                         <a href={competition.discordForumUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 border border-neutral-600 px-6 py-3 text-xs uppercase tracking-[0.2em] text-neutral-200 transition-colors hover:bg-white hover:text-black focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400">
@@ -313,36 +313,28 @@ export default function Competitions() {
                           <p className={`mb-2 text-xs uppercase tracking-[0.3em] ${faintText}`}>{competition.month} {competition.year}</p>
                           <h2 className={`mb-3 text-2xl tracking-wider md:text-3xl ${heading}`} style={{ fontFamily: "'Playfair Display', serif" }}>{competition.title}</h2>
                           <h3 className={`mb-4 text-xl tracking-wider md:text-2xl ${heading}`} style={{ fontFamily: "'Playfair Display', serif" }}>“{competition.theme}”</h3>
-                          {competition.description && <p className={`mx-auto max-w-lg text-sm leading-relaxed tracking-wider ${mutedText}`}>{competition.description}</p>}
                         </div>
 
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-4 items-start md:grid-cols-2">
                           {competition.winners.map((winner) => {
-                            const PlaceIcon = placeIcons[winner.place];
                             return (
-                              <article key={`${competition.id}-${winner.place}-${winner.title}`} className={`group relative overflow-hidden border border-neutral-800 bg-neutral-950 ${winner.place === 1 ? "md:col-span-3" : ""}`}>
+                              <article key={`${competition.id}-${winner.place}-${winner.title}`} className={`group relative overflow-hidden border border-neutral-800 bg-neutral-950 ${getWinnerCardClass(winner)}`}>
                                 <button type="button" aria-label={`Open ${winner.title} by ${winner.photographer}`} onClick={() => setLightbox(winner)} className="block w-full appearance-none bg-transparent p-0 text-left focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400">
-                                  <div className={`relative overflow-hidden ${winner.place === 1 ? "aspect-[16/10] md:aspect-[16/9]" : "aspect-[4/3]"}`}>
+                                  <div className="relative overflow-hidden">
                                     <ImageWithFallback
                                       src={winner.thumbnailUrl}
-                                      alt={winner.title}
+                                      alt={`${winner.title} by ${winner.photographer}`}
                                       loading={winner.place === 1 ? "eager" : "lazy"}
                                       decoding="async"
                                       fetchPriority={winner.place === 1 ? "high" : "auto"}
-                                      sizes="(min-width: 768px) 33vw, 100vw"
-                                      className="size-full object-contain"
+                                      width={getValidImageDimension(winner.width)}
+                                      height={getValidImageDimension(winner.height)}
+                                      sizes={getCompetitionWinnerSizes(winner.place, getImageOrientation(winner.width, winner.height))}
+                                      className="block h-auto w-full object-contain"
                                     />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
                                     <div className="absolute left-3 top-3 sm:left-4 sm:top-4">
-                                      <div className={`flex items-center gap-1.5 border border-neutral-700 bg-black/70 px-3 py-1.5 backdrop-blur-sm ${placeColors[winner.place]}`}>
-                                        <PlaceIcon size={13} />
-                                        <span className="text-[10px] uppercase tracking-[0.16em]">{placeLabels[winner.place]}</span>
-                                      </div>
-                                    </div>
-                                    <div className="absolute right-3 top-3 sm:right-4 sm:top-4">
-                                      <span className={`flex items-center gap-1 px-2 py-1 text-[9px] uppercase tracking-[0.16em] ${winner.medium === "Film" ? "border border-neutral-700 bg-neutral-900/80 text-neutral-300" : "bg-white/10 text-neutral-200 backdrop-blur-sm"}`}>
-                                        {winner.medium === "Film" ? <Film size={9} /> : <Monitor size={9} />}{winner.medium}
-                                      </span>
+                                      <CompetitionPlacementBadge place={winner.place} className="border border-neutral-700 bg-black/70 px-3 py-1.5 text-[10px] uppercase tracking-[0.16em] backdrop-blur-sm" />
                                     </div>
                                     <div className={`absolute inset-x-0 bottom-0 p-4 sm:p-6 ${winner.instagram ? "pr-28 sm:pr-32" : ""}`}>
                                       <h3 className={`mb-2 tracking-wider text-white ${winner.place === 1 ? "text-xl sm:text-2xl" : "text-sm"}`} style={{ fontFamily: "'Playfair Display', serif" }}>“{winner.title}”</h3>
@@ -412,16 +404,12 @@ export default function Competitions() {
             <X size={22} />
           </button>
           <div className="relative z-10 flex max-h-full w-full max-w-5xl flex-col items-center gap-4">
-            <img src={lightbox.imageUrl} alt={lightbox.title} loading="eager" decoding="async" className="min-h-0 max-h-[72vh] max-w-full shrink object-contain" />
+            <img src={lightbox.imageUrl} alt={`${lightbox.title} by ${lightbox.photographer}`} width={getValidImageDimension(lightbox.width)} height={getValidImageDimension(lightbox.height)} loading="eager" decoding="async" className="min-h-0 max-h-[72vh] max-w-full shrink object-contain" />
             <div className="shrink-0 text-center">
               <h3 className="text-xl tracking-wider text-white" style={{ fontFamily: "'Playfair Display', serif" }}>“{lightbox.title}”</h3>
               <p className="mt-2 text-sm tracking-wider text-neutral-200">{lightbox.photographer}</p>
-              <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
-                <span className={`flex items-center gap-1 text-xs uppercase tracking-[0.16em] ${placeColors[lightbox.place]}`}>
-                  {(() => { const Icon = placeIcons[lightbox.place]; return <Icon size={12} />; })()}{placeLabels[lightbox.place]}
-                </span>
-                <span className="text-neutral-700">|</span>
-                <span className="flex items-center gap-1 text-xs text-neutral-400">{lightbox.medium === "Film" ? <Film size={10} /> : <Monitor size={10} />}{lightbox.medium}</span>
+              <div className="mt-3">
+                <CompetitionPlacementBadge place={lightbox.place} className="text-xs uppercase tracking-[0.16em]" />
               </div>
               {lightbox.instagram && (
                 <a href={`https://instagram.com/${lightbox.instagram.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-xs tracking-wider text-neutral-300 transition-colors hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400">

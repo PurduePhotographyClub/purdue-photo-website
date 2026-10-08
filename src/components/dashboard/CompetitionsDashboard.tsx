@@ -2,6 +2,7 @@ import useSWR from "swr";
 import { ExternalLink, Trophy } from "lucide-react";
 import { fetchJson, PUBLIC_API_SWR_OPTIONS } from "@/lib/http";
 import { getCompetitionDiscordUrl, STATUS_LABELS } from "@/lib/competition-discord";
+import { formatDateOnly } from "@/lib/date-only";
 
 const competitionStatusBadge: Record<string, string> = {
   open: "text-green-400",
@@ -13,7 +14,6 @@ const competitionStatusBadge: Record<string, string> = {
 interface Competition {
   id: string;
   title: string;
-  description: string | null;
   theme: string | null;
   status: "draft" | "open" | "judging" | "closed";
   submissionDeadline: string | null;
@@ -37,9 +37,9 @@ export default function CompetitionsDashboard() {
       </div>
 
       {isLoading ? (
-        <p className="text-xs text-neutral-500">Loading</p>
+        <p role="status" className="text-xs text-neutral-500">Loading competitions…</p>
       ) : error ? (
-        <p className="text-xs text-red-400">Failed to load competitions. Please refresh the page.</p>
+        <p role="alert" className="text-xs text-red-400">Failed to load competitions. Please refresh the page.</p>
       ) : competitions.length === 0 ? (
         <p className="text-xs text-neutral-600">No competitions available.</p>
       ) : (
@@ -54,14 +54,13 @@ export default function CompetitionsDashboard() {
                   {comp.theme && (
                     <p className="text-[10px] tracking-wider text-neutral-500 mt-0.5">Theme: {comp.theme}</p>
                   )}
-                  {comp.description && <p className="text-xs text-neutral-500 mt-2 max-w-xl">{comp.description}</p>}
                   <div className="flex flex-wrap items-center gap-3 mt-3">
                     <span className={`text-[10px] tracking-wider capitalize ${competitionStatusBadge[comp.status] || "text-neutral-500"}`}>
                       {STATUS_LABELS[comp.status]}
                     </span>
                     {comp.submissionDeadline && (
                       <span className="text-[10px] text-neutral-600">
-                        Deadline: {new Date(comp.submissionDeadline).toLocaleDateString()}
+                        Deadline: {formatDateOnly(comp.submissionDeadline)}
                       </span>
                     )}
                   </div>

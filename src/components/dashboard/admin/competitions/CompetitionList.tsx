@@ -1,4 +1,5 @@
-import { Archive, Edit3, ExternalLink, Plus, RefreshCw, Trash2, Trophy } from "lucide-react";
+import { Archive, Edit3, ExternalLink, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { CompetitionPlacementBadge } from "@/components/CompetitionPlacementBadge";
 import {
   getCompetitionDiscordUrl,
   STATUS_ACTION_LABELS,
@@ -11,6 +12,8 @@ import {
   type CompetitionResult,
   type CompetitionStatus,
 } from "./types";
+import { getValidImageDimension } from "@/lib/image-dimensions";
+import { formatDateOnly } from "@/lib/date-only";
 
 const primaryActionClass = "inline-flex min-h-11 w-full items-center justify-center gap-2 bg-white px-4 text-[10px] uppercase tracking-[0.14em] text-black transition-colors hover:bg-neutral-200 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-auto";
 const secondaryActionClass = "inline-flex min-h-11 items-center justify-center gap-2 border border-neutral-800 px-3 text-[10px] uppercase tracking-[0.12em] text-neutral-400 transition-colors hover:border-neutral-600 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 disabled:cursor-not-allowed disabled:opacity-40";
@@ -27,13 +30,6 @@ interface CompetitionListProps {
   onResultEdit: (competitionId: string, result: CompetitionResult) => void;
   onResultUpload: (competitionId: string, place: number) => void;
   onRetryDiscordSync: (competitionId: string) => void;
-}
-
-function formatDeadline(value: string) {
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(value)
-    ? new Date(`${value}T12:00:00`)
-    : new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
 }
 
 function placeLabel(place: number) {
@@ -80,7 +76,7 @@ export default function CompetitionList({
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                   {competition.theme && <span className="text-[10px] text-neutral-500">Theme: {competition.theme}</span>}
-                  {competition.submissionDeadline && <span className="text-[10px] text-neutral-500">Due {formatDeadline(competition.submissionDeadline)}</span>}
+                  {competition.submissionDeadline && <span className="text-[10px] text-neutral-500">Due {formatDateOnly(competition.submissionDeadline)}</span>}
                   <span className="text-[10px] text-neutral-600">{results.length}/3 results</span>
                   {(discordForumUrl || competition.status !== "closed") && (
                     <span className={`text-[10px] ${competition.discordSyncStatus === "failed" ? "text-red-400" : "text-neutral-600"}`}>
@@ -88,7 +84,6 @@ export default function CompetitionList({
                     </span>
                   )}
                 </div>
-                {competition.description && <p className="mt-3 max-w-3xl text-xs leading-relaxed text-neutral-400">{competition.description}</p>}
                 {competition.discordSyncError && <p className="mt-2 max-w-3xl text-[10px] text-red-400">{competition.discordSyncError}</p>}
               </div>
 
@@ -162,22 +157,21 @@ export default function CompetitionList({
                   const thumbnailUrl = result.thumbnailUrl ?? result.imageUrl;
                   return (
                     <div key={result.id} className="overflow-hidden border border-neutral-800 bg-black/20">
-                      <div className="aspect-[4/3] overflow-hidden bg-neutral-900">
+                      <div className="overflow-hidden bg-neutral-900">
                         <img
                           src={thumbnailUrl}
                           alt={result.entryTitle || "Competition result"}
                           loading="lazy"
                           decoding="async"
+                          width={getValidImageDimension(result.width)}
+                          height={getValidImageDimension(result.height)}
                           sizes="(min-width: 768px) 33vw, 100vw"
-                          className="size-full object-cover"
+                          className="block h-auto w-full object-contain"
                         />
                       </div>
                       <div className="flex items-end justify-between gap-3 p-3">
                         <div className="min-w-0">
-                          <div className="mb-1.5 flex items-center gap-1.5 text-amber-400">
-                            <Trophy size={12} />
-                            <span className="text-[10px] uppercase tracking-[0.13em]">{placeLabel(result.place)}</span>
-                          </div>
+                          <CompetitionPlacementBadge place={result.place} className="mb-1.5 text-[10px] uppercase tracking-[0.13em]" />
                           <p className="truncate text-xs text-neutral-200">{result.entryTitle || "Untitled"}</p>
                           <p className="mt-1 truncate text-[10px] text-neutral-500">{result.photographerName || "Unknown photographer"}</p>
                         </div>

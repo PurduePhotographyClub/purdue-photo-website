@@ -3,6 +3,7 @@ export type CompetitionStatus = "draft" | "open" | "judging" | "closed";
 export interface CompetitionResult {
   id: string;
   entryId: string;
+  height: number | null;
   imageUrl: string;
   thumbnailUrl: string | null;
   place: 1 | 2 | 3;
@@ -14,13 +15,13 @@ export interface CompetitionResult {
   photographerName: string | null;
   photographerInstagram: string | null;
   discordEntryId: string | null;
+  width: number | null;
 }
 
 export interface Competition {
   id: string;
   title: string;
   theme: string | null;
-  description: string | null;
   status: CompetitionStatus;
   submissionDeadline: string | null;
   createdAt: string;
