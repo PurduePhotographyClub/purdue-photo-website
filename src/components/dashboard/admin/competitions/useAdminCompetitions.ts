@@ -11,7 +11,7 @@ import {
 } from "@/lib/competition-data";
 import {
   getGalleryUploadSourceValidationError,
-  prepareGalleryUploadImages,
+  prepareCompetitionUploadImages,
 } from "@/lib/gallery-images";
 import {
   fetchApi,
@@ -50,7 +50,7 @@ const ADMIN_COMPETITIONS_SWR_OPTIONS = {
   keepPreviousData: false,
 };
 
-type PreparedResultUploadImages = Awaited<ReturnType<typeof prepareGalleryUploadImages>>;
+type PreparedResultUploadImages = Awaited<ReturnType<typeof prepareCompetitionUploadImages>>;
 
 interface AdminCompetitionsState {
   archivingCompetitionId: string | null;
@@ -59,7 +59,6 @@ interface AdminCompetitionsState {
   deleteError: string;
   deleteTarget: Competition | null;
   deleting: boolean;
-  description: string;
   editingCompetitionId: string | null;
   editingResultId: string | null;
   editorOpen: boolean;
@@ -84,7 +83,6 @@ const initialAdminCompetitionsState: AdminCompetitionsState = {
   deleteError: "",
   deleteTarget: null,
   deleting: false,
-  description: "",
   editingCompetitionId: null,
   editingResultId: null,
   editorOpen: false,
@@ -131,7 +129,7 @@ async function prepareCompetitionResultImages(
   if (validationError) return { error: validationError };
 
   try {
-    return { images: await prepareGalleryUploadImages(file) };
+    return { images: await prepareCompetitionUploadImages(file) };
   } catch {
     return { error: "Unable to optimize this JPEG. Please try another photo." };
   }
@@ -165,7 +163,6 @@ export function useAdminCompetitions() {
     deleteError,
     deleteTarget,
     deleting,
-    description,
     editingCompetitionId,
     editingResultId,
     editorOpen,
@@ -188,7 +185,6 @@ export function useAdminCompetitions() {
   const setDeleteError = createKeyedStateSetter(dispatchState, "deleteError");
   const setDeleteTarget = createKeyedStateSetter(dispatchState, "deleteTarget");
   const setDeleting = createKeyedStateSetter(dispatchState, "deleting");
-  const setDescription = createKeyedStateSetter(dispatchState, "description");
   const setEditingCompetitionId = createKeyedStateSetter(dispatchState, "editingCompetitionId");
   const setEditingResultId = createKeyedStateSetter(dispatchState, "editingResultId");
   const setEditorOpen = createKeyedStateSetter(dispatchState, "editorOpen");
@@ -271,7 +267,6 @@ export function useAdminCompetitions() {
     setEditingCompetitionId(null);
     setTitle("");
     setTheme("");
-    setDescription("");
     setDeadline("");
     setMetadataError("");
   };
@@ -285,7 +280,6 @@ export function useAdminCompetitions() {
     setEditingCompetitionId(competition.id);
     setTitle(competition.title);
     setTheme(competition.theme ?? "");
-    setDescription(competition.description ?? "");
     setDeadline(competition.submissionDeadline?.slice(0, 10) ?? "");
     setMetadataError("");
     setEditorOpen(true);
@@ -303,7 +297,6 @@ export function useAdminCompetitions() {
       const metadata = {
         title,
         theme: theme.trim() || null,
-        description: description.trim() || null,
         submissionDeadline: deadline || null,
       };
       const res = await fetchApi(endpoint, {
@@ -572,7 +565,6 @@ export function useAdminCompetitions() {
     deleteError,
     deleteTarget,
     deleting,
-    description,
     discordEntries,
     discordEntriesLoadError,
     editingCompetitionId,
@@ -601,7 +593,6 @@ export function useAdminCompetitions() {
     savingMetadata,
     setDeadline,
     setDeleteConfirmation,
-    setDescription,
     setMemberQuery,
     setResultForm,
     setTheme,

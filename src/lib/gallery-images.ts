@@ -7,6 +7,15 @@ const GALLERY_FULL_IMAGE_MIN_DIMENSION = 1200;
 const GALLERY_PREVIEW_IMAGE_MIN_DIMENSION = 480;
 const GALLERY_FULL_IMAGE_QUALITY = 0.78;
 const GALLERY_PREVIEW_IMAGE_QUALITY = 0.74;
+export const COMPETITION_FULL_IMAGE_MAX_DIMENSION = 3600;
+export const COMPETITION_FULL_IMAGE_MIN_DIMENSION = 1800;
+export const COMPETITION_FULL_IMAGE_QUALITY = 0.90;
+export const COMPETITION_FULL_IMAGE_TARGET_BYTES = 3 * 1024 * 1024;
+export const COMPETITION_FULL_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+export const COMPETITION_PREVIEW_IMAGE_MAX_DIMENSION = 1200;
+export const COMPETITION_PREVIEW_IMAGE_QUALITY = 0.82;
+export const COMPETITION_PREVIEW_IMAGE_TARGET_BYTES = 400 * 1024;
+export const COMPETITION_PREVIEW_IMAGE_MAX_BYTES = 700 * 1024;
 export const GALLERY_FULL_IMAGE_MAX_BYTES = 1_500_000;
 export const GALLERY_FULL_IMAGE_TARGET_BYTES = 700 * 1024;
 export const GALLERY_PREVIEW_IMAGE_MAX_BYTES = 450 * 1024;
@@ -149,6 +158,57 @@ interface PreparedGalleryUploadImages {
   thumbnail: File;
   width: number;
 }
+
+interface ImageUploadProfile {
+  full: {
+    maxDimension: number;
+    minDimension: number;
+    quality: number;
+    targetBytes: number;
+    maxBytes: number;
+  };
+  preview: {
+    maxDimension: number;
+    minDimension: number;
+    quality: number;
+    targetBytes: number;
+    maxBytes: number;
+  };
+}
+
+const GALLERY_UPLOAD_PROFILE: ImageUploadProfile = {
+  full: {
+    maxDimension: GALLERY_FULL_IMAGE_MAX_DIMENSION,
+    minDimension: GALLERY_FULL_IMAGE_MIN_DIMENSION,
+    quality: GALLERY_FULL_IMAGE_QUALITY,
+    targetBytes: GALLERY_FULL_IMAGE_TARGET_BYTES,
+    maxBytes: GALLERY_FULL_IMAGE_MAX_BYTES,
+  },
+  preview: {
+    maxDimension: GALLERY_PREVIEW_IMAGE_MAX_DIMENSION,
+    minDimension: GALLERY_PREVIEW_IMAGE_MIN_DIMENSION,
+    quality: GALLERY_PREVIEW_IMAGE_QUALITY,
+    targetBytes: GALLERY_PREVIEW_IMAGE_TARGET_BYTES,
+    maxBytes: GALLERY_PREVIEW_IMAGE_MAX_BYTES,
+  },
+};
+
+const COMPETITION_UPLOAD_PROFILE: ImageUploadProfile = {
+  full: {
+    maxDimension: COMPETITION_FULL_IMAGE_MAX_DIMENSION,
+    minDimension: COMPETITION_FULL_IMAGE_MIN_DIMENSION,
+    quality: COMPETITION_FULL_IMAGE_QUALITY,
+    targetBytes: COMPETITION_FULL_IMAGE_TARGET_BYTES,
+    maxBytes: COMPETITION_FULL_IMAGE_MAX_BYTES,
+  },
+  preview: {
+    maxDimension: COMPETITION_PREVIEW_IMAGE_MAX_DIMENSION,
+    minDimension: GALLERY_PREVIEW_IMAGE_MIN_DIMENSION,
+    quality: COMPETITION_PREVIEW_IMAGE_QUALITY,
+    targetBytes: COMPETITION_PREVIEW_IMAGE_TARGET_BYTES,
+    maxBytes: COMPETITION_PREVIEW_IMAGE_MAX_BYTES,
+  },
+};
 
 interface LoadedGalleryImage {
   close?: () => void;
@@ -432,7 +492,10 @@ async function renderJpegWithinLimit(
   throw new Error("Unable to keep the selected image under the gallery storage limit.");
 }
 
-export async function prepareGalleryUploadImages(file: File): Promise<PreparedGalleryUploadImages> {
+async function prepareUploadImages(
+  file: File,
+  profile: ImageUploadProfile,
+): Promise<PreparedGalleryUploadImages> {
   const validationError = await getGalleryUploadSourceValidationError(file);
   if (validationError) {
     throw new Error(validationError);
@@ -440,15 +503,15 @@ export async function prepareGalleryUploadImages(file: File): Promise<PreparedGa
 
   const source = await loadGalleryImage(file);
   try {
-    const fullSize = getGalleryUploadTargetSize(source, GALLERY_FULL_IMAGE_MAX_DIMENSION);
-    const previewSize = getGalleryUploadTargetSize(source, GALLERY_PREVIEW_IMAGE_MAX_DIMENSION);
+    const fullSize = getGalleryUploadTargetSize(source, profile.full.maxDimension);
+    const previewSize = getGalleryUploadTargetSize(source, profile.preview.maxDimension);
     const optimizedFile = await renderJpegWithinLimit(
       source,
       fullSize,
-      GALLERY_FULL_IMAGE_TARGET_BYTES,
-      GALLERY_FULL_IMAGE_MAX_BYTES,
-      GALLERY_FULL_IMAGE_QUALITY,
-      GALLERY_FULL_IMAGE_MIN_DIMENSION,
+      profile.full.targetBytes,
+      profile.full.maxBytes,
+      profile.full.quality,
+      profile.full.minDimension,
       withJpegExtension(file.name),
       file.lastModified,
     );
@@ -456,10 +519,10 @@ export async function prepareGalleryUploadImages(file: File): Promise<PreparedGa
     const thumbnail = await renderJpegWithinLimit(
       source,
       previewSize,
-      GALLERY_PREVIEW_IMAGE_TARGET_BYTES,
-      GALLERY_PREVIEW_IMAGE_MAX_BYTES,
-      GALLERY_PREVIEW_IMAGE_QUALITY,
-      GALLERY_PREVIEW_IMAGE_MIN_DIMENSION,
+      profile.preview.targetBytes,
+      profile.preview.maxBytes,
+      profile.preview.quality,
+      profile.preview.minDimension,
       withJpegExtension(file.name, "preview"),
       file.lastModified,
     );
@@ -473,4 +536,12 @@ export async function prepareGalleryUploadImages(file: File): Promise<PreparedGa
   } finally {
     source.close?.();
   }
+}
+
+export async function prepareGalleryUploadImages(file: File): Promise<PreparedGalleryUploadImages> {
+  return prepareUploadImages(file, GALLERY_UPLOAD_PROFILE);
+}
+
+export async function prepareCompetitionUploadImages(file: File): Promise<PreparedGalleryUploadImages> {
+  return prepareUploadImages(file, COMPETITION_UPLOAD_PROFILE);
 }

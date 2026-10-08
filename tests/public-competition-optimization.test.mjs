@@ -15,7 +15,7 @@ test("public competition cards use thumbnails and reserve originals for the ligh
   assert.match(source, /imageUrl/);
   assert.match(source, /loading=\{.*"eager".*"lazy"/);
   assert.match(source, /decoding="async"/);
-  assert.match(source, /sizes="\(min-width: 768px\) 33vw, 100vw"/);
+  assert.match(source, /getCompetitionWinnerSizes\(winner\.place, getImageOrientation\(winner\.width, winner\.height\)\)/);
   assert.doesNotMatch(source, /winner\.medium === "Film" \? "grayscale"/);
   assert.match(source, /thumbnailUrl: result\.thumbnailUrl \?\? result\.imageUrl/);
   assert.doesNotMatch(source, /thumbnailUrl: `\/api\/competitions\/image\/photo\/\$\{result\.entryId\}\?variant=thumbnail`/);

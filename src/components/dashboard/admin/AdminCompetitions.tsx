@@ -21,7 +21,6 @@ export default function AdminCompetitions() {
     deleteError,
     deleteTarget,
     deleting,
-    description,
     discordEntries,
     discordEntriesLoadError,
     editingCompetitionId,
@@ -50,7 +49,6 @@ export default function AdminCompetitions() {
     savingMetadata,
     setDeadline,
     setDeleteConfirmation,
-    setDescription,
     setMemberQuery,
     setResultForm,
     setTheme,
@@ -92,13 +90,11 @@ export default function AdminCompetitions() {
       {editorOpen && (
         <CompetitionEditorPanel
           deadline={deadline}
-          description={description}
           editingCompetitionId={editingCompetitionId}
           error={metadataError}
           inputClass={inputClass}
           onCancel={resetMetadataEditor}
           onDeadlineChange={setDeadline}
-          onDescriptionChange={setDescription}
           onSave={saveCompetition}
           onThemeChange={setTheme}
           onTitleChange={setTitle}

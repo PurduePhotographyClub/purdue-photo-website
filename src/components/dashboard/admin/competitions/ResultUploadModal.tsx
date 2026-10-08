@@ -109,11 +109,11 @@ export default function ResultUploadModal({
           </label>
 
           <div className="flex flex-col gap-4 sm:flex-row">
-            <div className="aspect-[4/3] w-full overflow-hidden border border-neutral-800 bg-neutral-900 sm:w-44 sm:shrink-0">
+            <div className={`w-full overflow-hidden border border-neutral-800 bg-neutral-900 sm:w-44 sm:shrink-0 ${resultPreview ? "" : "min-h-40"}`}>
               {resultPreview ? (
-                <img src={resultPreview} alt="Selected result preview" className="size-full object-cover" />
+                <img src={resultPreview} alt="Selected result preview" className="block h-auto w-full object-contain" />
               ) : (
-                <div className="flex size-full items-center justify-center px-4 text-center text-[10px] leading-relaxed text-neutral-600">
+                <div className="flex min-h-40 items-center justify-center px-4 text-center text-[10px] leading-relaxed text-neutral-600">
                   Select a JPEG to preview the winning image.
                 </div>
               )}
@@ -148,7 +148,7 @@ export default function ResultUploadModal({
                   className="block w-full max-w-full text-xs leading-6 text-neutral-400 file:mr-3 file:min-h-11 file:border file:border-neutral-800 file:bg-transparent file:px-3 file:text-[10px] file:uppercase file:tracking-wider file:text-neutral-300"
                 />
               </label>
-              <p className="text-[10px] leading-relaxed text-neutral-500">JPG or JPEG only. The full image and lightweight preview are optimized before upload.</p>
+              <p className="text-[10px] leading-relaxed text-neutral-500">JPG or JPEG only. The full image is high quality, and the preview is lightweight for browsing.</p>
             </div>
           </div>
 

@@ -2,13 +2,11 @@ import { Edit3, Loader2, Plus, X } from "lucide-react";
 
 interface CompetitionEditorPanelProps {
   deadline: string;
-  description: string;
   editingCompetitionId: string | null;
   error: string;
   inputClass: string;
   onCancel: () => void;
   onDeadlineChange: (value: string) => void;
-  onDescriptionChange: (value: string) => void;
   onSave: (event: React.FormEvent) => void;
   onThemeChange: (value: string) => void;
   onTitleChange: (value: string) => void;
@@ -19,13 +17,11 @@ interface CompetitionEditorPanelProps {
 
 export default function CompetitionEditorPanel({
   deadline,
-  description,
   editingCompetitionId,
   error,
   inputClass,
   onCancel,
   onDeadlineChange,
-  onDescriptionChange,
   onSave,
   onThemeChange,
   onTitleChange,
@@ -66,11 +62,6 @@ export default function CompetitionEditorPanel({
             <input aria-label="Theme" type="text" maxLength={160} value={theme} onChange={(event) => onThemeChange(event.target.value)} placeholder="Optional" className={inputClass} />
           </label>
         </div>
-
-        <label className="block space-y-1.5">
-          <span className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Description</span>
-          <textarea aria-label="Description" maxLength={1200} value={description} onChange={(event) => onDescriptionChange(event.target.value)} rows={3} className={`${inputClass} resize-y`} />
-        </label>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="space-y-1.5">

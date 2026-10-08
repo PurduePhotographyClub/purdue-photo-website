@@ -51,10 +51,11 @@ test("result editing uses the gallery preview lifecycle inside the shared dialog
   assert.match(adminSource, /pb-\[max\([^\]]*safe-area-inset-bottom/);
 });
 
-test("admin competition thumbnails reserve space and decode off the main task", () => {
+test("admin competition thumbnails preserve native ratios and decode off the main task", () => {
   assert.match(adminSource, /thumbnailUrl/);
   assert.match(adminSource, /loading="lazy"/);
   assert.match(adminSource, /decoding="async"/);
   assert.match(adminSource, /sizes="\(min-width: 768px\) 33vw, 100vw"/);
   assert.match(adminSource, /result\.thumbnailUrl \?\? result\.imageUrl/);
+  assert.match(adminSource, /className="block h-auto w-full object-contain"/);
 });

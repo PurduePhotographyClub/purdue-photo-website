@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import useSWR from "swr";
 import { Users, ArrowRight, Film, Trophy, Image, Mail, ShoppingBag } from "lucide-react";
+import { CompetitionPlacementBadge } from "./CompetitionPlacementBadge";
 import { ImageWithFallback } from "./ImageWithFallback";
 import InstagramIcon from "./icons/InstagramIcon";
 import {
@@ -18,6 +19,7 @@ import {
   HOME_EVENTS_SWR_OPTIONS,
   PUBLIC_API_SWR_OPTIONS,
 } from "@/lib/http";
+import { getHomeCompetitionWinnerSizes, getImageOrientation, getValidImageDimension } from "@/lib/image-dimensions";
 
 const heroImg = "/hero/hero.webp";
 const alejandroPhoto = "/hero/aleg-photo.webp";
@@ -34,7 +36,7 @@ interface HomeEventsResponse {
   recentPast: Record<string, unknown>[];
   upcoming: Record<string, unknown>[];
 }
-interface CompItem { label: string; theme: string; winner: string; winnerTitle: string; img: string }
+interface CompItem { height: number | null; label: string; theme: string; winner: string; winnerTitle: string; img: string; width: number | null }
 interface ClubStats {
   galleryPhotos: number;
   completedCompetitions: number;
@@ -42,12 +44,13 @@ interface ClubStats {
   activeMembers: number;
 }
 interface LatestWinner {
+  height: number | null;
   title: string;
   theme: string | null;
-  description: string | null;
   entryId: string;
   entryTitle: string | null;
   winnerName: string | null;
+  width: number | null;
 }
 
 function statusFromSwr(data: unknown, error: unknown): "loading" | "loaded" | "error" {
@@ -92,11 +95,13 @@ async function fetchLatestCompetition(): Promise<CompItem | null> {
   if (!winner) return null;
 
   return {
+    height: winner.height,
     label: winner.title,
     theme: winner.theme || "Photography",
     winner: winner.winnerName || "PPC Member",
-    winnerTitle: winner.entryTitle || winner.description || "Untitled",
+    winnerTitle: winner.entryTitle || "Untitled",
     img: `/api/competitions/image/photo/${winner.entryId}?variant=thumbnail`,
+    width: winner.width,
   };
 }
 
@@ -496,50 +501,54 @@ interface CompetitionTeaserSectionProps {
 function CompetitionTeaserSection({ compStatus, latestComp, theme }: CompetitionTeaserSectionProps) {
   const { border, cardBg, faintText, heading, mutedText, subText } = theme;
 
+  if (compStatus === "loaded" && !latestComp) return null;
+
+  const winnerOrientation = latestComp ? getImageOrientation(latestComp.width, latestComp.height) : "unknown";
+  const winnerImageLayout = winnerOrientation === "portrait" ? "md:max-w-sm md:justify-self-center" : winnerOrientation === "unknown" ? "md:max-w-2xl md:justify-self-center" : "md:max-w-2xl";
+
   return (
-    <section className={`py-24 px-6 border-t ${border}`}>
+    <section aria-label="Latest competition winner" aria-busy={compStatus === "loading"} className={`border-t px-6 py-24 ${border}`}>
       <div className="max-w-5xl mx-auto">
         {compStatus === "loading" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-1 items-stretch">
-            <div className="aspect-[4/3] md:aspect-auto bg-neutral-800/50 animate-pulse" />
-            <div className="p-8 md:p-12 border border-neutral-800 bg-neutral-800/30 animate-pulse min-h-[300px]" />
+          <div className="grid grid-cols-1 items-stretch gap-1 md:grid-cols-2">
+            <div className="min-h-56 animate-pulse bg-neutral-800/50" />
+            <div className="min-h-56 animate-pulse border border-neutral-800 bg-neutral-800/30" />
           </div>
         ) : compStatus === "error" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-1 items-stretch">
-            <div className="aspect-[4/3] md:aspect-auto bg-neutral-900/50 border border-neutral-800" />
-            <div className="p-8 md:p-12 border border-neutral-800 bg-neutral-900/50 min-h-[300px]" />
+          <div role="status" className={`border p-8 text-center md:p-12 ${border} ${cardBg}`}>
+            <p className={`text-xs tracking-wider ${mutedText}`}>Competition results are unavailable right now.</p>
           </div>
-        ) : !latestComp ? (
-          <div></div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-1 items-stretch">
-            <div className="relative aspect-[4/3] md:aspect-auto overflow-hidden bg-neutral-950">
-              <div className="size-full">
-                <ImageWithFallback src={latestComp.img} alt="Competition winner" className="size-full object-contain" loading="lazy" decoding="async" />
-              </div>
-              <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 bg-black/70 backdrop-blur-sm border border-neutral-700 text-amber-400">
-                <Trophy size={13} />
-                <span className="text-[10px] tracking-[0.2em] uppercase">1st Place</span>
+        ) : !latestComp ? null : (
+          <div className="grid grid-cols-1 items-stretch gap-1 md:grid-cols-2">
+            <div className={`relative w-full overflow-hidden bg-neutral-950 ${winnerImageLayout}`}>
+              <ImageWithFallback
+                src={latestComp.img}
+                alt={`${latestComp.winnerTitle} by ${latestComp.winner}`}
+                width={getValidImageDimension(latestComp.width)}
+                height={getValidImageDimension(latestComp.height)}
+                sizes={getHomeCompetitionWinnerSizes(winnerOrientation)}
+                className="block h-auto w-full object-contain"
+                loading="lazy"
+                decoding="async"
+              />
+              <div className="absolute left-4 top-4">
+                <CompetitionPlacementBadge place={1} className="border border-neutral-700 bg-black/70 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] backdrop-blur-sm" />
               </div>
             </div>
-            <div className={`flex flex-col justify-center p-8 md:p-12 border ${border} ${cardBg}`}>
-              <p className={`text-[10px] tracking-[0.3em] uppercase ${faintText} mb-2`}>
-                {latestComp.label}
-              </p>
-              <h3 className={`text-2xl tracking-wider mb-2 ${heading}`} style={{ fontFamily: "'Playfair Display', serif" }}>
-                Theme: "{latestComp.theme}"
+            <div className={`flex flex-col justify-center border p-8 md:p-12 ${border} ${cardBg}`}>
+              <p className={`mb-3 text-[10px] uppercase tracking-[0.3em] ${faintText}`}>Latest Competition / Winner Spotlight</p>
+              <p className={`mb-5 text-xs uppercase tracking-[0.2em] ${mutedText}`}>{latestComp.label}</p>
+              <h3 className={`mb-3 text-2xl tracking-wider ${heading}`} style={{ fontFamily: "'Playfair Display', serif" }}>
+                {latestComp.winnerTitle}
               </h3>
-              <p className={`text-sm ${subText} tracking-wider mb-1 mt-3 select-text`}>
-                Winner: {latestComp.winner}
+              <p className={`mb-2 mt-1 text-sm tracking-wider ${subText} select-text`}>
+                By {latestComp.winner}
               </p>
-              <p className={`text-xs ${mutedText} tracking-wider italic mb-6 select-text`}>
-                "{latestComp.winnerTitle}"
+              <p className={`mb-8 text-xs tracking-wider ${mutedText} select-text`}>
+                Theme: “{latestComp.theme}”
               </p>
-              <p className={`text-xs ${mutedText} tracking-wider leading-relaxed mb-8`}>
-                Members compete with their best shot around a unique theme. Entries and winner decisions happen in Discord.
-              </p>
-              <a href="/competitions" className={`inline-flex items-center gap-2 text-xs tracking-[0.3em] uppercase ${subText} hover:text-white transition-colors`}>
-                View All Competitions <ArrowRight size={14} />
+              <a href="/competitions" className={`inline-flex items-center gap-2 text-xs uppercase tracking-[0.3em] ${subText} transition-colors hover:text-white`}>
+                View Competition Results <ArrowRight size={14} />
               </a>
             </div>
           </div>
