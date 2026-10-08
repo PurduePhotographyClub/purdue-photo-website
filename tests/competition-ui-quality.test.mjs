@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const [homeSource, publicSource, memberSource, adminSource, editorSource, listSource, resultModalSource, galleryImagesSource, adminTypesSource, placementBadgeSource, imageDimensionsSource] = await Promise.all([
+const [homeSource, publicSource, memberSource, adminSource, editorSource, listSource, resultModalSource, adminHookSource, galleryImagesSource, adminTypesSource, placementBadgeSource, imageDimensionsSource, layoutSource, indexSource] = await Promise.all([
   readFile(new URL("../src/components/Home.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/Competitions.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/dashboard/CompetitionsDashboard.tsx", import.meta.url), "utf8"),
@@ -10,11 +10,21 @@ const [homeSource, publicSource, memberSource, adminSource, editorSource, listSo
   readFile(new URL("../src/components/dashboard/admin/competitions/CompetitionEditorPanel.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/dashboard/admin/competitions/CompetitionList.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/dashboard/admin/competitions/ResultUploadModal.tsx", import.meta.url), "utf8"),
+  readFile(new URL("../src/components/dashboard/admin/competitions/useAdminCompetitions.ts", import.meta.url), "utf8"),
   readFile(new URL("../src/lib/gallery-images.ts", import.meta.url), "utf8"),
   readFile(new URL("../src/components/dashboard/admin/competitions/types.ts", import.meta.url), "utf8"),
   readFile(new URL("../src/components/CompetitionPlacementBadge.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/lib/image-dimensions.ts", import.meta.url), "utf8"),
+  readFile(new URL("../src/layouts/Layout.astro", import.meta.url), "utf8"),
+  readFile(new URL("../src/pages/index.astro", import.meta.url), "utf8"),
 ]);
+
+test("home competition winner clears the grain without covering the fixed header", () => {
+  assert.match(layoutSource, /filmGrainZIndex\?: ['"]z-50['"] \| ['"]z-30['"];/);
+  assert.match(layoutSource, /filmGrainZIndex = ['"]z-50['"]/);
+  assert.match(indexSource, /<Layout filmGrainZIndex="z-30" title="Purdue Photography Club">/);
+  assert.match(homeSource, /className=\{`relative z-\[31\] w-full overflow-hidden bg-neutral-950 \$\{winnerImageLayout\}`\}/);
+});
 
 test("competition metadata no longer renders or submits competition descriptions", () => {
   assert.doesNotMatch(publicSource, /competition\.description/);
@@ -22,7 +32,10 @@ test("competition metadata no longer renders or submits competition descriptions
   assert.doesNotMatch(editorSource, /Description/);
   assert.doesNotMatch(listSource, /competition\.description/);
   assert.doesNotMatch(adminSource, /description\.trim\(\)/);
-  assert.match(resultModalSource, /resultForm\.description/);
+  assert.doesNotMatch(resultModalSource, /resultForm\.description|aria-label=["']Description["']/);
+  assert.doesNotMatch(adminTypesSource, /emptyResultForm[\s\S]*?description:/);
+  assert.doesNotMatch(adminHookSource, /form\.append\(["']description["']/);
+  assert.doesNotMatch(adminHookSource, /description: result\.entryDescription/);
 });
 
 test("home winner cards use entry titles and disappear when no winner is loaded", () => {

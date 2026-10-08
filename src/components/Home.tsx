@@ -520,7 +520,7 @@ function CompetitionTeaserSection({ compStatus, latestComp, theme }: Competition
           </div>
         ) : !latestComp ? null : (
           <div className="grid grid-cols-1 items-stretch gap-1 md:grid-cols-2">
-            <div className={`relative w-full overflow-hidden bg-neutral-950 ${winnerImageLayout}`}>
+            <div className={`relative z-[31] w-full overflow-hidden bg-neutral-950 ${winnerImageLayout}`}>
               <ImageWithFallback
                 src={latestComp.img}
                 alt={`${latestComp.winnerTitle} by ${latestComp.winner}`}

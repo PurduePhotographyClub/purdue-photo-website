@@ -89,7 +89,6 @@ export default function ResultUploadModal({
                 const entry = discordEntries.find((candidate) => candidate.id === discordEntryId);
                 onResultFormChange((previous) => entry ? {
                   ...previous,
-                  description: entry.description,
                   discordEntryId,
                   photographerName: entry.discordDisplayName ?? "Discord member",
                   title: entry.title,
@@ -237,11 +236,6 @@ export default function ResultUploadModal({
               <input aria-label="Photographer name" type="text" maxLength={160} value={resultForm.photographerName} onChange={(event) => onResultFormChange((previous) => ({ ...previous, photographerName: event.target.value }))} required className={inputClass} />
             </label>
           )}
-
-          <label className="block space-y-1.5">
-            <span className="text-[10px] uppercase tracking-[0.15em] text-neutral-500">Description</span>
-            <textarea aria-label="Description" maxLength={1000} value={resultForm.description} onChange={(event) => onResultFormChange((previous) => ({ ...previous, description: event.target.value }))} rows={3} className={`${inputClass} resize-y`} />
-          </label>
 
           {error && <p role="alert" className="text-xs leading-relaxed text-red-400">{error}</p>}
         </div>
