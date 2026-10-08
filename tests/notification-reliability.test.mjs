@@ -17,6 +17,21 @@ test("notification category metadata is shared and includes equipment", async ()
   }
 });
 
+test("notification titles reserve the available row width before truncating", async () => {
+  const bellSource = await readFile(
+    new URL("../src/components/dashboard/DashboardNotificationBell.tsx", import.meta.url),
+    "utf8",
+  );
+
+  const titleRow = bellSource.slice(
+    bellSource.indexOf('<div className="flex items-start gap-3">'),
+    bellSource.indexOf("</div>", bellSource.indexOf('<div className="flex items-start gap-3">')),
+  );
+
+  assert.match(titleRow, /<div className="min-w-0 flex-1">/);
+  assert.match(titleRow, /<p className="truncate [^"]*">/);
+});
+
 test("notification mutations survive navigation and avoid redundant success reloads", async () => {
   const [cacheSource, centerSource] = await Promise.all([
     readFile(new URL("../src/lib/notification-cache.ts", import.meta.url), "utf8"),

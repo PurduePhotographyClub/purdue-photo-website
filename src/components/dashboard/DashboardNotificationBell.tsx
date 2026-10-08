@@ -171,7 +171,7 @@ export default function DashboardNotificationBell({
                           className={`mt-1.5 shrink-0 ${notification.readAt ? "fill-neutral-700 text-neutral-700" : "fill-amber-400 text-amber-400"}`}
                           aria-hidden="true"
                         />
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="truncate text-xs leading-snug text-neutral-200 group-hover:text-white">
                             {notification.title}
                           </p>
