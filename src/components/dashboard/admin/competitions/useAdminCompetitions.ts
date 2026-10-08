@@ -398,7 +398,6 @@ export function useAdminCompetitions() {
       title: result.entryTitle ?? "",
       photographerName: result.pairedUserId ? "" : result.photographerName ?? "",
       photographerInstagram: result.photographerInstagram ?? "",
-      description: result.entryDescription ?? "",
       medium: result.medium ?? "digital",
       userId: result.pairedUserId ?? "manual",
     });
@@ -448,7 +447,6 @@ export function useAdminCompetitions() {
       form.append("title", resultForm.title);
       form.append("photographerName", resultForm.photographerName);
       form.append("photographerInstagram", resultForm.photographerInstagram);
-      form.append("description", resultForm.description);
       form.append("medium", resultForm.medium);
       form.append("userId", resultForm.userId);
       appendCompetitionResultImages(form, preparedImages);

@@ -68,7 +68,6 @@ export const emptyResultForm = {
   title: "",
   photographerName: "",
   photographerInstagram: "",
-  description: "",
   medium: "digital" as "film" | "digital",
   userId: "",
 };

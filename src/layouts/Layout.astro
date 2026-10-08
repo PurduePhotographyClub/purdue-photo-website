@@ -8,6 +8,7 @@ import CookieConsent from '../components/CookieConsent';
 
 interface Props {
   description?: string;
+  filmGrainZIndex?: 'z-50' | 'z-30';
   robots?: string;
   showFloatingWidgets?: boolean;
   theme?: 'default' | 'film-event';
@@ -16,6 +17,7 @@ interface Props {
 
 const {
   description = 'Purdue Photography Club - Where analog tradition meets digital innovation. Est. 1934.',
+  filmGrainZIndex = 'z-50',
   robots,
   showFloatingWidgets = true,
   theme = 'default',
@@ -46,7 +48,7 @@ const isFilmEvent = theme === 'film-event';
     <!-- Filterable content wrapper -->
     <div id="filter-content" class="transition-[filter] duration-500">
       <!-- Film grain overlay -->
-      <div data-film-grain class="pointer-events-none fixed inset-0 z-50 opacity-[0.03] transition-opacity duration-500" style="background-image: url(&quot;data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E&quot;); background-repeat: repeat;"></div>
+      <div data-film-grain class:list={['pointer-events-none fixed inset-0 opacity-[0.03] transition-opacity duration-500', filmGrainZIndex]} style="background-image: url(&quot;data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E&quot;); background-repeat: repeat;"></div>
 
       <Header theme={theme} client:load />
       <main class="pt-20">
