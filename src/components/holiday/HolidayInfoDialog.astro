@@ -1,0 +1,81 @@
+---
+import '../../styles/holiday-letter.css';
+import HolidayStepNumber from './HolidayStepNumber.astro';
+
+interface Props {
+  date: string;
+  hours: string;
+}
+
+const { date, hours } = Astro.props;
+---
+
+<dialog id="holiday-info-dialog" class="holiday-letter-dialog" aria-labelledby="holiday-letter-title" data-holiday-info-dialog>
+  <div class="holiday-letter-toolbar">
+    <button class="holiday-letter-close" type="button" data-holiday-info-close>
+      Close
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6" /></svg>
+    </button>
+  </div>
+
+  <div class="holiday-letter-scroll" data-holiday-letter-scroll>
+    <article class="holiday-letter-paper">
+      <header class="holiday-letter-heading">
+        <img class="holiday-letter-ornaments" src="/holiday-event/artwork/ornaments.webp" alt="" width="380" height="494" aria-hidden="true" />
+        <h2 id="holiday-letter-title" tabindex="-1" data-holiday-info-title>Holiday photos</h2>
+        <p class="holiday-letter-date">{date}<br /><span>{hours}</span></p>
+      </header>
+
+      <h3 class="holiday-letter-how">How it works</h3>
+      <ol class="holiday-letter-steps">
+        <li>
+          <HolidayStepNumber number={1} />
+          <div>
+            <h4>Book a time</h4>
+            <p>Use your Purdue email address to book a free 15-minute slot. One slot per email, up to 3 people per slot.</p>
+            <a class="holiday-letter-link" href="https://www.signupgenius.com/go/10C0A4FACAA2AA3FDC52-67667693-ppcholiday#/">Sign up</a>
+          </div>
+        </li>
+        <li>
+          <HolidayStepNumber number={2} />
+          <div>
+            <h4>Where to meet</h4>
+            <p>Meet us in the student organizations common area in the PMU basement. <strong>Please arrive on time for your slot.</strong></p>
+            <a class="holiday-letter-link" href="https://docs.google.com/presentation/d/1oYPGtgjYzOFvmV9UlUGWSDl2tM9uieQqRh4mVHxyJs8/edit?usp=sharing">Waiting area map</a>
+          </div>
+        </li>
+        <li>
+          <HolidayStepNumber number={3} />
+          <div>
+            <h4>In the studio</h4>
+            <p>We'll have dress-up props and holiday backdrops for your photos.</p>
+            <details class="holiday-letter-waiting">
+              <summary>What if the waiting area is full?</summary>
+              <p>If more than 4 groups are waiting, an officer will take down the newest group's contact info and ask them to come back when it's their turn.</p>
+            </details>
+          </div>
+        </li>
+        <li>
+          <HolidayStepNumber number={4} />
+          <div>
+            <h4>Get your photos by email</h4>
+            <p>We'll send the photos to the Purdue email address you signed up with. <strong>Digital copies only.</strong></p>
+          </div>
+        </li>
+      </ol>
+      <footer class="holiday-letter-signoff">
+        <div class="holiday-letter-greeting">
+          <svg viewBox="0 0 24 32" fill="currentColor" aria-hidden="true"><path d="m12 1 2.3 11.7L23 16l-8.7 3.3L12 31l-2.3-11.7L1 16l8.7-3.3L12 1Z" /></svg>
+          <p>Ho, ho, ho!</p>
+          <svg viewBox="0 0 24 32" fill="currentColor" aria-hidden="true"><path d="m12 1 2.3 11.7L23 16l-8.7 3.3L12 31l-2.3-11.7L1 16l8.7-3.3L12 1Z" /></svg>
+        </div>
+        <p class="holiday-letter-signature">Purdue Photography Club</p>
+      </footer>
+    </article>
+  </div>
+
+  <svg class="holiday-envelope-fold" viewBox="0 0 800 120" preserveAspectRatio="none" fill="none" aria-hidden="true">
+    <path d="m0 0 400 90L800 0v120H0V0Z" fill="#96332f" />
+    <path d="m0 0 400 90L800 0" stroke="#d6b875" stroke-width="1.3" />
+  </svg>
+</dialog>

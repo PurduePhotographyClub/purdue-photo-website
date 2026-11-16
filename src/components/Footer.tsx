@@ -1,4 +1,5 @@
 import { Mail, ExternalLink } from "lucide-react";
+import { CLUB_LOGO_SRC } from "../lib/club-logo";
 import InstagramIcon from "./icons/InstagramIcon";
 
 const navLinks = [
@@ -35,15 +36,22 @@ function isExternalHref(href: string) {
 }
 
 interface FooterProps {
-  theme?: "default" | "film-event";
+  theme?: "default" | "film-event" | "holiday-event";
 }
+
+const footerSurfaces = {
+  default: "",
+  "film-event": "bg-[#ffcf2f] text-black",
+  "holiday-event": "bg-[#08271e] text-[#f2f1e6]",
+};
 
 export default function Footer({ theme = "default" }: FooterProps) {
   const isFilmEvent = theme === "film-event";
-  const border = isFilmEvent ? "border-black/25" : "border-neutral-800";
-  const subText = isFilmEvent ? "text-black/80" : "text-neutral-500";
-  const mutedText = isFilmEvent ? "text-black/65" : "text-neutral-600";
-  const faintText = isFilmEvent ? "text-black/65" : "text-neutral-700";
+  const isHolidayEvent = theme === "holiday-event";
+  const border = isFilmEvent ? "border-black/25" : isHolidayEvent ? "border-[#5b7965]" : "border-neutral-800";
+  const subText = isFilmEvent ? "text-black/80" : isHolidayEvent ? "text-[#f6f5ee]" : "text-neutral-500";
+  const mutedText = isFilmEvent ? "text-black/65" : isHolidayEvent ? "text-[#c4d1be]" : "text-neutral-600";
+  const faintText = isFilmEvent ? "text-black/65" : isHolidayEvent ? "text-[#c4d1be]" : "text-neutral-700";
   const linkHover = isFilmEvent
     ? "hover:text-black focus-visible:text-black"
     : "hover:text-white focus-visible:text-white";
@@ -52,12 +60,12 @@ export default function Footer({ theme = "default" }: FooterProps) {
     : "focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400";
 
   return (
-    <footer className={`border-t ${border} py-16 px-6 transition-colors duration-500 ${isFilmEvent ? "bg-[#ffcf2f] text-black" : ""}`}>
+    <footer className={`border-t ${border} py-16 px-6 transition-colors duration-500 ${footerSurfaces[theme]}`}>
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <img src="/ppc-logo.webp" alt="PPC" className="size-8 rounded-full" />
+              <img src={CLUB_LOGO_SRC} alt="PPC" className="size-8 rounded-full" />
               <span className={`text-xs tracking-[0.3em] uppercase ${subText}`} style={{ fontFamily: "'Playfair Display', serif" }}>
                 Purdue Photography Club
               </span>

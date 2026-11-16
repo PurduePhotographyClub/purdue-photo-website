@@ -1,0 +1,16 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Purdue Photography Club//Holiday Event//EN
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+UID:holiday-photos-20261114@purduephotoclub.org
+SEQUENCE:1
+DTSTAMP:20261116T191751Z
+DTSTART:20261119T210000Z
+DTEND:20261120T020000Z
+SUMMARY:Holiday photos - Purdue Photography Club
+LOCATION:Purdue Photography Club studio\, Purdue Memorial Union basement
+DESCRIPTION:Book a free 15-minute slot for your group using your Purdue email.
+TRANSP:TRANSPARENT
+END:VEVENT
+END:VCALENDAR

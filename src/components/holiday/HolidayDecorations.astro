@@ -1,0 +1,40 @@
+<div class="holiday-decorations" aria-hidden="true">
+  <div class="holiday-sky">
+    <div class="holiday-light-string">
+      <svg viewBox="0 0 1000 89" fill="none">
+        <defs>
+          <clipPath id="holiday-light-end"><rect width="492" height="89" /></clipPath>
+          <filter id="holiday-bulb-glow" x="-20%" y="-100%" width="140%" height="300%" color-interpolation-filters="sRGB">
+            <feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  1 1 1 0 -.5" />
+            <feComponentTransfer>
+              <feFuncR type="linear" slope="1.25" intercept=".14" />
+              <feFuncG type="linear" slope="1.25" intercept=".14" />
+              <feFuncB type="linear" slope="1.25" intercept=".14" />
+            </feComponentTransfer>
+            <feGaussianBlur stdDeviation="4.5" />
+          </filter>
+        </defs>
+        <g>
+          <image class="holiday-light-glow" href="/holiday-event/artwork/lights.webp" width="500" height="89" filter="url(#holiday-bulb-glow)" />
+        </g>
+        <g transform="translate(1000 0) scale(-1 1)">
+          <image class="holiday-light-glow glow-second" href="/holiday-event/artwork/lights.webp" width="500" height="89" filter="url(#holiday-bulb-glow)" />
+        </g>
+        <image class="holiday-bulb" href="/holiday-event/artwork/lights.webp" width="500" height="89" clip-path="url(#holiday-light-end)" />
+        <image class="holiday-bulb" href="/holiday-event/artwork/lights.webp" width="500" height="89" transform="translate(1000 0) scale(-1 1)" clip-path="url(#holiday-light-end)" />
+        <path d="M491.5 53.5C498 50.5 502 50.5 508.5 53.5" stroke="#0b2d1d" stroke-width="1.8" stroke-linecap="round" />
+      </svg>
+    </div>
+    <svg class="holiday-moon" viewBox="0 0 140 150" fill="none">
+      <path d="M111 113C53 139 8 88 32 39 42 20 58 11 75 9 49 35 52 85 83 105c8 5 17 7 28 8Z" fill="#ede3bd" />
+      <path d="M34 64c-4 12-1 26 5 34m9 16 5 3" stroke="#d5c799" stroke-width="2" stroke-linecap="round" />
+      <path d="M115 29v16m-8-8h16M93 67v9m-4-4h8" stroke="#ede3bd" stroke-width="2" stroke-linecap="round" />
+    </svg>
+    <svg class="holiday-cloud cloud-left" viewBox="0 0 320 100" fill="none"><path d="M10 83c0-17 16-30 34-27 5-25 35-40 59-25 17-40 77-34 90 5 24-14 53-1 58 24 26-9 49 3 57 23H10Z" fill="currentColor" /></svg>
+    <svg class="holiday-cloud cloud-right" viewBox="0 0 320 100" fill="none"><path d="M10 83c0-17 16-30 34-27 5-25 35-40 59-25 17-40 77-34 90 5 24-14 53-1 58 24 26-9 49 3 57 23H10Z" fill="currentColor" /></svg>
+    <img class="holiday-santa" src="/holiday-event/artwork/santa.webp" alt="" width="451" height="183" decoding="async" />
+    <img class="holiday-hanging-ornaments ornaments-left" src="/holiday-event/artwork/ornaments.webp" alt="" width="380" height="494" decoding="async" />
+    <img class="holiday-hanging-ornaments ornaments-right" src="/holiday-event/artwork/ornaments.webp" alt="" width="380" height="494" decoding="async" />
+  </div>
+  <canvas class="holiday-snow" />
+</div>

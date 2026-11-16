@@ -7,6 +7,7 @@ import {
 } from "react";
 import { Menu, X, Mail, ExternalLink, UserCircle, LogIn, UserPlus } from "lucide-react";
 import { authClient } from "../lib/auth-client";
+import { CLUB_LOGO_SRC, USE_CHRISTMAS_LOGO } from "../lib/club-logo";
 import { fetchApi } from "../lib/http";
 import {
   clearProfileLinkCache,
@@ -38,8 +39,6 @@ const primaryNavLinks = navLinks.filter((link) =>
 const moreNavLinks = navLinks.filter((link) =>
   ["/competitions", "/facilities", "/membership", "/merch", "/exposure-triangle"].includes(link.to)
 );
-
-const specialEventLink = { to: "/film-event", label: "Film event" };
 
 const socialLinks = [
   { href: "https://www.instagram.com/purduephotoclub/", label: "Instagram", icon: InstagramIcon },
@@ -80,10 +79,14 @@ function isExternalHref(href: string) {
 }
 
 interface HeaderProps {
-  theme?: "default" | "film-event";
+  theme?: "default" | "film-event" | "holiday-event";
+  specialEventLink?: { to: string; label: string };
 }
 
-export default function Header({ theme = "default" }: HeaderProps) {
+export default function Header({
+  theme = "default",
+  specialEventLink = { to: "/holiday-event", label: "Holiday event" },
+}: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dashboardOpen, setDashboardOpen] = useState(false);
   const [publicProfileHref, setPublicProfileHref] = useState<string | null>(null);
@@ -266,20 +269,23 @@ export default function Header({ theme = "default" }: HeaderProps) {
   };
 
   const isFilmEvent = theme === "film-event";
-  const navBg = isFilmEvent ? "bg-[#f79400]/95" : "bg-neutral-950/90";
-  const panelBg = isFilmEvent ? "bg-[#f79400]" : "bg-neutral-950";
-  const border = isFilmEvent ? "border-black/25" : "border-neutral-800";
+  const isHolidayEvent = theme === "holiday-event";
+  const navBg = isFilmEvent ? "bg-[#f79400]/95" : isHolidayEvent ? "bg-[#08271e]/98" : "bg-neutral-950/90";
+  const panelBg = isFilmEvent ? "bg-[#f79400]" : isHolidayEvent ? "bg-[#08271e]" : "bg-neutral-950";
+  const border = isFilmEvent ? "border-black/25" : isHolidayEvent ? "border-[#5b7965]" : "border-neutral-800";
   const navLayer = menuOpen || dashboardOpen ? "z-[110]" : "z-40";
   const linkActive = isFilmEvent ? "text-black" : "text-white";
-  const linkInactive = isFilmEvent ? "text-black/65" : "text-neutral-500";
+  const linkInactive = isFilmEvent ? "text-black/65" : isHolidayEvent ? "text-[#c4d1be]" : "text-neutral-500";
   const linkHover = isFilmEvent
     ? "hover:text-black focus-visible:text-black"
     : "hover:text-white focus-visible:text-white";
   const socialColor = isFilmEvent
     ? "text-black/65 hover:text-black focus-visible:text-black"
+    : isHolidayEvent ? "text-[#c4d1be] hover:text-white focus-visible:text-white"
     : "text-neutral-500 hover:text-white focus-visible:text-white";
-  const mutedText = isFilmEvent ? "text-black/60" : "text-neutral-600";
-  const logoText = isFilmEvent ? "text-black/80" : "text-neutral-300";
+  const mutedText = isFilmEvent ? "text-black/60" : isHolidayEvent ? "text-[#c4d1be]" : "text-neutral-600";
+  const logoText = isFilmEvent ? "text-black/80" : isHolidayEvent ? "text-[#f6f5ee]" : "text-neutral-300";
+  const standardLogoStyle = isFilmEvent ? "contrast-125" : "brightness-[1.8] invert mix-blend-screen";
   const slashText = isFilmEvent
     ? "text-black/35 transition-colors group-hover:text-black/70"
     : "text-neutral-700 transition-colors group-hover:text-neutral-500";
@@ -303,10 +309,9 @@ export default function Header({ theme = "default" }: HeaderProps) {
         <div className="flex h-20 w-full items-center justify-between px-6">
           <a href="/" className={`flex min-h-11 items-center gap-3 flex-shrink-0 ${focusRing}`}>
             <img
-              src="/ppc-logo.webp"
+              src={CLUB_LOGO_SRC}
               alt="PPC Logo"
-              className={`size-10 rounded-full ${isFilmEvent ? "contrast-125" : "brightness-[1.8] invert"}`}
-              style={isFilmEvent ? undefined : { mixBlendMode: "screen" }}
+              className={`size-10 rounded-full ${USE_CHRISTMAS_LOGO ? "" : standardLogoStyle}`}
             />
             <span className={`text-sm tracking-[0.2em] uppercase ${logoText} hidden 2xl:inline`} style={{ fontFamily: "'Playfair Display', serif" }}>
               Purdue Photography Club
@@ -329,7 +334,7 @@ export default function Header({ theme = "default" }: HeaderProps) {
             ))}
             <a
               href={specialEventLink.to}
-              aria-label="Special event: Film event"
+              aria-label={`Special event: ${specialEventLink.label}`}
               aria-current={isNavLinkActive(specialEventLink.to, currentPath) ? "page" : undefined}
               className={`${specialEventLinkClass} hidden text-[11px] uppercase tracking-[0.15em] lg:inline`}
             >
@@ -398,7 +403,9 @@ export default function Header({ theme = "default" }: HeaderProps) {
         </div>
 
         {showEventBar && (
-          isFilmEvent
+          isHolidayEvent
+            ? <LiveEventBar featuredEvents={featuredEvents} theme="holiday-event" />
+            : isFilmEvent
             ? <LiveEventBar featuredEvents={featuredEvents} theme="film-event" />
             : <LiveEventBar featuredEvents={featuredEvents} />
         )}
@@ -487,7 +494,7 @@ export default function Header({ theme = "default" }: HeaderProps) {
                   <a
                     href={specialEventLink.to}
                     onClick={() => setMenuOpen(false)}
-                    aria-label="Special event: Film event"
+                    aria-label={`Special event: ${specialEventLink.label}`}
                     aria-current={isNavLinkActive(specialEventLink.to, currentPath) ? "page" : undefined}
                     className={`${specialEventLinkClass} mb-5 inline-flex min-h-11 items-center text-xs uppercase tracking-[0.18em]`}
                   >

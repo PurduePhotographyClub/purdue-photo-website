@@ -5,6 +5,7 @@
 | Asset group | Source | License or usage note |
 | --- | --- | --- |
 | `public/ppc-logo.webp`, `public/hero/*`, `public/merch/*`, and `public/DarkroomStudio_Map.webp` | Purdue Photography Club project assets | Club-owned or used with club permission |
+| `public/ppc-logo-christmas.webp` | Holiday logo supplied by Purdue Photography Club | Used with club permission |
 | Remote images loaded from `images.unsplash.com` | Unsplash | Used under the [Unsplash License](https://unsplash.com/license) |
 | Member gallery and competition images served through the API | Submitted by Purdue Photography Club members | Displayed according to club submission permissions |
 

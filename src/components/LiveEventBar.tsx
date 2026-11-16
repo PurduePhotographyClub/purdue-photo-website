@@ -42,7 +42,7 @@ export default function LiveEventBar({
   theme = "default",
 }: {
   featuredEvents: FeaturedEvents;
-  theme?: "default" | "film-event";
+  theme?: "default" | "film-event" | "holiday-event";
 }) {
   const { currentEvents: liveEvents, upcomingEvent } = featuredEvents;
   const event = liveEvents[0] ?? upcomingEvent;
@@ -51,6 +51,7 @@ export default function LiveEventBar({
 
   const isLive = liveEvents.length > 0;
   const isFilmEventTheme = theme === "film-event";
+  const isHolidayEventTheme = theme === "holiday-event";
   const statusLabel = isLive ? "Live now" : "Next event";
 
   return (
@@ -59,6 +60,7 @@ export default function LiveEventBar({
       aria-live="polite"
       className={isFilmEventTheme
         ? "border-t border-black/25 bg-[#ffcf2f] text-black"
+        : isHolidayEventTheme ? "holiday-live-event"
         : "border-t border-white/20 bg-black text-white"}
     >
       <a
