@@ -1,0 +1,12 @@
+---
+interface Props {
+  className?: string;
+}
+const { className } = Astro.props;
+const image = { src: '/holiday-event/artwork/presents-stack.webp', width: 466, height: 351 };
+---
+
+<div class={className} aria-hidden="true">
+  <img class="holiday-present-shadow" src={image.src} alt="" width={image.width} height={image.height} decoding="async" />
+  <img src={image.src} alt="" width={image.width} height={image.height} decoding="async" />
+</div>

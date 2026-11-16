@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
+import { CLUB_LOGO_SRC, USE_CHRISTMAS_LOGO } from "@/lib/club-logo";
 import {
   normalizeMemberDirectoryResponse,
   type MemberDirectoryMeta,
@@ -56,7 +57,7 @@ function MemberCard({ profile }: { profile: MemberDirectoryProfile }) {
           />
         ) : (
           <div className="flex size-full items-center justify-center bg-neutral-900 p-6">
-            <img src="/ppc-logo.webp" alt="" className="size-16 rounded-full opacity-45 grayscale sm:size-20" />
+            <img src={CLUB_LOGO_SRC} alt="" className={`size-16 rounded-full opacity-45 sm:size-20 ${USE_CHRISTMAS_LOGO ? "" : "grayscale"}`} />
           </div>
         )}
         <span className="absolute inset-x-0 bottom-0 h-px origin-left scale-x-0 bg-white transition-transform duration-300 group-hover:scale-x-100 group-focus-visible:scale-x-100 motion-reduce:transition-none" />

@@ -1,0 +1,145 @@
+@font-face {
+  font-family: 'Berkshire Swash';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/holiday-event/fonts/BerkshireSwash-Regular.ttf') format('truetype');
+}
+
+.holiday-event-theme {
+  --holiday-chrome: #08271e;
+  --holiday-pine: #123f30;
+  --holiday-red: #8d302e;
+  --holiday-white: #f2f1e6;
+  --holiday-gold: #e4c886;
+  --holiday-muted: #e8d7c7;
+  --holiday-rule: #4a6751;
+  --holiday-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --color-neutral-950: #08271e;
+  --color-neutral-900: #10392b;
+  --color-neutral-800: #355744;
+  --color-neutral-700: #95b09a;
+  --color-neutral-600: #b3c9b1;
+  --color-neutral-500: #c4d4bd;
+  --color-neutral-400: #d4dfc8;
+  --color-neutral-300: #e3e9d6;
+  --color-neutral-200: #edf0df;
+  --background: var(--holiday-chrome);
+  --foreground: var(--holiday-white);
+  --border: var(--holiday-rule);
+  --ring: var(--holiday-gold);
+  color-scheme: dark;
+  background: var(--holiday-chrome);
+  scrollbar-color: var(--holiday-gold) var(--holiday-chrome);
+}
+.holiday-event-theme ::selection { background: var(--holiday-gold); color: var(--holiday-chrome); }
+.holiday-event-theme :is(a, button):focus-visible { outline-color: var(--holiday-gold); }
+.holiday-page { position: relative; background: var(--holiday-red); color: var(--holiday-white); }
+.holiday-hero { position: relative; display: grid; min-height: max(40rem, calc(100svh - 5rem)); place-items: start center; overflow: hidden; padding: calc(8.9vw + 6rem) 1.5rem 7rem; }
+.holiday-intro { position: relative; z-index: 3; width: fit-content; max-width: 100%; text-align: center; }
+.holiday-intro h1 { display: grid; justify-items: center; font-family: 'Playfair Display', Georgia, serif; letter-spacing: -.025em; text-wrap: balance; }
+.holiday-title-season { font: 400 clamp(3.4rem, 8.6vw, 5.6rem)/1.12 'Berkshire Swash', Georgia, serif; letter-spacing: -.025em; }
+.holiday-title-photos { margin-top: .12em; color: var(--holiday-gold); font: italic 400 clamp(2.2rem, 4.3vw, 2.8rem)/1.1 'Playfair Display', Georgia, serif; letter-spacing: -.025em; }
+.holiday-description { margin-top: 1.2rem; font-size: .8rem; line-height: 1.7; text-wrap: pretty; }
+.holiday-date { display: grid; justify-items: center; gap: .35rem; width: fit-content; margin: 1.4rem auto 0; padding: 1rem 1.5rem 0; border-top: 1px solid var(--holiday-gold); color: var(--holiday-white); }
+.holiday-weekday { color: var(--holiday-gold); font: 400 .6rem/1.4 'Space Mono', monospace; letter-spacing: .18em; text-transform: uppercase; }
+.holiday-date-main { font: 700 1.7rem/1.2 'Playfair Display', Georgia, serif; letter-spacing: -.025em; }
+.holiday-year { color: var(--holiday-muted); font: 400 .65rem/1.5 'Space Mono', monospace; letter-spacing: .16em; }
+.holiday-hours { margin-top: .65rem; color: var(--holiday-gold); font-size: .7rem; line-height: 1.6; }
+.holiday-info { margin-top: 1.4rem; scroll-margin-top: 8rem; }
+.holiday-button { display: inline-flex; align-items: center; justify-content: center; min-width: 8rem; min-height: 3rem; padding: .65rem 1.1rem; border: 4px solid transparent; border-radius: 3px; background: linear-gradient(var(--holiday-white), var(--holiday-white)) padding-box, repeating-linear-gradient(-45deg, #b82e35 0 7px, var(--holiday-white) 7px 14px) border-box; color: var(--holiday-chrome); font-size: .7rem; font-weight: 700; opacity: 1; transition: transform 180ms var(--holiday-ease); }
+.holiday-button { cursor: pointer; }
+.holiday-button:enabled:hover { transform: translateY(-2px); }
+.holiday-button:enabled:active { transform: translateY(0); }
+.holiday-button:focus-visible { outline: 2px solid var(--holiday-white); outline-offset: 6px; }
+.holiday-decorations { pointer-events: none; }
+.holiday-sky { position: absolute; inset: 0 0 auto; z-index: 2; height: 42rem; overflow: hidden; }
+.holiday-light-string { position: absolute; top: 0; left: 0; width: 100%; }
+.holiday-light-string > svg { display: block; width: 100%; height: auto; overflow: visible; }
+.holiday-light-glow { opacity: .85; animation: holiday-light-warmth 3.8s ease-in-out infinite alternate; }
+.glow-second { animation-delay: -2s; }
+.holiday-moon { position: absolute; top: 3.6rem; right: 11%; width: 6rem; height: 6.5rem; transform: rotate(-10deg); }
+.holiday-cloud { position: absolute; width: 15rem; height: 5rem; color: #b65b51; animation: holiday-cloud-drift 25s ease-in-out infinite alternate; }
+.cloud-left { top: 6rem; left: -3rem; opacity: .6; }
+.cloud-right { top: 7.3rem; right: 2%; width: 12rem; opacity: .8; animation-delay: -14s; }
+.holiday-santa { position: absolute; top: calc(8.9vw + 2.8rem); left: 0; width: 8rem; height: auto; transform: translate3d(var(--santa-x, -25vw), var(--santa-y, 0), 0) rotate(var(--santa-tilt, -4deg)); }
+.holiday-hanging-ornaments { position: absolute; top: 0; width: 6rem; height: auto; transform-origin: top center; animation: holiday-star-sway 7s ease-in-out infinite alternate; }
+.ornaments-left { left: 5%; }
+.ornaments-right { right: 3%; width: 4rem; animation-delay: -3s; }
+.holiday-tree-group { position: absolute; z-index: 1; bottom: 0; width: 29rem; height: 36rem; pointer-events: none; }
+.tree-group-left { left: -4rem; }
+.tree-group-right { right: -4rem; }
+.holiday-tree { position: absolute; bottom: 2.2rem; width: 20rem; }
+.tree-left { left: 1rem; }
+.tree-right { right: -1rem; width: 18rem; }
+.holiday-tree > img, .holiday-presents > img { position: relative; display: block; width: 100%; height: auto; }
+.holiday-presents { position: absolute; z-index: 2; bottom: 2rem; width: 11rem; }
+.holiday-presents > .holiday-present-shadow { position: absolute; inset: auto 0 -3px; width: 100%; height: 1rem; object-fit: fill; filter: brightness(0) blur(4px); opacity: .1; mix-blend-mode: multiply; }
+.holiday-elf { position: absolute; right: 1rem; bottom: 2.4rem; z-index: 2; display: block; width: 9rem; height: auto; }
+.holiday-elf > img { position: relative; display: block; width: 100%; height: auto; }
+.holiday-elf-shadow { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: blur(2px); mix-blend-mode: multiply; }
+.presents-right { bottom: 3rem; left: .7rem; }
+.holiday-ground-back, .holiday-snowbank { position: absolute; right: 0; bottom: -1px; left: 0; width: 100%; pointer-events: none; }
+.holiday-ground-back { z-index: 0; height: 17rem; }
+.holiday-snowbank { z-index: 2; height: 7rem; }
+.holiday-snow { position: absolute; inset: 0; z-index: 4; display: block; width: 100%; height: 100%; pointer-events: none; }
+.holiday-page[data-motion='off'] :is(.holiday-light-glow, .holiday-cloud, .holiday-hanging-ornaments) { animation-play-state: paused; }
+.holiday-page[data-motion='off'] .holiday-snow { visibility: hidden; }
+.holiday-live-event { border-top: 1px solid var(--holiday-rule); background: var(--holiday-pine); color: var(--holiday-white); }
+.holiday-funding { padding: 1.4rem 1.5rem; background: var(--holiday-pine); }
+.holiday-soga-credit { display: flex; align-items: center; justify-content: center; gap: 1rem; width: fit-content; margin: 0 auto; }
+.holiday-soga-credit img { display: block; width: 2.2rem; height: auto; }
+.holiday-soga-credit figcaption { color: var(--holiday-white); font-size: .75rem; }
+
+@keyframes holiday-light-warmth { from { opacity: .55; } to { opacity: 1; } }
+@keyframes holiday-cloud-drift { from { transform: translateX(-1rem); } to { transform: translateX(2.5rem); } }
+@keyframes holiday-star-sway { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+
+@media (min-width: 1600px) {
+  .holiday-hero { min-height: 43rem; }
+  .tree-group-left { left: calc((100% - 85rem) / 2); }
+  .tree-group-right { right: calc((100% - 85rem) / 2); }
+}
+@media (max-width: 1100px) {
+  .holiday-tree-group { width: 21rem; height: 29rem; }
+  .tree-group-left { left: -6rem; }
+  .tree-group-right { right: -6rem; }
+  .holiday-tree { width: 16rem; }
+  .holiday-presents { width: 9rem; }
+  .holiday-elf { width: 7.5rem; }
+}
+@media (max-width: 700px) {
+  .holiday-hero { min-height: max(42rem, calc(100svh - 5rem)); align-items: start; padding: calc(16vw + 6rem) 1rem 17rem; }
+  .holiday-title-season { font-size: clamp(2.7rem, 15.8vw, 3.8rem); }
+  .holiday-title-photos { font-size: clamp(2rem, 9vw, 2.5rem); }
+  .holiday-description { margin-top: 1.1rem; font-size: .75rem; }
+  .holiday-date { margin-top: 1.2rem; }
+  .holiday-date-main { font-size: 1.5rem; }
+  .holiday-button { font-size: .7rem; }
+  .holiday-sky { height: 40rem; }
+  .holiday-light-string { width: 180%; max-width: none; left: -40%; }
+  .holiday-moon { top: 2.6rem; right: 5%; width: 3.5rem; height: 4rem; }
+  .holiday-cloud { width: 10rem; height: 3.2rem; }
+  .cloud-left { top: 4rem; left: -3rem; }
+  .cloud-right { top: 4.5rem; right: -2rem; width: 7rem; }
+  .holiday-santa { top: calc(16vw + 2.4rem); width: 7.5rem; }
+  .ornaments-left { left: 1%; width: 3.4rem; }
+  .ornaments-right { right: 0; width: 2.4rem; }
+  .holiday-tree-group { width: min(54vw, 14rem); height: 20rem; }
+  .tree-group-left { left: -3.4rem; }
+  .tree-group-right { right: -4rem; }
+  .holiday-tree { bottom: 2rem; width: 12rem; }
+  .tree-left { left: -1.5rem; }
+  .tree-right { right: -1rem; width: 11rem; }
+  .holiday-presents { width: clamp(5rem, 28vw, 7.5rem); bottom: 1.8rem; }
+  .holiday-elf { right: -3rem; bottom: 2.2rem; width: clamp(4.5rem, 28vw, 7rem); }
+  .presents-right { bottom: 2.1rem; left: -.5rem; }
+  .holiday-ground-back { height: 10rem; }
+  .holiday-snowbank { height: 5rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .holiday-page *, .holiday-page *::before, .holiday-page *::after { animation: none !important; transition: none !important; }
+  .holiday-snow { display: none; }
+  .holiday-santa { left: 18%; transform: rotate(-5deg); }
+  .holiday-button:hover { transform: none; }
+}

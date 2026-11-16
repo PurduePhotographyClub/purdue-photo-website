@@ -11,7 +11,7 @@ interface Props {
   filmGrainZIndex?: 'z-50' | 'z-30';
   robots?: string;
   showFloatingWidgets?: boolean;
-  theme?: 'default' | 'film-event';
+  theme?: 'default' | 'film-event' | 'holiday-event';
   title?: string;
 }
 
@@ -25,15 +25,17 @@ const {
 } = Astro.props;
 
 const isFilmEvent = theme === 'film-event';
+const isHolidayEvent = theme === 'holiday-event';
 ---
 
 <!doctype html>
-<html lang="en" class:list={['dark overflow-x-hidden', { 'film-event-theme': isFilmEvent }]}>
+<html lang="en" class:list={['dark overflow-x-hidden', { 'film-event-theme': isFilmEvent, 'holiday-event-theme': isHolidayEvent }]}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
     <meta name="description" content={description} />
     {isFilmEvent && <meta name="theme-color" content="#f79400" />}
+    {isHolidayEvent && <meta name="theme-color" content="#08271e" />}
     {robots && <meta name="robots" content={robots} />}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
@@ -41,7 +43,7 @@ const isFilmEvent = theme === 'film-event';
   <body
     class:list={[
       'overflow-x-hidden',
-      isFilmEvent ? 'bg-[#f4eee5] text-[#171717]' : 'bg-neutral-950 text-neutral-100',
+      isFilmEvent ? 'bg-[#f4eee5] text-[#171717]' : isHolidayEvent ? 'bg-[#08271e] text-[#f2f1e6]' : 'bg-neutral-950 text-neutral-100',
     ]}
     style="font-family: 'Space Mono', monospace;"
   >

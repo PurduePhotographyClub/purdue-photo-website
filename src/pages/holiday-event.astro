@@ -1,0 +1,84 @@
+---
+import Layout from '../layouts/Layout.astro';
+import HolidayDecorations from '../components/holiday/HolidayDecorations.astro';
+import HolidayTree from '../components/holiday/HolidayTree.astro';
+import HolidayPresents from '../components/holiday/HolidayPresents.astro';
+import HolidayInfoDialog from '../components/holiday/HolidayInfoDialog.astro';
+import '../styles/holiday-event.css';
+
+const eventDate = '2026-11-19';
+const weekday = 'Thursday';
+const monthDay = 'November 19';
+const year = '2026';
+const dateLabel = `${weekday}, ${monthDay}, ${year}`;
+const hours = '4:00–9:00 PM EST';
+---
+
+<Layout
+  title="Holiday photos | Purdue Photography Club"
+  description={`Book a free 15-minute group photo session at the Purdue Photography Club studio on ${dateLabel} from ${hours}.`}
+  robots="noindex, nofollow"
+  showFloatingWidgets={false}
+  theme="holiday-event"
+>
+  <div class="holiday-page" data-holiday-event data-motion="on">
+    <section class="holiday-hero" aria-labelledby="holiday-title">
+      <HolidayDecorations />
+      <svg class="holiday-ground-back" viewBox="0 0 1440 180" preserveAspectRatio="none" fill="none" aria-hidden="true">
+        <path d="M0 94C150 66 260 96 420 110S720 128 900 104s360-39 540-15v91H0Z" fill="#e7ede5" />
+      </svg>
+      <div class="holiday-tree-group tree-group-left" aria-hidden="true">
+        <HolidayTree className="holiday-tree tree-left" />
+        <div class="holiday-elf">
+          <svg class="holiday-elf-shadow" viewBox="0 0 316 449" fill="#567362" aria-hidden="true">
+            <ellipse cx="113" cy="450" rx="36" ry="5" opacity=".22" />
+            <ellipse cx="265" cy="450" rx="33" ry="6" opacity=".1" />
+          </svg>
+          <img src="/holiday-event/artwork/elf.webp" alt="" width="316" height="449" decoding="async" />
+        </div>
+      </div>
+      <div class="holiday-tree-group tree-group-right" aria-hidden="true">
+        <HolidayTree className="holiday-tree tree-right" />
+        <HolidayPresents className="holiday-presents presents-right" />
+      </div>
+
+      <div class="holiday-intro">
+        <h1 id="holiday-title"><span class="holiday-title-season">Holiday</span> <span class="holiday-title-photos">photos</span></h1>
+        <p class="holiday-description">Come with your friends!</p>
+        <time class="holiday-date" datetime={eventDate} aria-label={dateLabel}>
+          <span class="holiday-weekday">{weekday}</span>
+          <span class="holiday-date-main">{monthDay}</span>
+          <span class="holiday-year">{year}</span>
+        </time>
+        <p class="holiday-hours">{hours}</p>
+        <div id="event-details" class="holiday-info">
+          <button class="holiday-button" type="button" aria-haspopup="dialog" aria-controls="holiday-info-dialog" data-holiday-info-open>
+            <span>Sign up!</span>
+          </button>
+        </div>
+      </div>
+
+      <svg class="holiday-snowbank" viewBox="0 0 1440 180" preserveAspectRatio="none" fill="none" aria-hidden="true">
+        <path d="M0 73C72 48 129 51 214 83s154 50 257 46 191-26 312-17 214 20 337-10 222-57 320-24v102H0Z" fill="#f0f2e9" />
+        <path d="M0 131C182 103 299 157 503 144s379-13 523-5 276-36 414-7v48H0Z" fill="#f7f7f0" />
+      </svg>
+    </section>
+    <aside class="holiday-funding" aria-label="Holiday event funding">
+      <figure class="holiday-soga-credit">
+        <img src="/holiday-event/artwork/soga-logo.webp" alt="SOGA logo" width="214" height="238" loading="lazy" decoding="async" />
+        <figcaption>Funded by SOGA</figcaption>
+      </figure>
+    </aside>
+    <HolidayInfoDialog date={dateLabel} hours={hours} />
+  </div>
+
+  <script>
+    import { initializeHolidayMotion } from '../components/holiday/holiday-motion';
+    import { initializeHolidayInfoDialog } from '../components/holiday/holiday-info-dialog';
+    const holidayPage = document.querySelector<HTMLElement>('[data-holiday-event]');
+    if (holidayPage) {
+      initializeHolidayMotion(holidayPage);
+      initializeHolidayInfoDialog(holidayPage);
+    }
+  </script>
+</Layout>

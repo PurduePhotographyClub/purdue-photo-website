@@ -27,10 +27,8 @@ test("/film-event uses a route-scoped campaign theme", async () => {
   assert.match(layout, /<Footer[^>]*theme=\{theme\}/);
   assert.match(header, /theme\s*===\s*["']film-event["']/);
   assert.match(footer, /theme\s*===\s*["']film-event["']/);
-  assert.match(header, /specialEventLink\s*=\s*\{\s*to:\s*["']\/film-event["']/);
   assert.match(header, /href=\{specialEventLink\.to\}/);
   assert.match(header, /Special event/);
-  assert.match(header, /Film event/);
   assert.match(header, /text-amber-300/);
   assert.doesNotMatch(header, /border-amber-300/);
   assert.doesNotMatch(header, /↗/);

@@ -1,0 +1,90 @@
+.holiday-event-theme { scrollbar-gutter: stable; }
+.holiday-letter-dialog {
+  --holiday-letter-inset: 1.25rem;
+  --holiday-letter-fold-height: 3.2rem;
+  --holiday-letter-paper: #f8f5e9;
+  position: fixed;
+  inset: 0;
+  width: min(46rem, calc(100% - 2rem));
+  max-width: none;
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  padding: .4rem var(--holiday-letter-inset) var(--holiday-letter-fold-height);
+  overflow: hidden;
+  border: 1px solid #6e8e68;
+  border-radius: 4px;
+  background: var(--holiday-pine);
+  color: var(--holiday-white);
+  box-shadow: 0 1.2rem 4rem #04160e66;
+  color-scheme: light;
+}
+.holiday-letter-dialog::before {
+  position: absolute;
+  inset: auto var(--holiday-letter-inset) 0;
+  height: var(--holiday-letter-fold-height);
+  background: var(--holiday-letter-paper);
+  pointer-events: none;
+  content: '';
+}
+.holiday-letter-dialog::backdrop { background: #041b15d9; }
+.holiday-letter-toolbar { display: flex; justify-content: flex-end; min-height: 2.2rem; }
+.holiday-letter-close { display: flex; align-items: center; gap: .45rem; min-height: 2.2rem; padding: .2rem 0 .4rem .7rem; color: var(--holiday-white); font-size: .65rem; cursor: pointer; }
+.holiday-letter-close svg { width: 1rem; height: 1rem; }
+.holiday-letter-close:hover { color: var(--holiday-gold); }
+.holiday-letter-close:focus-visible { outline: 2px solid var(--holiday-gold); outline-offset: 3px; }
+.holiday-letter-scroll {
+  max-height: calc(100dvh - 8.7rem);
+  overflow: auto;
+  overscroll-behavior: none;
+  background: var(--holiday-letter-paper);
+  scrollbar-color: #9d6842 var(--holiday-letter-paper);
+  scrollbar-width: thin;
+}
+.holiday-letter-paper { min-height: 100%; padding: 1.4rem 2.6rem 1.8rem; color: #173e2f; }
+.holiday-letter-heading { position: relative; padding-right: 3.5rem; }
+.holiday-letter-ornaments { position: absolute; top: -1.4rem; right: -.6rem; width: 3.1rem; height: auto; pointer-events: none; }
+.holiday-letter-heading h2 { color: #8d302e; font: 400 clamp(2rem, 4vw, 2.8rem)/1.15 'Berkshire Swash', Georgia, serif; letter-spacing: -.025em; text-wrap: balance; }
+.holiday-letter-heading h2:focus { outline: none; }
+.holiday-letter-date { margin-top: .7rem; color: #723b2f; font-size: .65rem; line-height: 1.8; }
+.holiday-letter-date span { font-size: .75rem; font-weight: 700; }
+.holiday-letter-how { margin-top: 1.1rem; padding-top: .8rem; color: #173e2f; font: italic 400 1.35rem/1.3 'Playfair Display', Georgia, serif; }
+.holiday-letter-steps { display: grid; gap: 1rem; margin-top: 1rem; padding: 0; list-style: none; }
+.holiday-letter-steps > li { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); gap: .8rem; }
+.holiday-step-bauble { display: block; width: 2.5rem; height: auto; margin-top: -.4rem; }
+.holiday-letter-steps h4 { color: #173e2f; font: 700 1.05rem/1.3 'Playfair Display', Georgia, serif; }
+.holiday-letter-steps p { max-width: 65ch; margin-top: .35rem; color: #345241; font-size: .75rem; line-height: 1.75; text-wrap: pretty; }
+.holiday-letter-link { position: relative; display: inline-flex; align-items: center; min-height: 2.5rem; margin-top: .7rem; padding: .6rem 1rem; border: 1px solid #96332f; border-radius: 2px; background: #96332f; color: #f8f5e9; font: 400 .95rem/1.3 'Berkshire Swash', Georgia, serif; }
+.holiday-letter-link::after { position: absolute; inset: 3px; border: 1px solid #d6b875; border-radius: 1px; content: ''; pointer-events: none; }
+.holiday-letter-link:hover { text-decoration: underline; }
+.holiday-letter-link:focus-visible { outline: 2px solid #8d302e; outline-offset: 3px; }
+.holiday-letter-waiting { margin-top: .6rem; }
+.holiday-letter-waiting summary { width: fit-content; padding-block: .3rem; color: #723b2f; font-size: .65rem; cursor: pointer; text-underline-offset: .2em; }
+.holiday-letter-waiting summary:hover { text-decoration: underline; }
+.holiday-letter-waiting summary:focus-visible { outline: 2px solid #8d302e; outline-offset: 3px; }
+.holiday-letter-signoff { margin-top: 1.8rem; padding-top: 1.3rem; text-align: center; }
+.holiday-letter-greeting { display: flex; align-items: center; justify-content: center; gap: .9rem; }
+.holiday-letter-greeting p { color: #96332f; font: 400 clamp(1.8rem, 4vw, 2.3rem)/1.3 'Berkshire Swash', Georgia, serif; }
+.holiday-letter-greeting svg { width: .65rem; height: 1.1rem; color: #9b762e; flex-shrink: 0; }
+.holiday-letter-signature { margin-top: .45rem; color: #345241; font: italic 400 .8rem/1.5 'Playfair Display', Georgia, serif; }
+.holiday-envelope-fold { position: absolute; right: 0; bottom: 0; left: 0; width: 100%; height: var(--holiday-letter-fold-height); pointer-events: none; }
+.holiday-letter-dialog[open], .holiday-letter-dialog[open]::backdrop { animation: holiday-letter-appear 180ms ease-out; }
+@keyframes holiday-letter-appear { from { opacity: 0; } to { opacity: 1; } }
+@media (max-width: 700px) {
+  .holiday-letter-dialog { --holiday-letter-inset: .55rem; --holiday-letter-fold-height: 2.6rem; width: calc(100% - 1rem); max-height: calc(100dvh - 1rem); }
+  .holiday-letter-scroll { max-height: calc(100dvh - 6.3rem); }
+  .holiday-letter-paper { padding: 1.4rem 1rem 1.8rem; }
+  .holiday-letter-heading { padding-right: 2.5rem; }
+  .holiday-letter-heading h2 { font-size: 2rem; }
+  .holiday-letter-ornaments { top: -1.4rem; right: -.6rem; width: 2.3rem; }
+  .holiday-letter-date { font-size: .6rem; }
+  .holiday-letter-date span { font-size: .7rem; }
+  .holiday-letter-steps { gap: 1.3rem; }
+  .holiday-letter-steps > li { grid-template-columns: 1.8rem minmax(0, 1fr); gap: .5rem; }
+  .holiday-step-bauble { width: 1.8rem; margin-top: -.2rem; }
+  .holiday-letter-steps h4 { font-size: 1rem; }
+  .holiday-letter-steps p { font-size: .7rem; }
+  .holiday-letter-link { font-size: .9rem; padding-inline: .75rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .holiday-letter-dialog[open], .holiday-letter-dialog[open]::backdrop { animation: none; }
+}

@@ -3,6 +3,7 @@ import '../styles/index.css';
 import ReportIssueWidget from '../components/dashboard/ReportIssueWidget';
 import DashboardUpdatePopup from '../components/dashboard/DashboardUpdatePopup';
 import DashboardNotificationBell from '../components/dashboard/DashboardNotificationBell';
+import { CLUB_LOGO_SRC, USE_CHRISTMAS_LOGO } from '../lib/club-logo';
 import { DASHBOARD_VERSION } from '../lib/project-config';
 import type { ServiceManagerScope } from '../lib/service-manager-access';
 
@@ -116,7 +117,11 @@ const managerLabels: Record<ServiceManagerScope, string> = {
         <!-- Logo -->
         <div class="p-5 border-b border-neutral-800 flex items-center justify-between shrink-0">
           <a href="/" class="flex items-center gap-3 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-neutral-400">
-            <img src="/ppc-logo.webp" alt="PPC Logo" class="w-8 h-8 rounded-full brightness-[1.8] invert" style="mix-blend-mode: screen;" />
+            <img
+              src={CLUB_LOGO_SRC}
+              alt="PPC Logo"
+              class:list={['w-8 h-8 rounded-full', { 'brightness-[1.8] invert mix-blend-screen': !USE_CHRISTMAS_LOGO }]}
+            />
             <span class="text-xs tracking-[0.15em] uppercase text-neutral-300" style="font-family: 'Playfair Display', serif;">
               PPC Dashboard
             </span>

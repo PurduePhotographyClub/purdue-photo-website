@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { CLUB_LOGO_SRC } from "@/lib/club-logo";
 import {
   getProfileAvatarImageStyle,
   getProfileSocialHref,
@@ -195,7 +196,7 @@ function Avatar({
         />
       ) : (
         <img
-          src="/ppc-logo.webp"
+          src={CLUB_LOGO_SRC}
           alt="Purdue Photography Club logo"
           className="size-full object-contain p-5 opacity-75 sm:p-6"
           data-profile-avatar-fallback="true"

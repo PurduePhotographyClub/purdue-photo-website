@@ -1,0 +1,14 @@
+---
+interface Props { number: number; }
+const { number } = Astro.props;
+const color = number % 2 === 0 ? '#174b36' : '#96332f';
+---
+
+<svg class="holiday-step-bauble" viewBox="0 0 64 80" fill="none" aria-hidden="true">
+  <path d="M32 0v9" stroke="#a48742" stroke-width="1.5" />
+  <circle cx="32" cy="13" r="4" stroke="#a48742" stroke-width="2" />
+  <path d="M24 18h16v10H24z" fill="#bd9b50" />
+  <circle cx="32" cy="49" r="27" fill={color} />
+  <circle cx="32" cy="49" r="23" stroke="#e4c886" stroke-width=".7" />
+  <text x="32" y="49" text-anchor="middle" dominant-baseline="central" fill="#f8f5e9" font-family="Playfair Display, Georgia, serif" font-size="31" font-weight="700" style="font-variant-numeric: lining-nums tabular-nums">{number}</text>
+</svg>

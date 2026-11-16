@@ -8,6 +8,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 const { default: ProfileTemplateRenderer } = await import(
   "../src/components/profile/ProfileTemplateRenderer.tsx"
 );
+const { CLUB_LOGO_SRC } = await import("../src/lib/club-logo.ts");
 const {
   PROFILE_AVATAR_SHAPES,
   PROFILE_DECORATIONS,
@@ -144,7 +145,7 @@ test("the profile portrait is square, intrinsic, and uses the club fallback imag
   assert.match(avatar, /aspect-square/);
   assert.match(avatar, /max-w-full/);
   assert.match(avatar, /data-profile-avatar-fallback="true"/);
-  assert.match(avatar, /src="\/ppc-logo\.webp"/);
+  assert.equal(avatar.match(/\bsrc="([^"]+)"/)?.[1], CLUB_LOGO_SRC);
   assert.match(avatar, /width="256"/);
   assert.match(avatar, /height="256"/);
   assert.match(avatar, /object-contain/);
